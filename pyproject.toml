@@ -4,7 +4,7 @@ dependencies = []
 description = "Dev Environment"
 keywords = []
 readme = "README.md"
-license = "GPL-3.0-only"
+license = "MIT"
 name = "devenv"
 requires-python = ">=3.14"
 version = "0.1.0"
@@ -13,11 +13,10 @@ name = "AJ Slater"
 email = "aj@slater.net"
 
 [project.urls]
-"Docker Image" = "https://hub.docker.com/r/ajslater/"
-News = "https://.readthedocs.io/NEWS/"
-Documentation = "https://.readthedocs.io"
-Issues = "https://github.com/ajslater//issues"
-Source = "https://github.com/ajslater/"
+News = "https://github.com/ajslater/devenv/NEWS.md"
+Documentation = "https://ajslater/devenv/README.md"
+Issues = "https://github.com/ajslater/devenv/issues"
+Source = "https://github.com/ajslater/devenv"
 
 [dependency-groups]
 dev = [
