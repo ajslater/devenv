@@ -1,0 +1,14 @@
+__pycache__
+.*cache/
+.circleci
+.git
+.venv
+*Dockerfile
+/node_modules
+/test-results
+/tests/**/*.json
+/tests/**/*.xml
+/tests/**/*.yaml
+dist
+package-lock.json
+uv.lock
