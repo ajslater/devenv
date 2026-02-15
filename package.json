@@ -39,6 +39,14 @@
         "options": {
           "parser": "sh"
         }
+      },
+      {
+        "files": [
+          "**/nginx/http.d/**/*.conf"
+        ],
+        "options": {
+          "parser": "nginx"
+        }
       }
     ]
   },
