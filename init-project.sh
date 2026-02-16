@@ -3,7 +3,7 @@
 set -euo pipefail
 DEVENV=../devenv
 mkdir -p bin
-cp -a "$DEVENV"/bin/* bin/ || true
-cp -an "$DEVENV"/init/* "$DEVENV"/init/.* . || true
+"$DEVENV"/bin/copy-new-files.sh "$DEVENV"/bin bin
+"$DEVENV"/bin/copy-new-files.sh "$DEVENV"/init .
 uv pip install semver tomlkit
 bin/update-devenv.sh
