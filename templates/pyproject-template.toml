@@ -156,14 +156,14 @@ omit = [
 minversion = "9.0"
 asyncio_mode = "strict"
 addopts = [
-  "--junit-xml=test-results/pytest/results.xml",
-  "--ra",
-  "--strict-config",
-  "--strict-markers",
   "--cov",
   "--cov-append",
   "--cov-report=html",
   "--cov-report=term",
+  "--junit-xml=test-results/pytest/results.xml",
+  "-ra",
+  "--strict-config",
+  "--strict-markers",
 ]
 junit_family = "xunit2"
 strict = true
