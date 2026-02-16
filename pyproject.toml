@@ -24,7 +24,7 @@ dev = [
   "neovim~=0.3",
   "nplusone~=1.0",
   "picopt~=5.2",
-  "semver~=3.0",
+  "semantic-version~=2.10.0",
   "toml-cli~=0.7",
   "tomlkit~=0.14",
 ]
@@ -36,7 +36,6 @@ lint = [
   "icecream~=2.1",
   "radon[toml]~=6.0",
   "ruff~=0.15",
-  "semver~=3.0",
   "tomlkit~=0.14",
   "types-python-dateutil~=2.9",
   "ty~=0.0.17",

@@ -296,7 +296,7 @@ dev = [
     { name = "neovim" },
     { name = "nplusone" },
     { name = "picopt" },
-    { name = "semver" },
+    { name = "semantic-version" },
     { name = "toml-cli" },
     { name = "tomlkit" },
 ]
@@ -311,7 +311,6 @@ lint = [
     { name = "icecream" },
     { name = "radon", extra = ["toml"] },
     { name = "ruff" },
-    { name = "semver" },
     { name = "tomlkit" },
     { name = "ty" },
     { name = "types-python-dateutil" },
@@ -334,7 +333,7 @@ dev = [
     { name = "neovim", specifier = "~=0.3" },
     { name = "nplusone", specifier = "~=1.0" },
     { name = "picopt", specifier = "~=5.2" },
-    { name = "semver", specifier = "~=3.0" },
+    { name = "semantic-version", specifier = "~=2.10.0" },
     { name = "toml-cli", specifier = "~=0.7" },
     { name = "tomlkit", specifier = "~=0.14" },
 ]
@@ -349,7 +348,6 @@ lint = [
     { name = "icecream", specifier = "~=2.1" },
     { name = "radon", extras = ["toml"], specifier = "~=6.0" },
     { name = "ruff", specifier = "~=0.15" },
-    { name = "semver", specifier = "~=3.0" },
     { name = "tomlkit", specifier = "~=0.14" },
     { name = "ty", specifier = "~=0.0.17" },
     { name = "types-python-dateutil", specifier = "~=2.9" },
@@ -868,11 +866,11 @@ wheels = [
 
 [[package]]
 name = "platformdirs"
-version = "4.9.1"
+version = "4.9.2"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6c/d5/763666321efaded11112de8b7a7f2273dd8d1e205168e73c334e54b0ab9a/platformdirs-4.9.1.tar.gz", hash = "sha256:f310f16e89c4e29117805d8328f7c10876eeff36c94eac879532812110f7d39f", size = 28392, upload-time = "2026-02-14T21:02:44.973Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/04/fea538adf7dbbd6d186f551d595961e564a3b6715bdf276b477460858672/platformdirs-4.9.2.tar.gz", hash = "sha256:9a33809944b9db043ad67ca0db94b14bf452cc6aeaac46a88ea55b26e2e9d291", size = 28394, upload-time = "2026-02-16T03:56:10.574Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/70/77/e8c95e95f1d4cdd88c90a96e31980df7e709e51059fac150046ad67fac63/platformdirs-4.9.1-py3-none-any.whl", hash = "sha256:61d8b967d34791c162d30d60737369cbbd77debad5b981c4bfda1842e71e0d66", size = 21307, upload-time = "2026-02-14T21:02:43.492Z" },
+    { url = "https://files.pythonhosted.org/packages/48/31/05e764397056194206169869b50cf2fee4dbbbc71b344705b9c0d878d4d8/platformdirs-4.9.2-py3-none-any.whl", hash = "sha256:9170634f126f8efdae22fb58ae8a0eaa86f38365bc57897a6c4f781d1f5875bd", size = 21168, upload-time = "2026-02-16T03:56:08.891Z" },
 ]
 
 [[package]]
@@ -1270,12 +1268,12 @@ wheels = [
 ]
 
 [[package]]
-name = "semver"
-version = "3.0.4"
+name = "semantic-version"
+version = "2.10.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/72/d1/d3159231aec234a59dd7d601e9dd9fe96f3afff15efd33c1070019b26132/semver-3.0.4.tar.gz", hash = "sha256:afc7d8c584a5ed0a11033af086e8af226a9c0b206f313e0301f8dd7b6b589602", size = 269730, upload-time = "2025-01-24T13:19:27.617Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7d/31/f2289ce78b9b473d582568c234e104d2a342fd658cc288a7553d83bb8595/semantic_version-2.10.0.tar.gz", hash = "sha256:bdabb6d336998cbb378d4b9db3a4b56a1e3235701dc05ea2690d9a997ed5041c", size = 52289, upload-time = "2022-05-26T13:35:23.454Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a6/24/4d91e05817e92e3a61c8a21e08fd0f390f5301f1c448b137c57c4bc6e543/semver-3.0.4-py3-none-any.whl", hash = "sha256:9c824d87ba7f7ab4a1890799cec8596f15c1241cb473404ea1cb0c55e4b04746", size = 17912, upload-time = "2025-01-24T13:19:24.949Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/23/8146aad7d88f4fcb3a6218f41a60f6c2d4e3a72de72da1825dc7c8f7877c/semantic_version-2.10.0-py2.py3-none-any.whl", hash = "sha256:de78a3b8e0feda74cabc54aab2da702113e33ac9d9eb9d2389bcf1f58b7d9177", size = 15552, upload-time = "2022-05-26T13:35:21.206Z" },
 ]
 
 [[package]]
