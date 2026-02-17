@@ -178,7 +178,7 @@ addopts = [
 ]
 junit_family = "xunit2"
 strict = true
-testpaths = "tests"
+testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.radon]
