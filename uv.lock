@@ -44,14 +44,14 @@ wheels = [
 
 [[package]]
 name = "basedpyright"
-version = "1.38.0"
+version = "1.38.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nodejs-wheel-binaries" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a2/d4/4ac6eeba6cfe2ad8586dcf87fdb9e8b045aa467b559bc2e24e91e84f58b2/basedpyright-1.38.0.tar.gz", hash = "sha256:7a9cf631d7eaf5859022a4352b51ed0e78ce115435a8599402239804000d0cdf", size = 25257385, upload-time = "2026-02-11T16:05:47.834Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/ea/4d45e3c66c609496f3069a7c9e5fbd1f9ba54097c41b89048af0d8021ea6/basedpyright-1.38.1.tar.gz", hash = "sha256:e4876aa3ef7c76569ffdcd908d4e260b8d1a1deaa8838f2486f91a10b60d68d6", size = 25267403, upload-time = "2026-02-18T09:20:45.563Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/90/1883cec16d667d944b08e8d8909b9b2f46cc1d2b9731e855e3c71f9b0450/basedpyright-1.38.0-py3-none-any.whl", hash = "sha256:a6c11a343fd12a2152a0d721b0e92f54f2e2e3322ee2562197e27dad952f1a61", size = 12303557, upload-time = "2026-02-11T16:05:44.863Z" },
+    { url = "https://files.pythonhosted.org/packages/28/92/42f4dc30a28c052a70c939d8dbb34102674b48c89369010442038d3c888b/basedpyright-1.38.1-py3-none-any.whl", hash = "sha256:24f21661d2754687b64f3bc35efcc78781e11b08c8b2310312ed92bf178ea627", size = 12311610, upload-time = "2026-02-18T09:20:50.09Z" },
 ]
 
 [[package]]
@@ -799,7 +799,7 @@ wheels = [
 
 [[package]]
 name = "picopt"
-version = "5.3.1"
+version = "5.3.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "confuse" },
@@ -817,9 +817,9 @@ dependencies = [
     { name = "treestamps" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d6/5b/33fa790646ca138f9a88fd4d6140483ae255a53e3ceef2f2b9290df93e68/picopt-5.3.1.tar.gz", hash = "sha256:63e9f3fd5b99ea2403c417c571bc08f585aa0bea7050b8f810277032f0fccbd4", size = 9957094, upload-time = "2026-02-01T09:36:18.916Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/39/fb/e9f13ebdc924a5e44c23cbf5937984fe817b889253adc774707121ae9a25/picopt-5.3.2.tar.gz", hash = "sha256:603bd71dbfa4da49aac46f38419d990ef48f2525a424e10e4b2c7bf75aa72fe5", size = 9983040, upload-time = "2026-02-17T01:08:05.388Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f6/78/cb0e7e8abda806c6c1a34b03db78d67f07e23947154de78715a7d257b894/picopt-5.3.1-py3-none-any.whl", hash = "sha256:cf4225fdf9fed6fece3d0df39fbfd40c29d35826d40ae84faa0963e7122ebe81", size = 65642, upload-time = "2026-02-01T09:36:21.111Z" },
+    { url = "https://files.pythonhosted.org/packages/4c/97/6459f85640d96fcbf7781889113d7ca0ef964640e837b90212363612461d/picopt-5.3.2-py3-none-any.whl", hash = "sha256:e2cb9ec8b6af32f58acab6b4bb25288771778768edc0e704a42c13e77c73b1d4", size = 66135, upload-time = "2026-02-17T01:08:07.63Z" },
 ]
 
 [[package]]
