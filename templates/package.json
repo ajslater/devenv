@@ -70,7 +70,7 @@
     "@fsouza/prettierd": "^0.27.0",
     "@prettier/plugin-xml": "^3.4.2",
     "@stylistic/eslint-plugin": "^5.3.1",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.0",
     "eslint_d": "^14.3.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-import-resolver-alias": "^1.1.2",
