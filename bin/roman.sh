@@ -21,7 +21,13 @@ usage() {
 ignorefile=""
 while getopts ":i:" opt; do
   case $opt in
-  i) ignorefile=$OPTARG ;;
+  i)
+    ignorefile=$OPTARG
+    if [[ ! -f $ignorefile ]]; then
+      echo "👎 Can't read $ignorefile"
+      exit 1
+    fi
+    ;;
   :)
     echo "Error: -${OPTARG} requires an argument"
     usage
@@ -35,6 +41,17 @@ done
 shift $((OPTIND - 1))
 
 [ "${1:-}" = "" ] && usage
+
+# ---------------------------------------------------------------------------
+# Build find command
+# ---------------------------------------------------------------------------
+BACKUP_PATTERN='*~'
+find_cmd=(find "$@" -not -path '*/.*' -type f -not -name "$BACKUP_PATTERN")
+if [ "${ignorefile:-}" != "" ]; then
+  while IFS= read -r pattern; do
+    find_cmd+=(! -name "$pattern")
+  done <"$ignorefile"
+fi
 
 # ---------------------------------------------------------------------------
 # Build grep command
@@ -63,31 +80,19 @@ run_grep() {
 }
 
 # ---------------------------------------------------------------------------
-# Build find command
-# ---------------------------------------------------------------------------
-HIDDEN_PATTERN='.*'
-BACKUP_PATTERN='*~'
-find_cmd=(find "$@" \( -name "$HIDDEN_PATTERN" -prune \) -o \( -type f ! -name "$BACKUP_PATTERN" -print \))
-if [ "${ignorefile:-}" != "" ]; then
-  while IFS= read -r pattern; do
-    find_cmd+=(! -name "$pattern")
-  done <"$ignorefile"
-fi
-
-# ---------------------------------------------------------------------------
 # Iterate over files and check for zombie compliance
 # ---------------------------------------------------------------------------
 good=1
 while IFS= read -r f; do
   echo "$f"
   head_lines=$(head -2 "$f")
-  line1=$(echo "$head_lines" | awk 'NR==1')
-  line2=$(echo "$head_lines" | awk 'NR==2')
 
   # Skip files that don't have a shell shebang on line 1
+  line1=$(echo "$head_lines" | awk 'NR==1')
   echo "$line1" | run_grep -q -E "$SHELL_SHEBANG_PATTERN" || continue
 
   # Flag files missing a comment on line 2
+  line2=$(echo "$head_lines" | awk 'NR==2')
   if ! echo "$line2" | run_grep -q '^# '; then
     echo "🔪 $f"
     good=0
