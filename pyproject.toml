@@ -34,6 +34,7 @@ lint = [
   "codespell~=2.4",
   "complexipy~=5.1",
   "icecream~=2.1",
+  "mbake~=1.4.5",
   "pathspec~=1.0.4",
   "radon[toml]~=6.0",
   "ruff~=0.15",
