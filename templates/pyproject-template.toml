@@ -22,6 +22,7 @@ lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
   "complexipy~=5.1",
+  "pathspec~=1.0.4",
   "radon[toml]~=6.0",
   "ruff~=0.15",
   "ty~=0.0.17",
@@ -154,7 +155,6 @@ omit = [
 
 [tool.pytest]
 minversion = "9.0"
-asyncio_mode = "strict"
 addopts = [
   "--cov",
   "--cov-append",

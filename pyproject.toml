@@ -34,6 +34,7 @@ lint = [
   "codespell~=2.4",
   "complexipy~=5.1",
   "icecream~=2.1",
+  "pathspec~=1.0.4",
   "radon[toml]~=6.0",
   "ruff~=0.15",
   "tomlkit~=0.14",
@@ -165,7 +166,6 @@ omit = [
 
 [tool.pytest]
 minversion = "9.0"
-asyncio_mode = "strict"
 addopts = [
   "--cov",
   "--cov-append",
@@ -180,6 +180,7 @@ junit_family = "xunit2"
 strict = true
 testpaths = ["tests"]
 pythonpath = ["."]
+asyncio_mode = "strict"
 
 [tool.radon]
 exclude = "*~,.*,.*/*,__pycache__/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*"
