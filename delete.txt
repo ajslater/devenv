@@ -1,0 +1,13 @@
+bin/clean.sh
+bin/docker-build.sh
+bin/fix-lint-backend.sh
+bin/link-dotfiles.sh
+bin/lint-backend-complexity.sh
+bin/lint-backend.sh
+bin/makefile-help.mk
+bin/monkeyapply.sh
+bin/monkeyrun.sh
+bin/roman.sh
+bin/sortignore.sh
+bin/update-deps.sh
+bin/venv-upgrade.sh
