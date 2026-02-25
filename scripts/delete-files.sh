@@ -9,5 +9,7 @@ while IFS= read -r file || [[ -n "$file" ]]; do
   [[ -f "$file" ]] && existing_files+=("$file")
 done < "$DELETE_FILE"
 
-echo "Deleting ${#existing_files[@]} files..."
-rm -f -- "${existing_files[@]}"
+if ((${#existing_files[@]})); then
+  echo "Deleting ${#existing_files[@]} files..."
+  rm -f -- "${existing_files[@]}"
+fi

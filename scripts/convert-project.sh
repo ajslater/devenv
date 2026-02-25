@@ -4,4 +4,4 @@ set -euo pipefail
 DEVENV=../devenv
 mv Makefile Makefile.orig.mk
 mv eslint.config.js eslint.config.orig.js
-"$DEVENV"/init-project.sh
+"$DEVENV"/scripts/init-project.sh
