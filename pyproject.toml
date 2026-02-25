@@ -107,6 +107,7 @@ exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "bin/django/manage.py",
 ]
 pythonVersion = "3.10"
 failOnWarnings = false
@@ -305,6 +306,7 @@ exclude = [
   "test-results",
   "typings",
   "vulture_ignorelist.py",
+  "bin/django/manage.py",
 ]
 
 [tool.typos.default.extend-words]
