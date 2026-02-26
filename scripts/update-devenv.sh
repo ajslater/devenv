@@ -64,7 +64,7 @@ fi
 
 # Fix Merged
 if ((${#fix_files[@]})); then
-  npm update
+  # npm update
 
   # Fix
   npx eslint_d --cache --fix "${fix_files[@]}"
