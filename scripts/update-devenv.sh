@@ -6,7 +6,7 @@ set -euo pipefail
 ########
 # Init #
 ########
-DEVENV_SRC="${1:-${DEVENV_SRC:-../devenv}}"
+DEVENV_SRC="${1:-${DEVENV_SRC:-}}"
 [ "${DEVENV_SRC:-}" == "" ] && DEVENV_SRC=../devenv
 PD=$PWD
 

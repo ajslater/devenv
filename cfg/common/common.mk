@@ -33,7 +33,7 @@ update:: update-npm
 ## Update development environment
 ## @category Update
 update-devenv:
-	$(DEVENV_SRC)/scripts/update-devenv.sh
+	DEVENV_SRC=$(DEVENV_SRC) $(DEVENV_SRC)/scripts/update-devenv.sh
 
 .PHONY: fix
 ## Fix lint errors
