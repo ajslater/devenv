@@ -1,5 +1,6 @@
 SHELL := /usr/bin/env bash
 
+include cfg/devenv.mk
 # include cfg/django.mk
 # include cfg/frontend.mk
 include cfg/python.mk
