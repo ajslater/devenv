@@ -30,9 +30,9 @@ done
 
 fix_files=()
 # Common: Javascript
-if [ "${DEVENV_COMMON:-}" != "" ]; then
+if [ "${DEVENV_NODE_ROOT:-}" != "" ]; then
   f=package.json
-  template_f="$DEVENV_SRC/templates/common/$f"
+  template_f="$DEVENV_SRC/templates/node_root/$f"
   output_f="$PD/$f"
   uv run "$DEVENV_SRC"/scripts/merge_package_json.py "$template_f" "$output_f" -o "$output_f"
   fix_files+=("$f")
@@ -66,7 +66,7 @@ fi
 if ((${#fix_files[@]})); then
   # npm update
 
-  # Fix
+  # Fix after merge
   npx eslint_d --cache --fix "${fix_files[@]}"
   npx prettier --write "${fix_files[@]}"
 

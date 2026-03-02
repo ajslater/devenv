@@ -3,8 +3,8 @@
 # Requires yq
 set -euo pipefail
 
-DEVENV_SRC=${DEVENV_SRC:-../devenv}
-export DEVENV_SRC
+#DEVENV_SRC=${DEVENV_SRC:-../devenv}
+#export DEVENV_SRC
 CONFIG_FN="./.devenv.yaml"
 
 while IFS= read -r feature; do
