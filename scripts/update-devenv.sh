@@ -21,12 +21,15 @@ mkdir -pv "$PD"/bin "$PWD"/cfg
 
 # Dotfiles
 "$DEVENV_SRC"/scripts/merge-dotfiles.sh "$DEVENV_SRC/templates" "$PD"
+bin/sort-ignore.sh
 
 # Scripts
 SUBDIRS=(bin cfg)
 for d in "${SUBDIRS[@]}"; do
   "$DEVENV_SRC"/scripts/copy-new-files.sh "$DEVENV_SRC/$d" "$PD/$d"
 done
+uv run mbake format Makefile cfg/*.mk
+shellharden --replace bin/*.sh
 
 fix_files=()
 # Common: Javascript
@@ -71,5 +74,5 @@ if ((${#fix_files[@]})); then
   npx prettier --write "${fix_files[@]}"
 
   # Report
-  git status --short "${fix_files[@]}"
+  git status --short .* bin cfg "${fix_files[@]}"
 fi
