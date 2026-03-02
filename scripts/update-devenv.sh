@@ -1,18 +1,15 @@
 #!/usr/bin/env bash
 # Update a project by merging the devenv templates
-# Requires variables set by parse-config.sh
+# Requires DEVENV_<FEATURE> variables set in makefiles
 set -euo pipefail
 
 ########
 # Init #
 ########
-DEVENV_SRC="${1:-${DEVENV_SRC:-}}"
-[ "${DEVENV_SRC:-}" == "" ] && DEVENV_SRC=../devenv
+DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
 PD=$PWD
 
-source "$DEVENV_SRC/scripts/parse-config.sh"
-
-"$DEVENV_SRC"/scripts/delete-files.sh "$DEVENV_SRC"
+"$DEVENV_SRC"/scripts/delete-files.sh
 mkdir -pv "$PD"/bin "$PWD"/cfg
 
 ##########

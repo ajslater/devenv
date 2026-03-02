@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Usage: ./copy-new-files.sh SOURCE_DIR DEST_DIR
-# Requires feature variables set by parse-config.sh
+# Requires feature DEVENV_<FEATURE> variables set in included makefiles
 set -euo pipefail
 
 SOURCE_DIR="${1:?Source directory required}"
@@ -41,7 +41,7 @@ function copy_files() {
   done < <(find "$SOURCE_SUBDIR" -type f ! -name '*~')
 }
 
-FEATURES=(common docker ci python docs frontend django)
+FEATURES=(common node_root docker ci python docs frontend django)
 for feature in "${FEATURES[@]}"; do
   varname="DEVENV_${feature^^}"
   if [ "${!varname:-}" ]; then

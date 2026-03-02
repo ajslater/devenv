@@ -1,5 +1,6 @@
 SHELL := /usr/bin/env bash
 DEVENV_SRC ?= ../devenv
+DEVENV_COMMON := 1
 
 .PHONY: clean
 ## Clean caches

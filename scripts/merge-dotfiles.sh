@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Merge development environment dotfiles
-# Requires variables set by parse-config.sh
+# Requires DEVENV_<FEATURE> variables set in makefiles
 set -euo pipefail
 SRC=$1
 DEST=$2
@@ -31,7 +31,7 @@ function merge_files() {
   done
 }
 
-FEATURES=(common docker ci python docs frontend django)
+FEATURES=(common node_root docker ci python docs frontend django)
 for feature in "${FEATURES[@]}"; do
   varname="DEVENV_${feature^^}"
   if [ "${!varname:-}" ]; then
