@@ -41,8 +41,8 @@ function copy_files() {
   done < <(find "$SOURCE_SUBDIR" -type f ! -name '*~')
 }
 
-FEATURES=(common node_root docker ci python docs frontend django)
-for feature in "${FEATURES[@]}"; do
+source "$DEVENV_SRC"/scripts/all-features.sh
+for feature in "${ALL_FEATURES[@]}"; do
   varname="DEVENV_${feature^^}"
   if [ "${!varname:-}" ]; then
     subdir="$SOURCE_DIR/$feature"
