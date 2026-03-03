@@ -1,3 +1,4 @@
+.devenv.yaml
 bin/clean.sh
 bin/docker-build.sh
 bin/copy-new-files.sh
