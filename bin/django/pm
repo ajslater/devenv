@@ -1,0 +1,5 @@
+#!/bin/bash
+# Convenience script for running django manage tasks with uv
+set -euo pipefail
+export PYTHONPATH=.
+uv run python3 bin/manage.py "$@"

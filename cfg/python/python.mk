@@ -1,3 +1,6 @@
+DEVENV_PYTHON := 1
+export DEVENV_PYTHON
+
 .PHONY: clean
 ## Clean python caches
 ## @category Clean

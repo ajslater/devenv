@@ -1,11 +1,14 @@
+DEVENV_DJANGO := 1
+export DEVENV_DJANGO
+
 .PHONY: fix
-## Fix django lint errors
+## Fix django lint errors in templates
 ## @category Fix
 fix::
 	uv run --group lint djlint --reformat **/templates/**/*.html
 
 .PHONY: lint
-## Fix django lint errors
+## Lint django templates
 ## @category Lint
 lint::
 	uv run --group lint djlint --lint **/templates/**/*.html
@@ -34,8 +37,13 @@ collectstatic: build-icons build-frontend
 django-check:
 	bin/pm check
 
+.PHONY: build-only
+## Build python package
+## @category Build
+build-only:
+	uv build
+
 .PHONY: build
 ## Build python package
 ## @category Build
-build:: collectstatic
-	uv build
+build:: collectstatic build-only
