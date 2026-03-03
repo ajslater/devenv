@@ -2,12 +2,14 @@
 # copy specific makefiles
 set -euo pipefail
 DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
+DEFAULT_FEATURES=(common node_root python)
 
 while getopts "h?:" opt; do
   case "$opt" in
     h | \?)
       source "$DEVENV_SRC"/scripts/all-features.sh
-      echo Features: "${ALL_FEATURES[@]}"
+      echo Available Features: "${ALL_FEATURES[@]}"
+      echo Default Features: "${DEFAULT_FEATURES[@]}"
       exit 1
       ;;
   esac
@@ -16,7 +18,7 @@ done
 if [[ ${#@} -gt 0 ]]; then
   FEATURES=("$@")
 else
-  FEATURES=(common node_root python)
+  FEATURES=("${DEFAULT_FEATURES[@]}")
 fi
 echo Adding features: "${FEATURES[@]}"
 for feature in "${FEATURES[@]}"; do
