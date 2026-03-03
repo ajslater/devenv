@@ -2,11 +2,10 @@
 # copy specific makefiles
 set -euo pipefail
 DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
-DEFAULT_FEATURES=(common node_root python)
 if [[ ${#@} -gt 0 ]]; then
   FEATURES=("$@")
 else
-  FEATURES=("${DEFAULT_FEATURES[@]}")
+  FEATURES=(common node_root python)
 fi
 
 for feature in "${FEATURES[@]}"; do
