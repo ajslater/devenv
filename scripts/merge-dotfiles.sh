@@ -31,8 +31,8 @@ function merge_files() {
   done
 }
 
-FEATURES=(common node_root docker ci python docs frontend django)
-for feature in "${FEATURES[@]}"; do
+source "$DEVENV_SRC"/scripts/all-features.sh
+for feature in "${ALL_FEATURES[@]}"; do
   varname="DEVENV_${feature^^}"
   if [ "${!varname:-}" ]; then
     subdir="$SRC/$feature"

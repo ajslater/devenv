@@ -29,6 +29,13 @@ cd old_project
 
 ### Customization
 
+#### Features
+
+Add features with the `../devenv/add-makefiles.sh` script listed as arguments.
+Available and default features are are listed with `-h`
+
+#### Old files
+
 The old Makefile and eslint.config.js are saved for reference. Copy project
 unique sections into the new Makefile and eslint.config.js
 
