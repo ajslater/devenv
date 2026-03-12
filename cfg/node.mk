@@ -1,27 +1,27 @@
-DEVENV_NODE_ROOT := 1
-export DEVENV_NODE_ROOT
+DEVENV_NODE := 1
+export DEVENV_NODE
 
-.PHONY: install-deps-npm
+.PHONY: install-deps-node
 ## Update and install node packages
 ## @category Install
-install-deps-npm:
+install-deps-node:
 	npm install
 
 .PHONY: install
 ## Install
 ## @category Install
-install:: install-deps-npm
+install:: install-deps-node
 
-.PHONY: update-npm
-## Update npm dependencies
+.PHONY: update-node
+## Update node dependencies
 ## @category Update
-update-npm:
-	./bin/update-deps-npm.sh
+update-node:
+	./bin/update-deps-node.sh
 
 .PHONY: update
 ## Update dependencies
 ## @category Update
-update:: update-npm
+update:: update-node
 
 .PHONY: kill-eslint_d
 ## Kill eslint daemon
@@ -33,7 +33,7 @@ kill-eslint_d:
 ## @category Update
 V :=
 .PHONY: version
-## Show or set project version for npm
+## Show or set project version for node
 ## @category Update
 version::
-	bin/version-npm.sh $(V)
+	bin/version-node.sh $(V)

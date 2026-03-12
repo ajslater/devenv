@@ -2,7 +2,7 @@
 # copy specific makefiles
 set -euo pipefail
 DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
-DEFAULT_FEATURES=(common node_root python)
+DEFAULT_FEATURES=(common node python)
 
 while getopts "h?:" opt; do
   case "$opt" in

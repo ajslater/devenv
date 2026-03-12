@@ -30,9 +30,9 @@ shellharden --replace bin/*.sh
 
 fix_files=()
 # Common: Javascript
-if [ "${DEVENV_NODE_ROOT:-}" != "" ]; then
+if [ "${DEVENV_NODE:-}" != "" ]; then
   f=package.json
-  template_f="$DEVENV_SRC/templates/node_root/$f"
+  template_f="$DEVENV_SRC/templates/node/$f"
   output_f="$PD/$f"
   uv run "$DEVENV_SRC"/scripts/merge_package_json.py "$template_f" "$output_f" -o "$output_f"
   fix_files+=("$f")

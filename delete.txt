@@ -17,7 +17,10 @@ bin/roman.sh
 bin/sortignore.sh
 bin/test.sh
 bin/update-deps.sh
+bin/update-deps-npm.sh
 bin/update-devenv.sh
 bin/venv-upgrade.sh
 bin/version.sh
+bin/version-npm.sh
 cfg/eslint.config.js
+cfg/node_root.mk
