@@ -2,6 +2,7 @@
 # Usage: ./copy-new-files.sh SOURCE_DIR DEST_DIR
 # Requires feature DEVENV_<FEATURE> variables set in included makefiles
 set -euo pipefail
+set -x
 
 SOURCE_DIR="${1:?Source directory required}"
 DEST_DIR="${2:?Destination directory required}"

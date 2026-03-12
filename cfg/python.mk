@@ -1,3 +1,6 @@
+DEVENV_PYTHON := 1
+export DEVENV_PYTHON
+
 .PHONY: clean
 ## Clean python caches
 ## @category Clean
@@ -38,10 +41,10 @@ update:: update-python update-npm
 ## @category Update
 V :=
 .PHONY: version
-## Show or set project version
+## Show or set project version for python project
 ## @category Update
-version:
-	bin/version.sh $(V)
+version::
+	bin/version-python.sh $(V)
 
 .PHONY: fix-python
 ## Fix python lint errors

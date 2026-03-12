@@ -10,5 +10,6 @@ if [[ ${DEVENV_PYTHON:-} ]]; then
 fi
 "$DEVENV_SRC"/scripts/copy-new-files.sh "$DEVENV_SRC"/bin "$PD"/bin
 "$DEVENV_SRC"/scripts/copy-new-files.sh "$DEVENV_SRC"/init "$PD"
+mv eslint.config.init.js eslint.config.js
 uv pip install packaging semver tomlkit
 "$DEVENV_SRC/scripts/update-devenv.sh"

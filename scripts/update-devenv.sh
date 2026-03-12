@@ -67,7 +67,7 @@ if ((${#fix_files[@]})); then
   # npm update
 
   # Fix after merge
-  npx eslint_d --cache --fix "${fix_files[@]}"
+  npx eslint --cache --fix "${fix_files[@]}"
   npx prettier --write "${fix_files[@]}"
 
   # Report
