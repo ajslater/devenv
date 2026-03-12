@@ -11,5 +11,5 @@ fi
 "$DEVENV_SRC"/scripts/copy-new-files.sh "$DEVENV_SRC"/bin "$PD"/bin
 "$DEVENV_SRC"/scripts/copy-new-files.sh "$DEVENV_SRC"/init "$PD"
 mv eslint.config.init.js eslint.config.js
-uv pip install packaging semver tomlkit
+uv pip install packaging pathspec semver tomlkit
 "$DEVENV_SRC/scripts/update-devenv.sh"
