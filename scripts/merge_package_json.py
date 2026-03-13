@@ -153,13 +153,16 @@ def merge_dependency_specs(base_spec: str, update_spec: str) -> str:
     )
 
 
-def merge_dependencies(base: dict[str, str], updates: dict[str, str]) -> dict[str, str]:
+def merge_dependencies(
+    base: dict[str, str], updates: dict[str, str], args: argparse.Namespace
+) -> dict[str, str]:
     """
     Merge two dependency dictionaries with semver-aware version selection.
 
     Args:
         base: Base dependencies
         updates: Update dependencies
+        args: argument options from cli
 
     Returns:
         Merged dependencies with higher versions preferred
@@ -168,6 +171,8 @@ def merge_dependencies(base: dict[str, str], updates: dict[str, str]) -> dict[st
     result = base.copy()
 
     for package, version in updates.items():
+        if package in args.remove_packages:
+            continue
         if package in result:
             # Merge versions, preferring higher
             result[package] = merge_dependency_specs(result[package], version)
@@ -201,7 +206,13 @@ def _deep_merge_override(base_val, value):
     return list(dedup_dict.values())
 
 
-def _deep_merge_value(key, value, result, list_strategy):
+def _deep_merge_value(
+    key,
+    value,
+    result,
+    args: argparse.Namespace,
+    list_strategy: str,
+):
     if key not in result:
         # New key - just add it
         result[key] = value
@@ -211,11 +222,11 @@ def _deep_merge_value(key, value, result, list_strategy):
 
     # Special handling for dependency objects
     if key.lower().endswith("dependencies"):
-        result[key] = merge_dependencies(base_val, value)
+        result[key] = merge_dependencies(base_val, value, args)
 
     # Both values are dictionaries - recurse
     elif isinstance(base_val, dict) and isinstance(value, dict):
-        result[key] = deep_merge(base_val, value, list_strategy)
+        result[key] = deep_merge(base_val, value, args, list_strategy)
 
     # Both values are lists - apply strategy
     elif isinstance(base_val, list) and isinstance(value, list):
@@ -238,7 +249,10 @@ def _deep_merge_value(key, value, result, list_strategy):
 
 
 def deep_merge(
-    base: dict[Any, Any], updates: dict[Any, Any], list_strategy: str = "replace"
+    base: dict[Any, Any],
+    updates: dict[Any, Any],
+    args: argparse.Namespace,
+    list_strategy: str = "replace",
 ) -> dict[Any, Any]:
     """
     Recursively merge two dictionaries.
@@ -247,7 +261,7 @@ def deep_merge(
     """
     result = base.copy()
     for key, value in updates.items():
-        _deep_merge_value(key, value, result, list_strategy)
+        _deep_merge_value(key, value, result, args, list_strategy)
     return result
 
 
@@ -261,7 +275,7 @@ def load_package_json(filepath: Path) -> dict[Any, Any]:
 
 
 def merge_package_json_files(
-    filepaths: list[Path], list_strategy: str = "replace"
+    filepaths: list[Path], args: argparse.Namespace, list_strategy: str = "replace"
 ) -> dict[Any, Any]:
     """Merge multiple package.json files in order."""
     if not filepaths:
@@ -273,9 +287,17 @@ def merge_package_json_files(
     # Merge in each subsequent file
     for filepath in filepaths[1:]:
         updates = load_package_json(filepath)
-        result = deep_merge(result, updates, list_strategy)
+        result = deep_merge(result, updates, args, list_strategy)
 
     return result
+
+
+def _create_remove_packages(args: argparse.Namespace) -> None:
+    remove_packages: set[str] = set()
+    with args.remove.open("r") as remove_file:
+        while pkg := remove_file.readline():
+            remove_packages.add(pkg)
+    args.remove_packages = frozenset(remove_packages)
 
 
 def main() -> None:
@@ -339,6 +361,10 @@ Dependency Merging:
         help="Number of spaces for JSON indentation (default: 2)",
     )
 
+    parser.add_argument(
+        "--remove", type=Path, help="File listing node packages to remove."
+    )
+
     args = parser.parse_args()
 
     # Validate input files exist
@@ -347,8 +373,10 @@ Dependency Merging:
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
+    _create_remove_packages(args)
+
     # Perform the merge
-    merged_data = merge_package_json_files(args.files, args.list_strategy)
+    merged_data = merge_package_json_files(args.files, args, args.list_strategy)
 
     # Output the result
     json_output = json.dumps(merged_data, indent=args.indent, ensure_ascii=False)

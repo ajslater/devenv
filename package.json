@@ -85,6 +85,7 @@
     "eslint": "^10.0.0",
     "eslint_d": "^15.0.0",
     "eslint-config-prettier": "^10.1.1",
+    "eslint-plugin-array-func": "^5.0.1",
     "eslint-plugin-compat": "^7.0.0",
     "eslint-plugin-de-morgan": "^2.0.0",
     "eslint-plugin-depend": "^1.0.0",

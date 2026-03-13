@@ -34,7 +34,7 @@ if [ "${DEVENV_NODE:-}" != "" ]; then
   f=package.json
   template_f="$DEVENV_SRC/templates/node/$f"
   output_f="$PD/$f"
-  uv run "$DEVENV_SRC"/scripts/merge_package_json.py "$template_f" "$output_f" -o "$output_f"
+  uv run "$DEVENV_SRC"/scripts/merge_package_json.py "$template_f" "$output_f" -o "$output_f" --remove "$DEVENV_SRC/remove_node_packages.txt"
   fix_files+=("$f")
 fi
 
