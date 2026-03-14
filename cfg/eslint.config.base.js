@@ -14,6 +14,7 @@ import * as eslintPluginMdx from "eslint-plugin-mdx";
 import eslintPluginNoSecrets from "eslint-plugin-no-secrets";
 import eslintPluginNoUnsanitized from "eslint-plugin-no-unsanitized";
 import eslintPluginNoUseExtendNative from "eslint-plugin-no-use-extend-native";
+import eslintPluginPackageJson from "eslint-plugin-package-json";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
 import eslintPluginPromise from "eslint-plugin-promise";
 import eslintPluginRegexp from "eslint-plugin-regexp";
@@ -38,6 +39,8 @@ export const CONFIGS = {
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginMath.configs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
+    ...eslintPluginPackageJson["recommended-publishable"],
+    ...eslintPluginPackageJson.stylistic,
     ...eslintPluginPromise.configs[FLAT_ALL],
     ...eslintPluginRegexp.configs.all,
     ...eslintPluginSonarjs.configs.all,
