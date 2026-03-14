@@ -2,6 +2,7 @@
 # Merge development environment dotfiles
 # Requires DEVENV_<FEATURE> variables set in makefiles
 set -euo pipefail
+DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
 SRC=$1
 DEST=$2
 

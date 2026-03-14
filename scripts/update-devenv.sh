@@ -6,7 +6,7 @@ set -euo pipefail
 ########
 # Init #
 ########
-DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
+DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
 PD=$PWD
 
 "$DEVENV_SRC"/scripts/delete-files.sh
@@ -30,9 +30,9 @@ shellharden --replace bin/*.sh
 
 fix_files=()
 # Common: Javascript
-if [ "${DEVENV_NODE:-}" != "" ]; then
+if [ "${DEVENV_NODE_ROOT:-}" != "" ]; then
   f=package.json
-  template_f="$DEVENV_SRC/templates/node/$f"
+  template_f="$DEVENV_SRC/templates/node_root/$f"
   output_f="$PD/$f"
   uv run "$DEVENV_SRC"/scripts/merge_package_json.py "$template_f" "$output_f" -o "$output_f" --remove "$DEVENV_SRC/remove_node_packages.txt"
   fix_files+=("$f")

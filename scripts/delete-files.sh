@@ -2,6 +2,7 @@
 # Delete all files listed in the delete.txt file
 # Requires DEVENV_SRC usually set in makefiles
 set -euo pipefail
+DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
 DELETE_FILE=$DEVENV_SRC/remove_files.txt
 existing_files=()
 while IFS= read -r file || [[ -n "$file" ]]; do

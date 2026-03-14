@@ -3,7 +3,7 @@
 set -euo pipefail
 PD=$PWD
 mkdir -p bin
-DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
+DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
 source "$DEVENV_SRC"/scripts/add-makefiles.sh "$@"
 if [[ ${DEVENV_PYTHON:-} ]]; then
   uv init

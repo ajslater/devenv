@@ -2,7 +2,6 @@
 # Usage: ./copy-new-files.sh SOURCE_DIR DEST_DIR
 # Requires feature DEVENV_<FEATURE> variables set in included makefiles
 set -euo pipefail
-
 SOURCE_DIR="${1:?Source directory required}"
 DEST_DIR="${2:?Destination directory required}"
 
@@ -10,6 +9,11 @@ DEST_DIR="${2:?Destination directory required}"
 if [[ ! -d "$SOURCE_DIR" ]]; then
   echo "Error: Source directory '$SOURCE_DIR' does not exist"
   exit 1
+fi
+
+DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
+if [[ "$SOURCE_DIR" != /* ]]; then
+  SOURCE_DIR="$DEVENV_SRC/$SOURCE_DIR"
 fi
 
 # Create destination directory if it doesn't exist

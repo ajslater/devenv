@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # copy specific makefiles
 set -euo pipefail
-DEVENV_SRC=${DENENV_SRC:-$(realpath "$(dirname "$0")/..")}
+DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
 DEFAULT_FEATURES=(common node python)
 
 while getopts "h?:" opt; do
