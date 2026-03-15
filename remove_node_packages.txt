@@ -1,5 +1,3 @@
 eslint-plugin-array-func
-eslint-plugin-no-use-extend-native
-eslint-plugin-promise
 eslint-plugin-scanjs-rules
 eslint-plugin-simple-import-sort
