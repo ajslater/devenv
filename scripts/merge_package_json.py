@@ -295,7 +295,7 @@ def merge_package_json_files(
 def _create_remove_packages(args: argparse.Namespace) -> None:
     remove_packages: set[str] = set()
     with args.remove.open("r") as remove_file:
-        while pkg := remove_file.readline():
+        while pkg := remove_file.readline().strip():
             remove_packages.add(pkg)
     args.remove_packages = frozenset(remove_packages)
 
