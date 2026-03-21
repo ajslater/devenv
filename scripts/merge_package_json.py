@@ -123,7 +123,7 @@ def extract_version_from_range(version_str: str) -> str | None:
     try:
         semver.VersionInfo.parse(base_spec)
         result_spec = base_spec
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         result_spec = None
     return result_spec
 
@@ -160,7 +160,7 @@ def _merge_exatracted_dep_ranges(
 
         result_spec = update_spec if update_priority > base_priority else base_spec
 
-    except (ValueError, AttributeError):
+    except ValueError, AttributeError:
         # If comparison fails, prefer update
         result_spec = update_spec
     return result_spec

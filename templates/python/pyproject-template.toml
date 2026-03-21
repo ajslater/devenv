@@ -4,6 +4,7 @@ dependencies = []
 description = ""
 keywords = []
 readme = "README.md"
+requires-python = ">=3.10"
 
 [[project.authors]]
 name = "AJ Slater"
