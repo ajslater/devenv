@@ -32,6 +32,24 @@ if TYPE_CHECKING:
 PYTHON_DEP_KEY_PATH_LEN = 2
 DEP_KEY_PATHS = frozenset({("project", "dependencies"), ("build-system", "requires")})
 
+REQUIRES_PYTHON_KEY_PATH = ("project", "requires-python")
+BASEDPYRIGHT_VERSION_KEY_PATH = ("tool", "basedpyright", "pythonVersion")
+TY_ENVIRONMENT_KEY_PATH = ("tool", "ty", "environment")
+RUFF_TARGET_VERSION_KEY_PATH = ("tool", "ruff", "target-version")
+VERSION_KEY_PATHS = frozenset(
+    {
+        REQUIRES_PYTHON_KEY_PATH,
+        BASEDPYRIGHT_VERSION_KEY_PATH,
+        TY_ENVIRONMENT_KEY_PATH,
+        RUFF_TARGET_VERSION_KEY_PATH,
+    }
+)
+
+REQUIRES_PYTHON_PREFIX = ">="
+RUFF_TARGET_PREFIX = "py"
+MIN_PYTHON_VERSION_FOR_BUILTIN_TOML = Version("3.11")
+TOML_EXTRA = "toml"
+
 
 def is_comma_delimited_string(value: Any) -> bool:
     """Check if a value is a string containing commas (comma-delimited list)."""
@@ -54,6 +72,67 @@ def merge_comma_delimited_strings(base_value: str, update_value: str) -> str:
     update_items = parse_comma_delimited(update_value)
     merged_items = base_items + update_items
     return serialize_comma_delimited(merged_items)
+
+
+def _parse_version_from_requires_python(value: str) -> Version | None:
+    """Parse version from a >=X.Y format string."""
+    stripped = str(value).strip()
+    if stripped.startswith(REQUIRES_PYTHON_PREFIX):
+        try:
+            return Version(stripped[len(REQUIRES_PYTHON_PREFIX) :])
+        except InvalidVersion:
+            return None
+    return None
+
+
+def _parse_version_from_ruff_target(value: str) -> Version | None:
+    """Parse version from pyXYZ format (e.g., py310 -> 3.10, py312 -> 3.12)."""
+    stripped = str(value).strip()
+    if stripped.startswith(RUFF_TARGET_PREFIX) and len(stripped) > len(
+        RUFF_TARGET_PREFIX
+    ):
+        digits = stripped[len(RUFF_TARGET_PREFIX) :]
+        if len(digits) >= 2:  # noqa: PLR2004
+            version_str = f"{digits[0]}.{digits[1:]}"
+            try:
+                return Version(version_str)
+            except InvalidVersion:
+                return None
+    return None
+
+
+def _parse_bare_version(value: str) -> Version | None:
+    """Parse a bare version string like 3.10 or 3.12."""
+    try:
+        return Version(str(value).strip())
+    except InvalidVersion:
+        return None
+
+
+def _merge_version_values(
+    base_value: Any, update_value: Any, key_path: tuple[str, ...]
+) -> Any:
+    """
+    Compare two version values and return the one representing the latest version.
+
+    Dispatches to the appropriate parser based on the key path.
+    Falls back to update value (later file precedence) when parsing fails.
+    """
+    if key_path == REQUIRES_PYTHON_KEY_PATH:
+        base_ver = _parse_version_from_requires_python(str(base_value))
+        update_ver = _parse_version_from_requires_python(str(update_value))
+    elif key_path == RUFF_TARGET_VERSION_KEY_PATH:
+        base_ver = _parse_version_from_ruff_target(str(base_value))
+        update_ver = _parse_version_from_ruff_target(str(update_value))
+    else:
+        base_ver = _parse_bare_version(str(base_value))
+        update_ver = _parse_bare_version(str(update_value))
+
+    if base_ver and update_ver:
+        return update_value if update_ver > base_ver else base_value
+    if update_ver:
+        return update_value
+    return base_value
 
 
 def is_python_dependency_key(key_path: tuple[str, ...]) -> bool:
@@ -327,6 +406,10 @@ def _merge_value_pair(
         The merged value
 
     """
+    # Version keys - compare and take the latest
+    if key_path in VERSION_KEY_PATHS:
+        return _merge_version_values(base_value, update_value, key_path)
+
     # Both are table-like structures - recurse
     if _is_table_like(base_value) and _is_table_like(update_value):
         return deep_merge_tomlkit(base_value, update_value, list_strategy, key_path)
@@ -409,6 +492,84 @@ def load_toml_file(filepath: Path) -> TOMLDocument:
     return tomlkit.parse(content)
 
 
+def _strip_toml_extra(dep_string: str) -> str:
+    """
+    Strip the 'toml' extra from a dependency string.
+
+    Since Python 3.11 includes tomllib in the stdlib, packages no longer need
+    the [toml] extra for TOML support.
+
+    Examples:
+        "radon[toml]>=5.1" -> "radon>=5.1"
+        "foo[bar,toml]>=1.0" -> "foo[bar]>=1.0"
+        "plain-package>=1.0" -> "plain-package>=1.0"
+
+    """
+    try:
+        req = Requirement(dep_string.strip())
+        if TOML_EXTRA not in req.extras:
+            return dep_string
+        new_extras = sorted(req.extras - {TOML_EXTRA})
+        extras_str = f"[{','.join(new_extras)}]" if new_extras else ""
+        spec_str = str(req.specifier) if req.specifier else ""
+        marker_str = f" ; {req.marker}" if req.marker else ""
+        url_str = f" @ {req.url}" if req.url else ""
+        dep_string = f"{req.name}{extras_str}{spec_str}{url_str}{marker_str}"
+    except Exception:
+        return dep_string
+    return dep_string
+
+
+def _strip_toml_extras_from_dep_list(
+    container: dict[str, Any] | Table | InlineTable | TOMLDocument,
+    key: str,
+) -> None:
+    """Strip [toml] extras from a single dependency list at the given key."""
+    deps = container.get(key)
+    if deps is None or not isinstance(deps, list | tuple | Array):
+        return
+    new_array = tomlkit.array()
+    for dep in deps:
+        new_array.append(_strip_toml_extra(str(dep)))
+    container[key] = new_array
+
+
+def _strip_toml_extras_if_needed(
+    merged: TOMLDocument | Table | InlineTable | dict[str, Any],
+) -> None:
+    """
+    Strip [toml] extras from all dependency lists when requires-python >= 3.11.
+
+    Python 3.11 added tomllib to the stdlib, making the [toml] extra
+    unnecessary for packages that used it only for TOML config support.
+    """
+    project: dict[str, Any] = merged.get("project", {})
+    if not isinstance(project, dict | Table | InlineTable | TOMLDocument):
+        return
+
+    requires_python = project.get("requires-python")
+    if not requires_python:
+        return
+
+    version = _parse_version_from_requires_python(str(requires_python))
+    if not version or version < MIN_PYTHON_VERSION_FOR_BUILTIN_TOML:
+        return
+
+    # project.dependencies
+    _strip_toml_extras_from_dep_list(project, "dependencies")
+
+    # build-system.requires
+    build_system = merged.get("build-system", {})
+    if isinstance(build_system, dict | Table | InlineTable | TOMLDocument):
+        _strip_toml_extras_from_dep_list(build_system, "requires")
+
+    # dependency-groups.*
+    dep_groups = merged.get("dependency-groups", {})
+    if isinstance(dep_groups, dict | Table | InlineTable | TOMLDocument):
+        for group_name in dep_groups:
+            _strip_toml_extras_from_dep_list(dep_groups, group_name)
+
+
 def merge_toml_files(
     filepaths: list[Path], list_strategy: str = "replace"
 ) -> TOMLDocument | Table | InlineTable | dict[str, Any]:
@@ -433,6 +594,9 @@ def merge_toml_files(
     for filepath in filepaths[1:]:
         updates = load_toml_file(filepath)
         result = deep_merge_tomlkit(result, updates, list_strategy)
+
+    # Post-processing: strip [toml] extras if requires-python >= 3.11
+    _strip_toml_extras_if_needed(result)
 
     return result
 
