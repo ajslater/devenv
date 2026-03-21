@@ -8,7 +8,6 @@ semver ranges are intelligently merged to prefer higher version constraints.
 
 Requirements:
     pip install semver
-    Python 3.14+
 """
 
 from __future__ import annotations
@@ -22,6 +21,7 @@ from typing import Any
 
 import semver
 
+SCRIPT_COMMAND_SEPARATOR = " && "
 SEMVER_LEN = 3
 SPECIAL_PROTOCOLS = frozenset(
     {
@@ -33,6 +33,50 @@ SPECIAL_PROTOCOLS = frozenset(
         "workspace:",
     }
 )
+
+
+def _parse_script_commands(script_value: str) -> list[str]:
+    """Split a script value into individual commands by '&&'."""
+    return [
+        cmd.strip()
+        for cmd in script_value.split(SCRIPT_COMMAND_SEPARATOR)
+        if cmd.strip()
+    ]
+
+
+def merge_script_entry(base_value: str, update_value: str) -> str:
+    """
+    Merge two script entries positionally, with base commands taking precedence.
+
+    For each index, the base command wins if present. Extra commands from the
+    longer (update) list are appended.
+    """
+    base_commands = _parse_script_commands(base_value)
+    update_commands = _parse_script_commands(update_value)
+
+    merged = [
+        base_commands[i] if i < len(base_commands) else update_commands[i]
+        for i in range(max(len(base_commands), len(update_commands)))
+    ]
+
+    return SCRIPT_COMMAND_SEPARATOR.join(merged)
+
+
+def merge_scripts(base: dict[str, str], updates: dict[str, str]) -> dict[str, str]:
+    """
+    Merge two scripts dictionaries with command-level merging.
+
+    Earlier (base) commands take precedence over later (update) commands.
+    New script keys from updates are added; existing keys have their
+    commands merged at the individual command level.
+    """
+    result = base.copy()
+    for key, value in updates.items():
+        if key in result:
+            result[key] = merge_script_entry(result[key], value)
+        else:
+            result[key] = value
+    return result
 
 
 def is_spec_special(spec_str):
@@ -224,6 +268,10 @@ def _deep_merge_value(
     if key.lower().endswith("dependencies"):
         result[key] = merge_dependencies(base_val, value, args)
 
+    # Special handling for scripts - merge at command level
+    elif key == "scripts" and isinstance(base_val, dict) and isinstance(value, dict):
+        result[key] = merge_scripts(base_val, value)
+
     # Both values are dictionaries - recurse
     elif isinstance(base_val, dict) and isinstance(value, dict):
         result[key] = deep_merge(base_val, value, args, list_strategy)
@@ -320,6 +368,9 @@ Examples:
 
   # Merge with array appending instead of replacement
   %(prog)s package.json package-extra.json --list-strategy append
+
+Script Merging:
+  For scripts earlier script command components separated by && replace later or local ones.
 
 Dependency Merging:
   For dependencies, devDependencies, and related keys, the tool compares
