@@ -34,7 +34,7 @@ DEP_KEY_PATHS = frozenset({("project", "dependencies"), ("build-system", "requir
 
 REQUIRES_PYTHON_KEY_PATH = ("project", "requires-python")
 BASEDPYRIGHT_VERSION_KEY_PATH = ("tool", "basedpyright", "pythonVersion")
-TY_ENVIRONMENT_KEY_PATH = ("tool", "ty", "environment")
+TY_ENVIRONMENT_KEY_PATH = ("tool", "ty", "environment", "python-version")
 RUFF_TARGET_VERSION_KEY_PATH = ("tool", "ruff", "target-version")
 VERSION_KEY_PATHS = frozenset(
     {
