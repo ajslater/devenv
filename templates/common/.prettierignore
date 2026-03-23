@@ -1,11 +1,12 @@
 __pycache__
 .*cache/
 .circleci
+.claude
 .git
 .venv
 *Dockerfile
-node_modules
 dist
+node_modules
 package-lock.json
 test-results
 tests/**/*.json
