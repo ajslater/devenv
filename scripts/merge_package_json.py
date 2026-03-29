@@ -250,6 +250,23 @@ def _deep_merge_override(base_val, value):
     return list(dedup_dict.values())
 
 
+def _deep_merge_value_list(
+    list_strategy: str, key: str, result: dict[str, Any], base_val, value
+):
+    if list_strategy == "merge":
+        if key == "overrides":
+            result[key] = _deep_merge_override(base_val, value)
+        else:
+            # Regular list merging with deduplication and sorting
+            merged_list = base_val + value
+            # Try to deduplicate if possible (for hashable types)
+            with suppress(TypeError):
+                merged_list = list(set(merged_list))
+            result[key] = sorted(merged_list)
+    else:
+        result[key] = value
+
+
 def _deep_merge_value(
     key,
     value,
@@ -278,18 +295,7 @@ def _deep_merge_value(
 
     # Both values are lists - apply strategy
     elif isinstance(base_val, list) and isinstance(value, list):
-        if list_strategy == "merge":
-            if key == "overrides":
-                result[key] = _deep_merge_override(base_val, value)
-            else:
-                # Regular list merging with deduplication and sorting
-                merged_list = base_val + value
-                # Try to deduplicate if possible (for hashable types)
-                with suppress(TypeError):
-                    merged_list = list(set(merged_list))
-                result[key] = sorted(merged_list)
-        else:
-            result[key] = value
+        _deep_merge_value_list(list_strategy, key, result, base_val, value)
 
     # Otherwise, the new value overwrites the old
     else:
