@@ -64,11 +64,11 @@ fi
 
 # Fix Merged
 if ((${#fix_files[@]})); then
-  npm update
+  bun update
 
   # Fix after merge
-  npx eslint --cache --fix "${fix_files[@]}"
-  npx prettier --write "${fix_files[@]}"
+  bunx eslint --cache --fix "${fix_files[@]}"
+  bunx prettier --write "${fix_files[@]}"
 
   # Report
   git status --short .* bin cfg "${fix_files[@]}"
