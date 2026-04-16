@@ -64,14 +64,6 @@
       "preset-prettier"
     ]
   },
-  "overrides": {
-    "eslint-plugin-no-use-extend-native": {
-      "eslint": "$eslint"
-    },
-    "eslint-plugin-promise": {
-      "eslint": "$eslint"
-    }
-  },
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "^4.7.0",
     "@eslint/js": "^10.0.1",
