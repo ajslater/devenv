@@ -53,7 +53,7 @@ def deep_merge(
             # New key - just add it
             result[key] = value
 
-    return dict(sorted(result.items()))
+    return dict(sorted(result.items(), key=lambda item: str(item[0])))
 
 
 def load_yaml_file(filepath: Path) -> dict[Any, Any]:
@@ -161,24 +161,19 @@ Examples:
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
-    try:
-        # Perform the merge
-        merged_data = merge_yaml_files(args.files, args.list_strategy)
+    # Perform the merge
+    merged_data = merge_yaml_files(args.files, args.list_strategy)
 
-        # Output the result
-        yaml_output = yaml.dump(
-            merged_data, default_flow_style=False, sort_keys=False, indent=args.indent
-        )
+    # Output the result
+    yaml_output = yaml.dump(
+        merged_data, default_flow_style=False, sort_keys=False, indent=args.indent
+    )
 
-        if args.output:
-            args.output.write_text(yaml_output)
-            print(f"Merged YAML written to: {args.output}")  # noqa: T201
-        else:
-            print(yaml_output)  # noqa: T201
-
-    except Exception as e:
-        reason = f"Error during merge: {e}"
-        parser.error(reason)
+    if args.output:
+        args.output.write_text(yaml_output)
+        print(f"Merged YAML written to: {args.output}")  # noqa: T201
+    else:
+        print(yaml_output)  # noqa: T201
 
 
 if __name__ == "__main__":

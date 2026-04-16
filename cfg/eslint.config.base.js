@@ -72,7 +72,6 @@ export default defineConfig([
       "**/*min.css",
       "**/*min.js",
       "**/__pycache__/",
-      "**/bun.lock",
       "**/node_modules/",
       "**/package-lock.json",
       "*~",
