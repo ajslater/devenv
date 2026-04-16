@@ -7,8 +7,13 @@ import argparse
 import os
 from pathlib import Path
 
-from _devenv_common import ALL_FEATURES, get_devenv_src, report_counts, run
-from copy_files import copy_files
+from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
+    ALL_FEATURES,
+    get_devenv_src,
+    report_counts,
+    run,
+)
+from copy_files import copy_files  # pyright: ignore[reportImplicitRelativeImport]
 
 DEFAULT_FEATURES = ("common", "node", "python")
 

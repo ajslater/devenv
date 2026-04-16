@@ -16,9 +16,17 @@ import argparse
 import os
 from pathlib import Path
 
-from _devenv_common import get_devenv_src, get_enabled_features, git_status, run
-from copy_files import copy_files
-from merge_dotfiles import merge_dotfiles, report_counts
+from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
+    get_devenv_src,
+    get_enabled_features,
+    git_status,
+    report_counts,
+    run,
+)
+from copy_files import copy_files  # pyright: ignore[reportImplicitRelativeImport]
+from merge_dotfiles import (  # pyright: ignore[reportImplicitRelativeImport]
+    merge_dotfiles,
+)
 
 
 def delete_files(devenv_src: Path) -> None:

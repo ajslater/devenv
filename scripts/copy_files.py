@@ -14,7 +14,7 @@ import filecmp
 import shutil
 from pathlib import Path
 
-from _devenv_common import (
+from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
     get_devenv_src,
     git_status,
     iter_feature_dirs,

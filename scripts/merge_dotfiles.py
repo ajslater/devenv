@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from _devenv_common import (
+from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
     git_status,
     iter_feature_dirs,
     report_counts,

@@ -5,10 +5,10 @@ from __future__ import annotations
 import os
 import subprocess
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Iterator, Sequence
 
 ALL_FEATURES = (
     "common",
@@ -58,7 +58,7 @@ def report_counts(label: str, **counts: int) -> None:
     print("".join(parts))  # noqa: T201
 
 
-def git_status(files: list[Path | str]) -> None:
+def git_status(files: Sequence[Path | str]) -> None:
     """Show git status for the given files."""
     if files:
         subprocess.run(  # noqa: S603
@@ -67,6 +67,6 @@ def git_status(files: list[Path | str]) -> None:
         )
 
 
-def run(cmd: list[str | Path], **kwargs: object) -> subprocess.CompletedProcess[str]:
+def run(cmd: list[str | Path], **kwargs: Any) -> subprocess.CompletedProcess[str]:
     """Run a command with check=True."""
     return subprocess.run([str(c) for c in cmd], check=True, **kwargs)  # noqa: S603
