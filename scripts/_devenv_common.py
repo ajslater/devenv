@@ -11,15 +11,16 @@ if TYPE_CHECKING:
     from collections.abc import Iterator, Sequence
 
 ALL_FEATURES = (
+    "ci",
     "common",
+    "docker",
+    "docs",
+    "django",
+    "frontend",
+    "gha_std",
     "node",
     "node_root",
-    "docker",
-    "ci",
     "python",
-    "docs",
-    "frontend",
-    "django",
 )
 
 
