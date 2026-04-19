@@ -43,12 +43,11 @@ def main() -> None:
     print(f"Adding features: {' '.join(features)}")  # noqa: T201
 
     # Copy root files for these features
-    copied, skipped, _paths = copy_files(devenv_src / "root", pd, features)
+    copied, skipped, _paths = copy_files(devenv_src / "copy", pd, features)
     report_counts("Copied files", copied=copied, skipped=skipped)
 
     # Format makefiles
-    mk_files = sorted(pd.glob("cfg/*.mk"))
-    if mk_files:
+    if mk_files := sorted(pd.glob("cfg/*.mk")):
         run(["uv", "run", "mbake", "format", "Makefile", *mk_files])
 
 
