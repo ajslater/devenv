@@ -8,6 +8,7 @@ __pycache__
 bun.lock
 dist
 node_modules
+package-lock.json
 test-results
 tests/**/*.json
 tests/**/*.xml
