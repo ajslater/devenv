@@ -119,7 +119,7 @@ def main() -> None:
             merge_template(
                 devenv_src,
                 pd,
-                "templates/node_root/package.json",
+                "merge/node_root/package.json",
                 "package.json",
                 "merge_package_json.py",
                 ["--remove", str(devenv_src / "remove_node_packages.txt")],
@@ -128,9 +128,7 @@ def main() -> None:
 
     if os.environ.get("DEVENV_DOCS"):
         fix_files.extend(
-            merge_template(
-                devenv_src, pd, f"templates/docs/{name}", name, "merge_yaml.py"
-            )
+            merge_template(devenv_src, pd, f"merge/docs/{name}", name, "merge_yaml.py")
             for name in (".readthedocs.yaml", "mkdocs.yml")
         )
 
@@ -139,7 +137,7 @@ def main() -> None:
             merge_template(
                 devenv_src,
                 pd,
-                "templates/python/pyproject-template.toml",
+                "merge/python/pyproject-template.toml",
                 "pyproject.toml",
                 "merge_toml.py",
             )
@@ -147,9 +145,7 @@ def main() -> None:
 
     if os.environ.get("DEVENV_CI"):
         fix_files.extend(
-            merge_template(
-                devenv_src, pd, f"templates/ci/{name}", name, "merge_yaml.py"
-            )
+            merge_template(devenv_src, pd, f"merge/ci/{name}", name, "merge_yaml.py")
             for name in ("compose.yaml",)
         )
 

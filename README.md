@@ -59,8 +59,9 @@ make update-devenv
 
 - `bin/` Development environment scripts
 - `cfg/` Parent makefile and eslint configurations which to be included by the
+- `copy/` Parent scripts & configs that are copied into client projects.
   project's Makefile and eslint config.
-- `templates/` Parent configs that are merged by scripts.
+- `merge/` Parent configs that are merged by scripts.
 - `init/` Initial configuratioin files copied to new projects.
 
 ## Modification

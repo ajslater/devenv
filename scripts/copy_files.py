@@ -61,11 +61,11 @@ def main() -> None:
     parser.add_argument(
         "--root",
         type=Path,
-        help="Root source directory (default: DEVENV_SRC/root)",
+        help="Root source directory (default: DEVENV_SRC/copy)",
     )
     args = parser.parse_args()
 
-    root_dir = args.root or get_devenv_src() / "root"
+    root_dir = args.root or get_devenv_src() / "copy"
     copied, skipped, dest_files = copy_files(root_dir, args.dest)
     report_counts("Copied files", copied=copied, skipped=skipped)
     git_status(dest_files)

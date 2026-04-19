@@ -37,8 +37,9 @@ Makefiles. Each feature maps to a cfg makefile:
 
 - `cfg/` — Makefile modules included by child projects; the `cfg/help.mk`
   provides a color-coded help system
-- `templates/` — Config templates merged into child projects (`common/`,
-  `python/`, `node_root/`, `docs/`, `docker/`)
+- `copy/` - Config files & scripts that are copied entirely to child projects.
+- `merge/` — Config templates merged into child projects (`common/`, `python/`,
+  `node_root/`, `docs/`, `docker/`)
 - `init/` — One-time starter files copied when initializing a new project
 - `scripts/` — Update and initialization scripts
 - `bin/` — Development helper scripts
