@@ -87,7 +87,6 @@ source-include = [
   "img/**",
   "mkdocks.yml",
   "mock_comics/**",
-  "package-lock.json",
   "package.json",
   "tests/**",
   "uv.lock",
@@ -133,7 +132,7 @@ reportUnusedParameter = false
 builtin = "clear,code,rare"
 check-hidden = true
 ignore-words-list = "coverd,falsy,ro,searchd,thead,versio,ws"
-skip = "*~,.*,./bun.lock,./dist,./node_modules,./package-lock.json,./package.json,./test-results,/uv.lock"
+skip = "*~,.*,./bun.lock,./dist,./node_modules,./package.json,./test-results,/uv.lock"
 
 [tool.complexipy]
 failed = true
