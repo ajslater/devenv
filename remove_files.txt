@@ -24,3 +24,5 @@ bin/version.sh
 bin/version-npm.sh
 cfg/eslint.config.js
 cfg/node_root.mk
+frontend/package-lock.json
+package-lock.json
