@@ -9,7 +9,7 @@ def main():
     """Run the server."""
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "codex.settings")
     try:
-        from django.core.management import (  # pyright: ignore[reportMissingImports] # ty: ignore[unresolved-import]
+        from django.core.management import (
             execute_from_command_line,
         )
     except ImportError as exc:
