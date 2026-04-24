@@ -95,13 +95,13 @@ def main() -> None:
 
     # Dotfiles
     created, skipped, merged, _dotfile_paths = merge_dotfiles(
-        devenv_src / "templates", pd, features
+        devenv_src / "merge", pd, features
     )
     report_counts("Merged dotfiles", created=created, skipped=skipped, merged=merged)
     run(["bin/sort-ignore.sh"])
 
     # Copy root files
-    copied, file_skipped, _root_paths = copy_files(devenv_src / "root", pd, features)
+    copied, file_skipped, _root_paths = copy_files(devenv_src / "copy", pd, features)
     report_counts("Copied files", copied=copied, skipped=file_skipped)
 
     # Format copied files
