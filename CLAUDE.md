@@ -13,6 +13,35 @@ parent configs into child projects via feature-flag-driven scripts.
 This repo dogfoods it's own configuration system which is documented for Claude
 in @\~/.claude/rules/python-devenv.md
 
+## Edit Sources, Not Outputs
+
+This repo dogfoods itself, so most root-level files are **generated outputs**,
+not sources. Editing them directly is almost always wrong — your changes will
+be clobbered the next time `update-devenv.sh` runs.
+
+**Never edit directly** (downstream — regenerated from sources):
+
+- `./bin/` — sourced from `copy/*/bin/`
+- `./cfg/` — sourced from `copy/*/cfg/`
+
+**Rarely edit directly** (downstream — merged from sources):
+
+- `./pyproject.toml` — merged from `merge/*/pyproject.toml`
+- `./package.json` — merged from `merge/*/package.json`
+- Other merged configs (`mkdocs.yml`, dotfiles, etc.) — see `scripts/`
+
+**Edit these instead** (the actual sources):
+
+- `copy/` — files copied wholesale into child projects (and into this repo's
+  own root, since it dogfoods)
+- `merge/` — config templates merged into child projects
+- `init/` — one-time starter files for new projects
+- `scripts/` — the merge/copy machinery itself
+
+When in doubt, find the file under `copy/`, `merge/`, or `init/` first. If a
+root-level file has a counterpart in one of those directories, the root file
+is the output.
+
 ## Common Commands
 
 Refer to @\~/.claude/python-devenv.md
