@@ -16,8 +16,8 @@ in @\~/.claude/rules/python-devenv.md
 ## Edit Sources, Not Outputs
 
 This repo dogfoods itself, so most root-level files are **generated outputs**,
-not sources. Editing them directly is almost always wrong — your changes will
-be clobbered the next time `update-devenv.sh` runs.
+not sources. Editing them directly is almost always wrong — your changes will be
+clobbered the next time `update-devenv.sh` runs.
 
 **Never edit directly** (downstream — regenerated from sources):
 
@@ -32,15 +32,15 @@ be clobbered the next time `update-devenv.sh` runs.
 
 **Edit these instead** (the actual sources):
 
-- `copy/` — files copied wholesale into child projects (and into this repo's
-  own root, since it dogfoods)
+- `copy/` — files copied wholesale into child projects (and into this repo's own
+  root, since it dogfoods)
 - `merge/` — config templates merged into child projects
 - `init/` — one-time starter files for new projects
 - `scripts/` — the merge/copy machinery itself
 
 When in doubt, find the file under `copy/`, `merge/`, or `init/` first. If a
-root-level file has a counterpart in one of those directories, the root file
-is the output.
+root-level file has a counterpart in one of those directories, the root file is
+the output.
 
 ## Common Commands
 
