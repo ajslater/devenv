@@ -17,6 +17,7 @@ dev = [
   "semver~=3.0.4",
   "toml-cli~=0.7",
   "tomlkit~=0.14",
+  "pypi-cleanup~=0.1.10",
 ]
 build = []
 lint = [
