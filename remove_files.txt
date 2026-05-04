@@ -2,6 +2,7 @@
 bin/clean.sh
 bin/docker-build.sh
 bin/copy-new-files.sh
+bin/create-output-dirs.sh
 bin/fix-lint-backend.sh
 bin/link-dotfiles.sh
 bin/lint-backend-complexity.sh
