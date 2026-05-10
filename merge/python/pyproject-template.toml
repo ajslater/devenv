@@ -50,7 +50,6 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-root = ""
 source-include = [
-  ".circlci/**",
   ".env.platforms",
   ".*ignore",
   ".picopt_treestamps.yaml",
@@ -60,7 +59,6 @@ source-include = [
   "bin/**",
   "bun.lock",
   "compose.yaml",
-  "ci/**",
   "docs/DOCKER.md",
   "docs/NEWS",
   "docs/NEWS.md",
@@ -74,7 +72,7 @@ source-include = [
   "eslint.config.js",
   "frontend/**",
   "img/**",
-  "mkdocks.yml",
+  "mkdocs.yml",
   "mock_comics/**",
   "package.json",
   "tests/**",
@@ -92,7 +90,6 @@ exclude = [
   "**/__pycache__",
   "**/node_modules",
   "dist",
-  "site",
   "frontend",
   "site",
   "test-results",
@@ -122,20 +119,12 @@ reportUnusedParameter = false # ruff does this
 builtin = 'clear,rare,code'
 check-hidden = true
 ignore-words-list = "crate,falsy,iff,ro,thead,versio,wan,warmup,ws"
-skip = "*~,.*,.*/*,__pycache__/*,bun.lock,dist/*,node_modules/*,package.json,test-results/*,typings/*,uv.lock"
+skip = "*~,*.svg,.*,.*/*,__pycache__/*,bun.lock,dist/*,htmlcov/*,node_modules/*,package.json,test-results/*,typings/*,uv.lock"
 
 [tool.complexipy]
 failed = true
 paths = ["tests"]
-exclude = [
-  "*/.*",
-  "frontend",
-  "node_modules",
-  "site",
-  "test-results",
-  "typings",
-  "vulture_ignorelist.py",
-]
+exclude = ["**/.*", "**/__pycache__"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
@@ -177,6 +166,7 @@ pythonpath = ["."]
 exclude = """
   *~,.*,.*/*,__pycache__/*
   ,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*
+  ,vulture_ignorelist.py
   """
 
 [tool.ruff]
@@ -184,7 +174,6 @@ builtins = ["ic"]
 extend-exclude = [
   "**/.*",
   "**/__pycache__",
-  "dist",
   "frontend",
   "site",
   "test-results",
@@ -316,20 +305,15 @@ exclude = [
   "vulture_ignorelist.py",
 ]
 
-[tool.typos.default.extend-words]
-bookmarkd = "bookmarkd"
-coverd = "coverd"
-versio = "versio"
-
 [tool.vulture]
 exclude = [
-  "*/.*",
-  "*/__pycache__*",
-  "*/node_modules*",
+  "**/.*",
+  "**/__pycache__",
+  "**/node_modules",
   "dist/",
   "frontend/",
   "site",
-  "test_results/",
+  "test-results/",
   "typings/",
 ]
 min_confidence = 61
