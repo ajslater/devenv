@@ -119,7 +119,7 @@ reportUnusedParameter = false # ruff does this
 builtin = 'clear,rare,code'
 check-hidden = true
 ignore-words-list = "crate,falsy,iff,ro,thead,versio,wan,warmup,ws"
-skip = "*~,*.svg,.*,.*/*,__pycache__/*,bun.lock,dist/*,htmlcov/*,node_modules/*,package.json,test-results/*,typings/*,uv.lock"
+skip = "*.svg,*~,.*,.*/*,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
