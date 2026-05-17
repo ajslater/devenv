@@ -17,6 +17,7 @@ import os
 from pathlib import Path
 
 from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
+    format_makefiles,
     get_devenv_src,
     get_enabled_features,
     git_status,
@@ -106,7 +107,7 @@ def main() -> None:
 
     # Format copied files
     mk_files = sorted(pd.glob("cfg/*.mk"))
-    run(["uv", "run", "mbake", "format", "Makefile", *mk_files])
+    format_makefiles([pd / "Makefile", *mk_files])
     sh_files = sorted(pd.glob("bin/*.sh"))
     if sh_files:
         run(["shellharden", "--replace", *sh_files])

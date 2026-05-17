@@ -9,9 +9,9 @@ from pathlib import Path
 
 from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
     ALL_FEATURES,
+    format_makefiles,
     get_devenv_src,
     report_counts,
-    run,
 )
 from copy_files import copy_files  # pyright: ignore[reportImplicitRelativeImport]
 
@@ -48,7 +48,7 @@ def main() -> None:
 
     # Format makefiles
     if mk_files := sorted(pd.glob("cfg/*.mk")):
-        run(["uv", "run", "mbake", "format", "Makefile", *mk_files])
+        format_makefiles([pd / "Makefile", *mk_files])
 
 
 if __name__ == "__main__":
