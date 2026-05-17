@@ -15,7 +15,7 @@ from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
 )
 from copy_files import copy_files  # pyright: ignore[reportImplicitRelativeImport]
 
-DEFAULT_FEATURES = ("common", "node", "python")
+DEFAULT_FEATURES = ("common", "node", "node_root", "python")
 
 
 def main() -> None:
