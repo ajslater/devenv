@@ -73,19 +73,26 @@ def run(cmd: list[str | Path], **kwargs: Any) -> subprocess.CompletedProcess[str
     return subprocess.run([str(c) for c in cmd], check=True, **kwargs)  # noqa: S603
 
 
-def format_makefiles(files: Sequence[Path]) -> None:
+def format_makefiles() -> None:
     """
     Format Makefiles via mbake's Python API.
 
     Skips with a warning when mbake isn't importable — this happens during initial
     project setup, before the lint dependency group has been synced.
     """
-    if not files:
-        return
     try:
         from mbake import Config, MakefileFormatter
     except ImportError:
         print("Warning: mbake not installed; skipping Makefile formatting.")  # noqa: T201
+        return
+
+    files = []
+    pd = Path.cwd()
+    root_makefile = pd / "Makefile"
+    if root_makefile.exists():
+        files.append(root_makefile)
+    files += sorted(pd.glob("cfg/*.mk"))
+    if not files:
         return
 
     formatter = MakefileFormatter(Config.load_or_default())

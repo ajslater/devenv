@@ -106,8 +106,7 @@ def main() -> None:
     report_counts("Copied files", copied=copied, skipped=file_skipped)
 
     # Format copied files
-    mk_files = sorted(pd.glob("cfg/*.mk"))
-    format_makefiles([pd / "Makefile", *mk_files])
+    format_makefiles()
     sh_files = sorted(pd.glob("bin/*.sh"))
     if sh_files:
         run(["shellharden", "--replace", *sh_files])

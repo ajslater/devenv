@@ -47,8 +47,7 @@ def main() -> None:
     report_counts("Copied files", copied=copied, skipped=skipped)
 
     # Format makefiles
-    if mk_files := sorted(pd.glob("cfg/*.mk")):
-        format_makefiles([pd / "Makefile", *mk_files])
+    format_makefiles()
 
 
 if __name__ == "__main__":
