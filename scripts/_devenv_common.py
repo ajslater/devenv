@@ -71,3 +71,27 @@ def git_status(files: Sequence[Path | str]) -> None:
 def run(cmd: list[str | Path], **kwargs: Any) -> subprocess.CompletedProcess[str]:
     """Run a command with check=True."""
     return subprocess.run([str(c) for c in cmd], check=True, **kwargs)  # noqa: S603
+
+
+def format_makefiles(files: Sequence[Path]) -> None:
+    """
+    Format Makefiles via mbake's Python API.
+
+    Skips with a warning when mbake isn't importable — this happens during initial
+    project setup, before the lint dependency group has been synced.
+    """
+    if not files:
+        return
+    try:
+        from mbake import Config, MakefileFormatter
+    except ImportError:
+        print("Warning: mbake not installed; skipping Makefile formatting.")  # noqa: T201
+        return
+
+    formatter = MakefileFormatter(Config.load_or_default())
+    all_errors: list[str] = []
+    for path in files:
+        _changed, errors, _warnings = formatter.format_file(path)
+        all_errors.extend(f"{path}: {e}" for e in errors)
+    if all_errors:
+        raise RuntimeError("mbake formatting failed:\n" + "\n".join(all_errors))
