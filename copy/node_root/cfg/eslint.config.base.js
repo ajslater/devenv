@@ -33,14 +33,17 @@ export const CONFIGS = {
   js: {
     ...eslintJs.configs.recommended,
     ...eslintPluginComments.recommended,
+    // eslint-ignore-next-line  security/detect-object-injection
     ...eslintPluginCompat.configs[FLAT_RECOMMENDED],
     ...eslintPluginDeMorgan.configs.recommended,
+    // eslint-ignore-next-line  security/detect-object-injection
     ...eslintPluginDepend.configs[FLAT_RECOMMENDED],
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginMath.configs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
     ...eslintPluginPackageJson.configs.recommended,
     ...eslintPluginPackageJson.configs.stylistic,
+    // eslint-ignore-next-line  security/detect-object-injection
     ...eslintPluginPackageJson.configs["recommended-publishable"],
     ...eslintPluginPerfectionist.configs["recommended-natural"],
     ...eslintPluginPromise.configs[FLAT_ALL],
