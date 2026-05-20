@@ -33,18 +33,12 @@ export const CONFIGS = {
   js: {
     ...eslintJs.configs.recommended,
     ...eslintPluginComments.recommended,
-    // eslint-ignore-next-line security/detect-object-injection
     ...eslintPluginCompat.configs[FLAT_RECOMMENDED],
     ...eslintPluginDeMorgan.configs.recommended,
-    // eslint-ignore-next-line security/detect-object-injection
     ...eslintPluginDepend.configs[FLAT_RECOMMENDED],
     ...eslintPluginImport.flatConfigs.all,
     ...eslintPluginMath.configs.recommended,
     ...eslintPluginNoUnsanitized.configs.recommended,
-    ...eslintPluginPackageJson.configs.recommended,
-    ...eslintPluginPackageJson.configs.stylistic,
-    // eslint-ignore-next-line security/detect-object-injection
-    ...eslintPluginPackageJson.configs["recommended-publishable"],
     ...eslintPluginPerfectionist.configs["recommended-natural"],
     ...eslintPluginPromise.configs[FLAT_ALL],
     ...eslintPluginRegexp.configs.all,
@@ -60,7 +54,6 @@ export const CONFIGS = {
     },
     rules: {
       "@stylistic/multiline-comment-style": "off", // Multiple bugs with this rule
-      // "import-x/order": "off",
       "max-params": ["warn", 4],
       "no-console": "warn",
       "no-debugger": "warn",
@@ -131,6 +124,9 @@ export default defineConfig([
     ...eslintJson.configs.recommended,
     language: "json/json",
   },
+  eslintPluginPackageJson.configs.recommended,
+  eslintPluginPackageJson.configs.stylistic,
+  eslintPluginPackageJson.configs["recommended-publishable"],
   {
     files: ["package.json"],
     languageOptions: {
