@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "fix": "eslint_d --cache --fix . && prettier --write .",
-    "lint": "eslint_d --cache . && prettier --check ."
+    "lint": "eslint_d --cache . && prettier --check . && bin/remark-for-claude.sh"
   },
   "browserslist": [
     "> 1%",
