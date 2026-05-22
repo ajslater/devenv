@@ -5,6 +5,7 @@ __pycache__
 .git
 .venv
 *Dockerfile
+*.sh
 bun.lock
 dist
 node_modules

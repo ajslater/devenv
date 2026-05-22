@@ -1,3 +1,4 @@
 eslint-plugin-array-func
 eslint-plugin-scanjs-rules
 eslint-plugin-simple-import-sort
+prettier-plugin-sh
