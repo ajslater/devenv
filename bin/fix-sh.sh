@@ -3,3 +3,4 @@
 set -euxo pipefail
 
 shellharden --replace ./**/*.sh
+shfmt --simplify --write ./**/*.sh
