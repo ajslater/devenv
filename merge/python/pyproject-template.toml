@@ -27,7 +27,7 @@ lint = [
   "mbake~=1.4.5",
   "pathspec~=1.1.0",
   "radon[toml]~=6.0",
-  "ruff~=0.15",
+  "ruff~=0.16",
   "ty~=0.0.17",
   "types-python-dateutil~=2.9",
   "vulture~=2.3",
@@ -204,13 +204,14 @@ extend-ignore = [
   "E501",    # 88 char line
   "ISC001",  # formatted
   "PERF203", # try block in loop
+  "PLC0415", # import outside top level
   "S101",    # assert
   "W191",    # formatted
 ]
 extend-select = [
-  # "AIR",
+  "AIR",
   "ERA",
-  # "FAST",
+  "FAST",
   # ########
   # flake8 #
   # ########
@@ -236,7 +237,7 @@ extend-select = [
   "ISC",
   "ICN",
   "LOG",
-  # "G",
+  "G",
   "INP",
   "PIE",
   "PYI",
@@ -259,8 +260,8 @@ extend-select = [
   "FLY",
   "I",
   "C90",
-  # "NPY",
-  # "PD",
+  "NPY",
+  "PD",
   "N",
   "PERF",
   "E",
@@ -269,6 +270,7 @@ extend-select = [
   "D",
   "F",
   "PGH",
+  "PLC",
   "PLE",
   "PLR",
   "PLW",
