@@ -237,7 +237,7 @@ extend-select = [
   "ISC",
   "ICN",
   "LOG",
-  "G",
+  # "G", flake8-logging-format: stdlib %-style logging, inappropriate for loguru
   "INP",
   "PIE",
   "PYI",
