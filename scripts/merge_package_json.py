@@ -161,12 +161,15 @@ def _merge_extracted_dep_ranges(
             return update_spec
         if base_ver > update_ver:
             return base_spec
-        # Versions are equal, prefer more flexible range
-        # Priority: >= > > > ^ > ~ > exact
+        # Versions are equal, prefer more flexible range.
+        # Priority: ^ > ~ > >= > > > exact. A > or >= reaching here is always
+        # part of a bounded compound like ">=9.0.0 <9.5.0" (bare ones were
+        # settled above), so it must not outrank ^ or ~; ranking >= over >
+        # only decides the both-unbounded tie.
         base_prefix = get_version_prefix(base_spec)
         update_prefix = get_version_prefix(update_spec)
 
-        prefix_priority = {"": 0, "=": 0, "~": 2, "^": 3, ">": 4, ">=": 5}
+        prefix_priority = {"": 0, "=": 0, ">": 1, ">=": 2, "~": 3, "^": 4}
         base_priority = prefix_priority.get(base_prefix, 0)
         update_priority = prefix_priority.get(update_prefix, 0)
 
