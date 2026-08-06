@@ -6,9 +6,51 @@ import pytest
 
 from scripts.merge_package_json import (
     deep_merge,
+    extract_version_from_range,
     is_spec_unbounded,
     merge_dependency_specs,
 )
+
+
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        # Plain ranges reduce to their floor.
+        ("^1.2.3", "1.2.3"),
+        ("~1.2.3", "1.2.3"),
+        ("1.2.3", "1.2.3"),
+        ("v1.2.3", "1.2.3"),
+        (">= 72.0", "72.0.0"),
+        ("1", "1.0.0"),
+        # Wildcards fill in as zeros.
+        ("1.x", "1.0.0"),
+        ("1.X", "1.0.0"),
+        ("1.*", "1.0.0"),
+        # Compound and hyphen ranges use their leftmost comparator.
+        (">=9.0.0 <9.5.0", "9.0.0"),
+        ("1.2.3 - 2.3.4", "1.2.3"),
+        # An OR range is ranked by its highest branch, not its first.
+        ("^16.0.0 || ^17.0.0 || ^18.0.0", "18.0.0"),
+        ("1.x || 2.x", "2.0.0"),
+        ("^18.0.0 || ^16.0.0", "18.0.0"),
+        # Dotted prerelease counters survive intact.
+        ("^2.0.0-beta.1", "2.0.0-beta.1"),
+        ("^2.0.0-beta.10", "2.0.0-beta.10"),
+        ("~14.3.0-next.53", "14.3.0-next.53"),
+        # Operator and wildcard letters inside a prerelease are not rewritten.
+        ("^1.0.0-v10", "1.0.0-v10"),
+        ("^1.0.0-next.x", "1.0.0-next.x"),
+        ("1.2.3+build.5", "1.2.3+build.5"),
+        # Specs with no version at all are unparseable.
+        ("*", None),
+        ("latest", None),
+        ("next", None),
+        ("", None),
+    ],
+)
+def test_extract_version_from_range(spec: str, expected: str | None) -> None:
+    """Ranges reduce to the semver floor of the branch admitting the most."""
+    assert extract_version_from_range(spec) == expected
 
 
 @pytest.mark.parametrize(
@@ -62,6 +104,31 @@ def test_is_spec_unbounded(spec: str, *, unbounded: bool) -> None:
         # Equal versions prefer the more flexible bounded prefix.
         ("72.0.0", "^72.0.0", "^72.0.0"),
         ("~72.0.0", "^72.0.0", "^72.0.0"),
+        # An OR range keeps its newest major instead of being ranked by its
+        # lowest branch, in either argument order.
+        (
+            "^17.0.0",
+            "^16.0.0 || ^17.0.0 || ^18.0.0",
+            "^16.0.0 || ^17.0.0 || ^18.0.0",
+        ),
+        (
+            "^16.0.0 || ^17.0.0 || ^18.0.0",
+            "^17.0.0",
+            "^16.0.0 || ^17.0.0 || ^18.0.0",
+        ),
+        ("1.x || 2.x", "^1.5.0", "1.x || 2.x"),
+        ("^1.5.0", "1.x || 2.x", "1.x || 2.x"),
+        # A dotted prerelease counter is compared, not truncated away.
+        ("^2.0.0-beta.1", "^2.0.0-beta.10", "^2.0.0-beta.10"),
+        ("^2.0.0-beta.10", "^2.0.0-beta.1", "^2.0.0-beta.10"),
+        ("^1.0.0-rc.1", "^1.0.0-rc.4", "^1.0.0-rc.4"),
+        ("^1.0.0-rc.4", "^1.0.0-rc.1", "^1.0.0-rc.4"),
+        ("~14.3.0-next.9", "~14.3.0-next.53", "~14.3.0-next.53"),
+        # Prerelease identifiers keep their v and x letters, so semver's
+        # alphanumeric-beats-numeric ordering still applies.
+        ("^1.0.0-v10", "^1.0.0-beta", "^1.0.0-v10"),
+        ("^1.0.0-beta", "^1.0.0-v10", "^1.0.0-v10"),
+        ("^1.0.0-next.x", "^1.0.0-next.1", "^1.0.0-next.x"),
         # Special protocols always win.
         (
             "git+https://example.com/repo.git",
@@ -96,3 +163,19 @@ def test_deep_merge_preserves_unbounded_template_spec(key: str) -> None:
     merged = deep_merge(template, project, args)
 
     assert merged == {key: {"eslint-plugin-unicorn": ">=73.0.0"}}
+
+
+def test_deep_merge_keeps_widest_peer_dependency_or_range() -> None:
+    """
+    A peerDependencies OR range keeps its newest major through the merge path.
+
+    _deep_merge_value routes every key ending in "dependencies" through
+    merge_dependencies, so the standard React peer range is merged, not copied.
+    """
+    template = {"peerDependencies": {"react": "^17.0.0"}}
+    project = {"peerDependencies": {"react": "^16.0.0 || ^17.0.0 || ^18.0.0"}}
+    args = Namespace(remove_packages=frozenset())
+
+    merged = deep_merge(template, project, args)
+
+    assert merged == {"peerDependencies": {"react": "^16.0.0 || ^17.0.0 || ^18.0.0"}}

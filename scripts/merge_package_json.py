@@ -22,7 +22,23 @@ from typing import Any
 import semver
 
 SCRIPT_COMMAND_SEPARATOR = " && "
-SEMVER_LEN = 3
+NO_VERSION_SPECS = frozenset({"*", "latest", "", "next"})
+WILDCARDS = frozenset({"x", "X", "*"})
+# A single npm comparator: an optional range operator followed by a partial
+# semver. Matching the parts explicitly keeps operator and wildcard handling
+# off the prerelease and build identifiers, which are free-form text.
+COMPARATOR_RE = re.compile(
+    r"""
+    (?:\^|~>?|>=|<=|>|<|=)?\s*         # optional npm range operator
+    v?                                 # optional leading v
+    (?P<major>\d+|[xX*])
+    (?:\.(?P<minor>\d+|[xX*]))?
+    (?:\.(?P<patch>\d+|[xX*]))?
+    (?:-(?P<prerelease>[0-9A-Za-z][0-9A-Za-z.-]*))?
+    (?:\+(?P<build>[0-9A-Za-z][0-9A-Za-z.-]*))?
+    """,
+    re.VERBOSE,
+)
 SPECIAL_PROTOCOLS = frozenset(
     {
         "git+",
@@ -84,48 +100,46 @@ def is_spec_special(spec_str):
     return any(spec_str.startswith(prefix) for prefix in SPECIAL_PROTOCOLS)
 
 
-def extract_version_from_range(version_str: str) -> str | None:
-    """Extract a base semver version from an npm version range string."""
-    # Handle special cases
-    if version_str in ("*", "latest", "", "next"):
-        return None
-
-    # Remove common npm range operators
-    cleaned = version_str
-    for op in ["^", "~", "=", "v", ">=", "<=", ">", "<"]:
-        cleaned = cleaned.replace(op, "")
-
-    # Handle OR ranges - take the first one
-    if "||" in cleaned:
-        cleaned = cleaned.split("||")[0].strip()
-
-    # Handle hyphen ranges - take the first version
-    if " - " in cleaned:
-        cleaned = cleaned.split(" - ")[0].strip()
-
-    # Take first space-separated token
-    cleaned = cleaned.split()[0].strip() if " " in cleaned else cleaned.strip()
-
-    # Remove wildcards
-    cleaned = cleaned.replace("x", "0").replace("X", "0")
-
-    # Ensure we have at least major.minor.patch
-    parts = cleaned.split(".")
-    while len(parts) < SEMVER_LEN:
-        parts.append("0")
-
-    # Handle prerelease tags
-    base_spec = ".".join(parts[:SEMVER_LEN])
-    if "-" in parts[2]:
-        base_spec = ".".join(parts[:2]) + "." + parts[2]
+def _comparator_version(match: re.Match[str]) -> str | None:
+    """Build a full semver version from a matched npm comparator."""
+    core = ".".join(
+        "0" if part is None or part in WILDCARDS else part
+        for part in (match["major"], match["minor"], match["patch"])
+    )
+    prerelease = f"-{match['prerelease']}" if match["prerelease"] else ""
+    build = f"+{match['build']}" if match["build"] else ""
+    version = core + prerelease + build
 
     # Validate it's a proper version
     try:
-        semver.VersionInfo.parse(base_spec)
-        result_spec = base_spec
+        semver.VersionInfo.parse(version)
     except ValueError, AttributeError:
-        result_spec = None
-    return result_spec
+        return None
+    return version
+
+
+def _extract_branch_version(branch: str) -> str | None:
+    """Extract the floor version of a single non-OR range branch."""
+    # The leftmost comparator is the floor for both compound ranges
+    # (">=9.0.0 <9.5.0") and hyphen ranges ("1.2.3 - 2.3.4").
+    match = COMPARATOR_RE.search(branch)
+    return _comparator_version(match) if match else None
+
+
+def extract_version_from_range(version_str: str) -> str | None:
+    """Extract a base semver version from an npm version range string."""
+    # Handle special cases
+    if version_str.strip() in NO_VERSION_SPECS:
+        return None
+
+    # An OR range admits everything its widest branch admits, so rank it by
+    # the highest branch floor rather than by the first branch listed.
+    versions = [
+        version
+        for branch in version_str.split("||")
+        if (version := _extract_branch_version(branch)) is not None
+    ]
+    return max(versions, key=semver.VersionInfo.parse) if versions else None
 
 
 def get_version_prefix(version_str: str) -> str:
