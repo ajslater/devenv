@@ -111,6 +111,12 @@ def main() -> None:
     if sh_files:
         run(["shellharden", "--replace", *sh_files])
 
+    # Refresh node dependency versions before merging. `bun update` rewrites
+    # every spec to a caret range, so running it after the merge would clobber
+    # the deliberately unbounded (>=) ranges the template reasserts.
+    if (pd / "package.json").exists():
+        run(["bun", "update"])
+
     # Merge config templates
     fix_files: list[str] = []
 
@@ -151,7 +157,9 @@ def main() -> None:
 
     # Fix merged config files
     if fix_files:
-        run(["bun", "update"])
+        # `bun install` syncs the lockfile with whatever the merge added or
+        # changed, but leaves the merged specs alone.
+        run(["bun", "install"])
         run(["bunx", "eslint", "--cache", "--fix", *fix_files])
         run(["bunx", "prettier", "--write", *fix_files])
         git_status([".*", "bin", "cfg", *fix_files])
