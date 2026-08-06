@@ -136,13 +136,25 @@ def get_version_prefix(version_str: str) -> str:
     return "="
 
 
-def _merge_exatracted_dep_ranges(
+def is_spec_unbounded(spec_str: str) -> bool:
+    """Determine if the spec is a bare > or >= range with no upper bound."""
+    return re.fullmatch(r">=?\s*v?\d[\w.\-+]*", spec_str.strip()) is not None
+
+
+def _merge_extracted_dep_ranges(
     base_spec, update_spec, base_extracted: str, update_extracted: str
 ):
-    """Compare the extracted versions."""
+    """Compare the extracted versions, preferring the range allowing higher versions."""
     try:
         base_ver = semver.VersionInfo.parse(base_extracted)
         update_ver = semver.VersionInfo.parse(update_extracted)
+
+        # An unbounded range (> or >=) admits every version a bounded range
+        # does and more, so it wins regardless of the extracted floors.
+        base_unbounded = is_spec_unbounded(base_spec)
+        update_unbounded = is_spec_unbounded(update_spec)
+        if base_unbounded != update_unbounded:
+            return base_spec if base_unbounded else update_spec
 
         # Compare versions
         if update_ver > base_ver:
@@ -150,11 +162,11 @@ def _merge_exatracted_dep_ranges(
         if base_ver > update_ver:
             return base_spec
         # Versions are equal, prefer more flexible range
-        # Priority: ^ > ~ > >= > exact
+        # Priority: >= > > > ^ > ~ > exact
         base_prefix = get_version_prefix(base_spec)
         update_prefix = get_version_prefix(update_spec)
 
-        prefix_priority = {"": 0, "=": 0, ">=": 1, "~": 2, "^": 3}
+        prefix_priority = {"": 0, "=": 0, "~": 2, "^": 3, ">": 4, ">=": 5}
         base_priority = prefix_priority.get(base_prefix, 0)
         update_priority = prefix_priority.get(update_prefix, 0)
 
@@ -192,7 +204,7 @@ def merge_dependency_specs(base_spec: str, update_spec: str) -> str:
     if update_extracted is None:
         return base_spec
 
-    return _merge_exatracted_dep_ranges(
+    return _merge_extracted_dep_ranges(
         base_spec, update_spec, base_extracted, update_extracted
     )
 
