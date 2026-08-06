@@ -15,7 +15,6 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -279,6 +278,30 @@ def _deep_merge_override(base_val, value):
     return list(dedup_dict.values())
 
 
+def _list_item_sort_key(item: Any) -> tuple[int, str, str]:
+    """
+    Order heterogeneous list items deterministically.
+
+    Config lists such as remarkConfig.plugins hold either a bare name or a
+    [name, options] pair. Sorting bare names first keeps configured entries
+    after the presets they override, which is what makes a
+    ["lint-no-duplicate-headings", false] entry disable the rule.
+    """
+    if isinstance(item, str):
+        return (0, item, "")
+    if item and isinstance(item, list) and isinstance(item[0], str):
+        return (1, item[0], json.dumps(item[1:], sort_keys=True))
+    return (2, json.dumps(item, sort_keys=True), "")
+
+
+def _dedupe_list(items: list[Any]) -> list[Any]:
+    """Drop duplicates, keying on JSON form so unhashable items work too."""
+    deduped: dict[str, Any] = {}
+    for item in items:
+        deduped.setdefault(json.dumps(item, sort_keys=True), item)
+    return list(deduped.values())
+
+
 def _deep_merge_value_list(
     list_strategy: str, key: str, result: dict[str, Any], base_val, value
 ):
@@ -287,11 +310,8 @@ def _deep_merge_value_list(
             result[key] = _deep_merge_override(base_val, value)
         else:
             # Regular list merging with deduplication and sorting
-            merged_list = base_val + value
-            # Try to deduplicate if possible (for hashable types)
-            with suppress(TypeError):
-                merged_list = list(set(merged_list))
-            result[key] = sorted(merged_list)
+            merged_list = _dedupe_list(base_val + value)
+            result[key] = sorted(merged_list, key=_list_item_sort_key)
     else:
         result[key] = value
 

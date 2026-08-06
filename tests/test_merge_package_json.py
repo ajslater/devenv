@@ -179,3 +179,66 @@ def test_deep_merge_keeps_widest_peer_dependency_or_range() -> None:
     merged = deep_merge(template, project, args)
 
     assert merged == {"peerDependencies": {"react": "^16.0.0 || ^17.0.0 || ^18.0.0"}}
+
+
+def test_deep_merge_list_of_mixed_plugin_forms() -> None:
+    """
+    A [name, options] plugin entry merges alongside bare plugin names.
+
+    remarkConfig.plugins holds both forms, so the merged list must not compare
+    list to str, and the configured entry must stay after the presets it
+    overrides or the disabling `false` is undone by preset-lint-recommended.
+    """
+    template = {"remarkConfig": {"plugins": ["gfm", "preset-lint-recommended"]}}
+    project = {
+        "remarkConfig": {
+            "plugins": [
+                "gfm",
+                ["lint-no-duplicate-headings", False],
+                "lint-no-duplicate-headings-in-section",
+            ]
+        }
+    }
+    args = Namespace(remove_packages=frozenset())
+
+    merged = deep_merge(template, project, args, "merge")
+
+    assert merged == {
+        "remarkConfig": {
+            "plugins": [
+                "gfm",
+                "lint-no-duplicate-headings-in-section",
+                "preset-lint-recommended",
+                ["lint-no-duplicate-headings", False],
+            ]
+        }
+    }
+
+
+def test_deep_merge_list_dedupes_unhashable_entries() -> None:
+    """Identical [name, options] entries collapse to one."""
+    entry = ["lint-maximum-line-length", 80]
+    args = Namespace(remove_packages=frozenset())
+
+    merged = deep_merge(
+        {"plugins": [entry]}, {"plugins": [entry, "gfm"]}, args, "merge"
+    )
+
+    assert merged == {"plugins": ["gfm", entry]}
+
+
+def test_deep_merge_list_orders_configured_entries_by_name() -> None:
+    """Configured entries sort among themselves by plugin name."""
+    args = Namespace(remove_packages=frozenset())
+    template = {"plugins": [["lint-maximum-line-length", 80]]}
+    project = {"plugins": [["lint-list-item-indent", "one"], "gfm"]}
+
+    merged = deep_merge(template, project, args, "merge")
+
+    assert merged == {
+        "plugins": [
+            "gfm",
+            ["lint-list-item-indent", "one"],
+            ["lint-maximum-line-length", 80],
+        ]
+    }
