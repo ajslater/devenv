@@ -21,4 +21,5 @@ fi
 uv run "$DEVENV_SRC"/scripts/copy_files.py "$PD" --root "$DEVENV_SRC"/init
 mv eslint.config.init.js eslint.config.js
 uv pip install packaging pathspec semver tomlkit mbake
+bun init
 uv run "$DEVENV_SRC/scripts/update_devenv.py"
