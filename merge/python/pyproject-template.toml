@@ -100,7 +100,7 @@ reportIncompatibleUnannotatedOverride = true
 reportMissingParameterType = false
 reportMissingTypeArgument = false
 reportMissingTypeStubs = false
-reportPrivateUsage = false # ruff does this
+reportPrivateUsage = false  # ruff does this
 reportUnannotatedClassAttribute = false
 reportUnknownArgumentType = false
 reportUnknownLambdaType = "hint"
@@ -108,10 +108,10 @@ reportUnknownMemberType = false
 reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportUnusedCallResult = false
-reportUnusedParameter = false # ruff does this 
+reportUnusedParameter = false  # ruff does this
 
 [tool.codespell]
-builtin = 'clear,rare,code'
+builtin = "clear,rare,code"
 check-hidden = true
 ignore-words-list = "crate,falsy,iff,ro,thead,versio,wan,warmup,ws"
 skip = "*.svg,*~,.*,.*/*,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
@@ -195,18 +195,18 @@ extend-ignore = [
   "BLE001",  # catch bare exception
   "COM812",  # missing trailing comma
   "COM819",  # prohibit trailing comma
-  "D203",    # blank line before class docstring
-  "D206",    # formatted
-  "D212",    # first line multi line docstring.
-  "E111",    # formatted
-  "E114",    # formatted
-  "E117",    # over-indented
-  "E501",    # 88 char line
+  "D203",  # blank line before class docstring
+  "D206",  # formatted
+  "D212",  # first line multi line docstring.
+  "E111",  # formatted
+  "E114",  # formatted
+  "E117",  # over-indented
+  "E501",  # 88 char line
   "ISC001",  # formatted
-  "PERF203", # try block in loop
-  "PLC0415", # import outside top level
-  "S101",    # assert
-  "W191",    # formatted
+  "PERF203",  # try block in loop
+  "PLC0415",  # import outside top level
+  "S101",  # assert
+  "W191",  # formatted
 ]
 extend-select = [
   "AIR",
