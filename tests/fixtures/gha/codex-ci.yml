@@ -1,0 +1,115 @@
+# A codex-shaped caller: its own image jobs sit between ci and release, and
+# PyPI is a step in its own deploy job.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main, develop]
+
+env:
+  IMAGE: ghcr.io/${{ github.repository }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/devenv-check.yml
+    with:
+      ci-target: codex-ci
+      matrix: >-
+        [{"name": "Lint", "make": "lint", "write-cache": true},
+        {"name": "Test Frontend", "make": "test-frontend"},
+        {"name": "Test Python", "make": "django-check test-python", "junit": true},
+        {"name": "Build Dist", "make": "build-choices build-frontend collectstatic build-only", "dist": true}]
+    permissions:
+      contents: read
+      actions: read
+      packages: write
+      checks: write
+
+  build:
+    name: Build Image (${{ matrix.arch }})
+    needs: ci
+    if: ${{ !cancelled() && needs.ci.result == 'success' && needs.ci.outputs.deploy == 'true' }}
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Build and push
+        env:
+          VERSION: ${{ needs.ci.outputs.version }}
+          ARCH: ${{ matrix.arch }}
+        run: echo "build $IMAGE:$VERSION-$ARCH"
+
+  deploy:
+    name: Deploy
+    needs: [ci, build]
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: python-dist
+          path: dist/
+
+      - name: Create and push manifest
+        env:
+          VERSION: ${{ needs.ci.outputs.version }}
+        run: echo "manifest $IMAGE:$VERSION"
+
+      - name: Publish to PyPI
+        uses: ./.github/actions/devenv-pypi
+        with:
+          token: ${{ secrets.PYPI_TOKEN }}
+          download: "false"
+
+  deploy-hub:
+    name: Deploy Deprecated Docker Hub Image
+    needs: [ci, deploy]
+    if: ${{ !cancelled() && needs.deploy.result == 'success' && needs.ci.outputs.final == 'true' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Build and push deprecated image
+        env:
+          VERSION: ${{ needs.ci.outputs.version }}
+        run: echo "hub $VERSION"
+
+  release:
+    name: Release
+    needs: [ci, deploy, deploy-hub]
+    if: >-
+      ${{ !cancelled() && needs.ci.outputs.release == 'true'
+      && needs.deploy.result == 'success'
+      && (needs.deploy-hub.result == 'success' || needs.deploy-hub.result == 'skipped') }}
+    uses: ./.github/workflows/devenv-release.yml
+    permissions:
+      contents: write
