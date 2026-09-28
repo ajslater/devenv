@@ -35,6 +35,11 @@ export const SHARED_RULES = {
   "no-debugger": "warn",
   "no-secrets/no-secrets": "error",
   "security/detect-object-injection": "off",
+  // Duplicates core no-unused-vars, which has the options worth configuring.
+  "sonarjs/no-unused-vars": "off",
+  // Unicorn's twin of @stylistic/multiline-comment-style. Both of its autofix
+  // modes mangle one-line `/** x */` or starred multi-line block comments.
+  "unicorn/single-line-block-comment-style": "off",
 };
 
 // Presets for JavaScript. Each becomes its own flat-config entry through
