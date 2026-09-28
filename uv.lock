@@ -460,6 +460,7 @@ test = [
     { name = "coverage" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
@@ -500,6 +501,7 @@ test = [
     { name = "coverage", specifier = "~=7.0" },
     { name = "pytest-asyncio", specifier = "~=1.0" },
     { name = "pytest-cov", specifier = "~=7.0" },
+    { name = "pyyaml", specifier = "~=6.0" },
 ]
 
 [[package]]

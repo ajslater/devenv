@@ -268,6 +268,37 @@ def test_cli_error_annotation(
     assert capsys.readouterr().err.startswith("::error::NEWS.md needs")
 
 
+@pytest.mark.parametrize(
+    ("version", "final"), [("1.2.4", "true"), ("1.2.4a0", "false")]
+)
+def test_cli_version_ignores_news(
+    tmp_path: Path, capsys: pytest.CaptureFixture, version: str, final: str
+) -> None:
+    """Version reads pyproject.toml alone, so a missing NEWS section is fine."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(_pyproject(version))
+    output = tmp_path / "output"
+    argv = ["version", "--pyproject", str(pyproject), "--github-output", str(output)]
+
+    assert release_info.main(argv) == 0
+
+    facts = f"version={version}\nfinal={final}\n"
+    assert capsys.readouterr().out == facts
+    assert output.read_text() == facts
+
+
+def test_cli_version_without_version_line(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
+    """A pyproject.toml without a static version is a content error."""
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text('[project]\ndynamic = ["version"]\n')
+
+    argv = ["version", "--pyproject", str(pyproject)]
+    assert release_info.main(argv) == release_info.EXIT_CONTENT_ERROR
+    assert "no version" in capsys.readouterr().err
+
+
 def test_cli_is_latest(
     capsys: pytest.CaptureFixture, monkeypatch: pytest.MonkeyPatch
 ) -> None:
