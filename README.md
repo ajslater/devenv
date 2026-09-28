@@ -91,7 +91,11 @@ overwritten on every update, so edit them here, not in the project.
 - `.github/actions/devenv-ci-container`: builds and starts the CI container.
 - `.github/actions/devenv-pypi`: publishes `python-dist` to PyPI.
 
-A project's `ci.yml` composes these. To add your own jobs:
+The `gha_std` feature, which also needs `ci`, copies in the standard `ci.yml`.
+It runs `devenv-check`, then publishes to PyPI, then runs `devenv-release`. Its
+required check is `CI / Lint, Test & Build Dist`. A project that needs its own
+jobs drops `gha_std` and owns its `ci.yml`, composing the same blocks. To add
+your own jobs:
 
 1. Your jobs `needs: ci` and run under
    `!cancelled() && needs.ci.result == 'success' && needs.ci.outputs.deploy == 'true'`.
