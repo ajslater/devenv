@@ -26,3 +26,4 @@ bin/version-npm.sh
 cfg/eslint.config.js
 frontend/package-lock.json
 package-lock.json
+bin/ci-download-dist-if-identical.sh

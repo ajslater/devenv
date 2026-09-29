@@ -3,6 +3,7 @@ Retiring config that devenv used to ship.
 
 A child repo sheds these on its next update-devenv:
 
+- update_devenv deletes the files listed in remove_files.txt.
 - merge_dotfiles drops the lines in remove_dotfile_lines.txt from every merged
   dotfile.
 - merge_toml --remove-values drops the values in
@@ -219,3 +220,31 @@ def test_package_template_ships_no_retired_value() -> None:
     merge_package_json.remove_values(template, json.loads(_PACKAGE_REMOVE.read_text()))
 
     assert json.dumps(template) == before
+
+
+# ---------------------------------------------------------------------------
+# Files
+# ---------------------------------------------------------------------------
+
+
+def _removed_files() -> set[str]:
+    lines = (_ROOT / "remove_files.txt").read_text().splitlines()
+    return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+
+
+def test_old_gate_script_is_retired() -> None:
+    """bin/ci-reuse-dist.sh replaced it; child repos delete their copy."""
+    assert "bin/ci-download-dist-if-identical.sh" in _removed_files()
+    assert (_ROOT / "copy" / "ci" / "bin" / "ci-reuse-dist.sh").is_file()
+
+
+def test_no_copied_file_is_also_removed() -> None:
+    """update_devenv deletes before it copies, so a file in both never goes."""
+    shipped = {
+        str(path.relative_to(feature))
+        for feature in (_ROOT / "copy").iterdir()
+        if feature.is_dir()
+        for path in feature.rglob("*")
+        if path.is_file()
+    }
+    assert not shipped & _removed_files()
