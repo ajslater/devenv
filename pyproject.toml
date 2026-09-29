@@ -49,7 +49,7 @@ test = [
   "coverage~=7.0",
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
-  "pyyaml~=6.0",
+  "pyyaml~=6.0"
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
