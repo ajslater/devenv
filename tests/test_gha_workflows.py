@@ -86,22 +86,66 @@ def test_check_matrix_fails_fast() -> None:
     assert check["strategy"]["matrix"]["include"] == "${{ fromJSON(inputs.matrix) }}"
     assert check["name"] == "${{ matrix.name }}"
     for job_id, job in _JOBS.items():
-        assert "continue-on-error" not in job, job_id
+        # Only the housekeeping prune may fail without failing CI.
+        assert ("continue-on-error" in job) == (job_id == "prune"), job_id
     for job_id, step in _all_steps():
         assert "continue-on-error" not in step, (job_id, step)
 
 
 def test_default_matrix() -> None:
-    """Lint writes the cache, Test publishes junit, Build Dist uploads the dist."""
+    """Test publishes junit and Build Dist uploads the dist."""
     matrix = json.loads(_CALL["inputs"]["matrix"]["default"])
     assert [(combo["name"], combo["make"]) for combo in matrix] == [
         ("Lint", "lint"),
         ("Test", "test"),
         ("Build Dist", "build"),
     ]
-    lint, test, build = matrix
-    for flag, owner in (("write-cache", lint), ("junit", test), ("dist", build)):
+    _, test, build = matrix
+    for flag, owner in (("junit", test), ("dist", build)):
         assert [combo for combo in matrix if combo.get(flag)] == [owner], flag
+
+
+def _uses(prefix: str) -> list[tuple[str, dict[str, Any]]]:
+    return [
+        (job_id, step)
+        for job_id, step in _all_steps()
+        if step.get("uses", "").startswith(prefix)
+    ]
+
+
+def test_ci_image_is_built_once_and_pulled() -> None:
+    """One job builds and pushes the image by digest; each combo pulls it."""
+    ((job_id, build),) = _uses("docker/build-push-action@")
+    assert job_id == "image"
+    options = build["with"]
+    assert "push-by-digest=true" in options["outputs"]
+    assert "push=true" in options["outputs"]
+    assert "load" not in options
+    assert options["cache-to"].startswith("type=registry,")
+    assert options["provenance"] is False
+    assert _JOBS["image"]["outputs"]["image"] == "${{ steps.ref.outputs.image }}"
+    check = _JOBS["check"]
+    assert check["needs"] == "image"
+    assert "if" not in check
+    assert check["permissions"]["packages"] == "read"
+    ((_, start),) = _uses("./.github/actions/devenv-ci-container")
+    assert start["with"] == {"image": "${{ needs.image.outputs.image }}"}
+    container = (_ACTIONS / "devenv-ci-container" / "action.yml").read_text()
+    assert "build-push-action" not in container
+    assert 'docker pull --quiet "$CI_IMAGE"' in container
+    assert "--no-build" in container
+
+
+def test_prune_keeps_recent_untagged_images() -> None:
+    """Pruning deletes only untagged CI images and keeps the newest ones."""
+    prune = _JOBS["prune"]
+    assert prune["needs"] == "image"
+    assert prune["continue-on-error"] is True
+    ((job_id, step),) = _uses("actions/delete-package-versions@")
+    assert job_id == "prune"
+    assert step["with"]["package-name"] == "${{ github.event.repository.name }}-ci"
+    assert step["with"]["delete-only-untagged-versions"] == "true"
+    assert step["with"]["min-versions-to-keep"] >= 5  # noqa: PLR2004
 
 
 def test_required_check_aggregates_the_gate_and_matrix() -> None:

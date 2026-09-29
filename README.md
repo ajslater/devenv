@@ -80,7 +80,10 @@ overwritten on every update, so edit them here, not in the project.
 - `.github/workflows/devenv-check.yml`: a reusable workflow with these jobs:
     - A gate. It runs `bin/release-tag.sh preflight`. On a main push it reuses
       the `python-dist` of an earlier run that passed on the same git tree.
-    - A fail-fast matrix of lint, test and build in the CI container.
+    - One job that builds the CI image with the registry cache and pushes it by
+      digest to `ghcr.io/<repo>-ci`. A companion job prunes old untagged images.
+    - A fail-fast matrix of lint, test and build, where every combo pulls that
+      image.
     - The `Lint, Test & Build Dist` aggregator, which is the required check.
 
     Its outputs (`deploy`, `release`, `version`, `final`) are the only trigger
@@ -88,7 +91,8 @@ overwritten on every update, so edit them here, not in the project.
 
 - `.github/workflows/devenv-release.yml`: a reusable workflow that tags the
   release, creates the GitHub Release from NEWS.md and merges main into develop.
-- `.github/actions/devenv-ci-container`: builds and starts the CI container.
+- `.github/actions/devenv-ci-container`: pulls the CI image by digest and starts
+  the CI container.
 - `.github/actions/devenv-pypi`: publishes `python-dist` to PyPI.
 
 The `gha_std` feature, which also needs `ci`, copies in the standard `ci.yml`.

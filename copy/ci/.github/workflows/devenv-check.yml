@@ -1,8 +1,8 @@
 # Managed by devenv (copy/ci). Edit it there, not in a child repo.
 #
-# Gate, a fail-fast lint/test/build matrix and the required-check aggregator.
-# Call it from a job in ci.yml; later jobs read its outputs instead of
-# repeating any trigger logic:
+# Gate, one CI image build, a fail-fast lint/test/build matrix that pulls that
+# image, and the required-check aggregator. Call it from a job in ci.yml;
+# later jobs read its outputs instead of repeating any trigger logic:
 #
 #   ci:
 #     uses: ./.github/workflows/devenv-check.yml
@@ -19,12 +19,11 @@ on:
         description: >-
           JSON list of check combos, one parallel job each. Keys: name (the
           job name), make (make targets run in the CI container), and the
-          booleans write-cache (exactly one combo writes the registry cache),
-          junit (publish test-results/pytest) and dist (upload dist/ as
-          python-dist).
+          booleans junit (publish test-results/pytest) and dist (upload dist/
+          as python-dist).
         type: string
         default: >-
-          [{"name": "Lint", "make": "lint", "write-cache": true},
+          [{"name": "Lint", "make": "lint"},
           {"name": "Test", "make": "test", "junit": true},
           {"name": "Build Dist", "make": "build", "dist": true}]
       ci-target:
@@ -148,19 +147,93 @@ jobs:
           if-no-files-found: error
 
   # ---------------------------------------------------------------------------
-  # Lint, test and build in parallel in the CI container. fail-fast: the first
+  # Build the CI image once, with the registry cache, and push it by digest.
+  # Pushing skips exporting and loading the image into the Docker daemon,
+  # which cost about a minute per job when every combo built its own.
+  # ---------------------------------------------------------------------------
+  image:
+    name: CI Image
+    needs: gate
+    if: needs.gate.outputs.dist_found != 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.ref.outputs.image }}
+    env:
+      DOCKER_BUILD_RECORD_UPLOAD: "false"
+      DOCKER_BUILD_SUMMARY: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push CI image
+        id: build
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          # An empty target builds the Dockerfile's last stage.
+          target: ${{ inputs.ci-target }}
+          # Untagged, by digest: every check job pulls exactly this image.
+          outputs: type=image,name=${{ env.CI_IMAGE }},push-by-digest=true,name-canonical=true,push=true
+          # One manifest per run, so pruning never splits an image index.
+          provenance: false
+          sbom: false
+          cache-from: type=registry,ref=${{ env.CI_IMAGE }}:cache
+          cache-to: type=registry,ref=${{ env.CI_IMAGE }}:cache,mode=max
+
+      - name: Image reference
+        id: ref
+        env:
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: echo "image=$CI_IMAGE@$DIGEST" >>"$GITHUB_OUTPUT"
+
+  # ---------------------------------------------------------------------------
+  # Every run leaves an untagged CI image in the <repo>-ci package; keep the
+  # newest few. Runs beside the check matrix, off the deploy path, and a
+  # failure here never fails CI.
+  # ---------------------------------------------------------------------------
+  prune:
+    name: Prune CI Images
+    needs: image
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    permissions:
+      packages: write
+    steps:
+      - name: Delete old untagged CI images
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}-ci
+          package-type: container
+          min-versions-to-keep: 10
+          delete-only-untagged-versions: "true"
+
+  # ---------------------------------------------------------------------------
+  # Lint, test and build in parallel in the CI image. fail-fast: the first
   # failing combo cancels the rest. Never set fail-fast: false or
   # continue-on-error here; the result job relies on it.
   # ---------------------------------------------------------------------------
   check:
     name: ${{ matrix.name }}
-    needs: gate
-    if: needs.gate.outputs.dist_found != 'true'
+    # Implicit success(): skipped with the image when the gate reused a dist.
+    needs: image
     runs-on: ubuntu-24.04
     # Job permissions cannot vary per combo; this is the union.
     permissions:
       contents: read
-      packages: write
+      packages: read
       checks: write
     strategy:
       fail-fast: true
@@ -173,9 +246,7 @@ jobs:
       - name: Start CI container
         uses: ./.github/actions/devenv-ci-container
         with:
-          image: ${{ env.CI_IMAGE }}
-          target: ${{ inputs.ci-target }}
-          write-cache: ${{ matrix.write-cache == true }}
+          image: ${{ needs.image.outputs.image }}
 
       - name: ${{ matrix.name }}
         id: work
