@@ -129,7 +129,12 @@ def main() -> None:
                 "merge/node_root/package.json",
                 "package.json",
                 "merge_package_json.py",
-                ["--remove", str(devenv_src / "remove_node_packages.txt")],
+                [
+                    "--remove",
+                    str(devenv_src / "remove_node_packages.txt"),
+                    "--remove-values",
+                    str(devenv_src / "merge/node_root/package-remove.json"),
+                ],
             )
         )
 
@@ -147,7 +152,10 @@ def main() -> None:
                 "merge/python/pyproject-template.toml",
                 "pyproject.toml",
                 "merge_toml.py",
-                ["--remove", str(devenv_src / "merge/python/pyproject-remove.toml")],
+                [
+                    "--remove-values",
+                    str(devenv_src / "merge/python/pyproject-remove.toml"),
+                ],
             )
         )
 

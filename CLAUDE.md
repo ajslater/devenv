@@ -85,6 +85,17 @@ The update system in `scripts/` handles non-destructive merging:
 - `merge_yaml.py` — Merges YAML configs (used for `mkdocs.yml`)
 - `update-devenv.sh` — Main entry point: runs delete, merge, and copy operations
 
+Merges only add, so retiring something devenv used to ship needs an entry in a
+retirement list. `update-devenv` then removes it from each child repo:
+
+- `remove_files.txt` — files to delete
+- `remove_node_packages.txt` — node packages to drop from `package.json`
+- `remove_dotfile_lines.txt` — lines to drop from every merged dotfile
+- `merge/python/pyproject-remove.toml` — values to drop from the array at the
+  same key path in `pyproject.toml`
+- `merge/node_root/package-remove.json` — the same for `package.json`, such as
+  `prettier.plugins`
+
 ### Makefile Conventions
 
 - Uses double-colon (`::`) rules to allow multiple definitions of the same

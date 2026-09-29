@@ -695,7 +695,7 @@ Comment and Format Preservation:
     )
 
     parser.add_argument(
-        "--remove",
+        "--remove-values",
         type=Path,
         help="TOML file of retired array values to drop from the merged result",
     )
@@ -703,7 +703,10 @@ Comment and Format Preservation:
     args = parser.parse_args()
 
     # Validate input files exist
-    for filepath in [*args.files, *([args.remove] if args.remove else [])]:
+    for filepath in [
+        *args.files,
+        *([args.remove_values] if args.remove_values else []),
+    ]:
         if not filepath.exists():
             reason = f"File not found: {filepath}"
             parser.error(reason)
@@ -711,8 +714,8 @@ Comment and Format Preservation:
     try:
         # Perform the merge
         merged_doc = merge_toml_files(args.files, args.list_strategy)
-        if args.remove:
-            remove_values(merged_doc, load_toml_file(args.remove))
+        if args.remove_values:
+            remove_values(merged_doc, load_toml_file(args.remove_values))
 
         # Output the result
         toml_output = tomlkit.dumps(merged_doc)

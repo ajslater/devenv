@@ -395,6 +395,23 @@ def merge_package_json_files(
     return result
 
 
+def remove_values(data: Any, retired: Any) -> None:
+    """
+    Remove retired values from data's arrays, in place.
+
+    retired mirrors data's structure: every array in it lists values to drop
+    from the array at the same key path in data. A value matches only when it
+    is equal as a whole, so an object is dropped only if every field matches.
+    Missing keys are ignored and the rest of each array keeps its order.
+    """
+    for key, value in retired.items():
+        target = data.get(key) if isinstance(data, dict) else None
+        if isinstance(value, dict) and isinstance(target, dict):
+            remove_values(target, value)
+        elif isinstance(value, list) and isinstance(target, list):
+            target[:] = [item for item in target if item not in value]
+
+
 def _create_remove_packages(args: argparse.Namespace) -> None:
     remove_packages: set[str] = set()
     with args.remove.open("r") as remove_file:
@@ -471,10 +488,19 @@ Dependency Merging:
         "--remove", type=Path, help="File listing node packages to remove."
     )
 
+    parser.add_argument(
+        "--remove-values",
+        type=Path,
+        help="JSON file of retired array values to drop from the merged result",
+    )
+
     args = parser.parse_args()
 
     # Validate input files exist
-    for filepath in args.files:
+    for filepath in [
+        *args.files,
+        *([args.remove_values] if args.remove_values else []),
+    ]:
         if not filepath.exists():
             reason = f"File not found: {filepath}"
             parser.error(reason)
@@ -483,6 +509,8 @@ Dependency Merging:
 
     # Perform the merge
     merged_data = merge_package_json_files(args.files, args, args.list_strategy)
+    if args.remove_values:
+        remove_values(merged_data, load_package_json(args.remove_values))
 
     # Output the result
     json_output = json.dumps(merged_data, indent=args.indent, ensure_ascii=False)

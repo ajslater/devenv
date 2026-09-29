@@ -1,0 +1,13 @@
+{
+  "prettier": {
+    "plugins": ["prettier-plugin-sh"],
+    "overrides": [
+      {
+        "files": ["**/*Dockerfile"],
+        "options": {
+          "parser": "sh"
+        }
+      }
+    ]
+  }
+}
