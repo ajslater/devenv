@@ -477,6 +477,27 @@ def deep_merge_tomlkit(
     return result
 
 
+def remove_values(doc: Any, retired: Any) -> None:
+    """
+    Remove retired values from doc's arrays, in place.
+
+    retired mirrors doc's structure: every array in it lists values to drop
+    from the array at the same key path in doc. Missing keys are ignored and
+    the rest of each array keeps its order and formatting.
+    """
+    for key, value in retired.items():
+        if key not in doc:
+            continue
+        target = doc[key]
+        if _is_table_like(value) and _is_table_like(target):
+            remove_values(target, value)
+        elif isinstance(value, list | Array) and isinstance(target, list | Array):
+            drop = {str(item) for item in value}
+            for index in reversed(range(len(target))):
+                if str(target[index]) in drop:
+                    del target[index]
+
+
 def load_toml_file(filepath: Path) -> TOMLDocument:
     """
     Load a TOML file and return its contents as a tomlkit document.
@@ -673,10 +694,19 @@ Comment and Format Preservation:
         help="How to handle list merging: replace (default) or append",
     )
 
+    parser.add_argument(
+        "--remove-values",
+        type=Path,
+        help="TOML file of retired array values to drop from the merged result",
+    )
+
     args = parser.parse_args()
 
     # Validate input files exist
-    for filepath in args.files:
+    for filepath in [
+        *args.files,
+        *([args.remove_values] if args.remove_values else []),
+    ]:
         if not filepath.exists():
             reason = f"File not found: {filepath}"
             parser.error(reason)
@@ -684,6 +714,8 @@ Comment and Format Preservation:
     try:
         # Perform the merge
         merged_doc = merge_toml_files(args.files, args.list_strategy)
+        if args.remove_values:
+            remove_values(merged_doc, load_toml_file(args.remove_values))
 
         # Output the result
         toml_output = tomlkit.dumps(merged_doc)

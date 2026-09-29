@@ -62,7 +62,6 @@ build-backend = "uv_build"
 module-root = ""
 source-include = [
   ".*ignore",
-  ".circlci/**",
   ".env.platforms",
   ".picopt_treestamps.yaml",
   ".readthedocs.yaml",
@@ -304,6 +303,7 @@ ignore-overlong-task-comments = true
 "bin/hub_prune_stale.py" = ["T201"]
 "bin/release_info.py" = ["T201"]
 "bin/roman.py" = ["T201"]
+"copy/common/bin/roman.py" = ["T201"]
 "copy/docker/bin/hub_prune_stale.py" = ["T201"]
 "copy/python/bin/release_info.py" = ["T201"]
 
