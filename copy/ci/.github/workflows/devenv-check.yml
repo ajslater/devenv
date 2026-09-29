@@ -201,8 +201,10 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Every run leaves an untagged CI image in the <repo>-ci package; keep the
-  # newest few. Runs beside the check matrix, off the deploy path, and a
-  # failure here never fails CI.
+  # newest 30. It runs beside the check matrix, off the deploy path: this
+  # run's image is the newest, and each check has pulled its own copy within
+  # seconds of starting. A failure here never fails CI. Thirty leaves room to
+  # "Re-run failed jobs" later, which reuses this run's image digest.
   # ---------------------------------------------------------------------------
   prune:
     name: Prune CI Images
@@ -217,7 +219,7 @@ jobs:
         with:
           package-name: ${{ github.event.repository.name }}-ci
           package-type: container
-          min-versions-to-keep: 10
+          min-versions-to-keep: 30
           delete-only-untagged-versions: "true"
 
   # ---------------------------------------------------------------------------

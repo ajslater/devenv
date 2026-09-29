@@ -133,6 +133,7 @@ def test_ci_image_is_built_once_and_pulled() -> None:
     container = (_ACTIONS / "devenv-ci-container" / "action.yml").read_text()
     assert "build-push-action" not in container
     assert 'docker pull --quiet "$CI_IMAGE"' in container
+    assert "Re-run all jobs" in container
     assert "--no-build" in container
 
 
@@ -145,7 +146,8 @@ def test_prune_keeps_recent_untagged_images() -> None:
     assert job_id == "prune"
     assert step["with"]["package-name"] == "${{ github.event.repository.name }}-ci"
     assert step["with"]["delete-only-untagged-versions"] == "true"
-    assert step["with"]["min-versions-to-keep"] >= 5  # noqa: PLR2004
+    # Room for "Re-run failed jobs", which reuses the original image digest.
+    assert step["with"]["min-versions-to-keep"] >= 30  # noqa: PLR2004
 
 
 def test_required_check_aggregates_the_gate_and_matrix() -> None:

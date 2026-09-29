@@ -28,5 +28,8 @@ runs:
         CI_IMAGE: ${{ inputs.image }}
       run: |
         mkdir -p dist test-results
-        docker pull --quiet "$CI_IMAGE"
+        if ! docker pull --quiet "$CI_IMAGE"; then
+          echo "::error::Could not pull $CI_IMAGE. A re-run of a failed job reuses its original CI image, which may have been pruned since; use \"Re-run all jobs\" to rebuild it."
+          exit 1
+        fi
         docker compose up --detach --no-build ci
