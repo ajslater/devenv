@@ -1,0 +1,6 @@
+# Values retired from pyproject.toml. update-devenv drops each value listed
+# here from the array at the same key path in a project's pyproject.toml.
+
+[tool.uv.build-backend]
+# CircleCI is no longer used (and this entry was misspelled anyway).
+source-include = [".circlci/**"]

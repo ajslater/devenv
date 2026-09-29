@@ -27,6 +27,7 @@ from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
 from copy_files import copy_files  # pyright: ignore[reportImplicitRelativeImport]
 from merge_dotfiles import (  # pyright: ignore[reportImplicitRelativeImport]
     merge_dotfiles,
+    read_retired_lines,
 )
 
 
@@ -96,7 +97,7 @@ def main() -> None:
 
     # Dotfiles
     created, skipped, merged, _dotfile_paths = merge_dotfiles(
-        devenv_src / "merge", pd, features
+        devenv_src / "merge", pd, features, read_retired_lines(devenv_src)
     )
     report_counts("Merged dotfiles", created=created, skipped=skipped, merged=merged)
     run(["bin/sort-ignore.sh"])
@@ -146,6 +147,7 @@ def main() -> None:
                 "merge/python/pyproject-template.toml",
                 "pyproject.toml",
                 "merge_toml.py",
+                ["--remove", str(devenv_src / "merge/python/pyproject-remove.toml")],
             )
         )
 

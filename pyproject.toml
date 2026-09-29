@@ -62,7 +62,6 @@ build-backend = "uv_build"
 module-root = ""
 source-include = [
   ".*ignore",
-  ".circlci/**",
   ".env.platforms",
   ".picopt_treestamps.yaml",
   ".readthedocs.yaml",
