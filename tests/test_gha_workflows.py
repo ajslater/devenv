@@ -146,8 +146,8 @@ def test_prune_keeps_recent_untagged_images() -> None:
     assert job_id == "prune"
     assert step["with"]["package-name"] == "${{ github.event.repository.name }}-ci"
     assert step["with"]["delete-only-untagged-versions"] == "true"
-    # Room for "Re-run failed jobs", which reuses the original image digest.
-    assert step["with"]["min-versions-to-keep"] >= 30  # noqa: PLR2004
+    # This run's image plus spares for "Re-run failed jobs", without hoarding.
+    assert 2 <= step["with"]["min-versions-to-keep"] <= 10  # noqa: PLR2004
 
 
 def test_required_check_aggregates_the_gate_and_matrix() -> None:
