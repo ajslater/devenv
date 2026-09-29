@@ -30,6 +30,7 @@ _STD_CALLER = _ROOT / "copy" / "gha_std" / ".github" / "workflows" / "ci.yml"
 _CALLERS = {
     "std": _STD_CALLER,
     "codex": Path(__file__).resolve().parent / "fixtures" / "gha" / "codex-ci.yml",
+    "native": Path(__file__).resolve().parent / "fixtures" / "gha" / "native-ci.yml",
 }
 _CALL_CHECK = "./.github/workflows/devenv-check.yml"
 _CALL_RELEASE = "./.github/workflows/devenv-release.yml"
@@ -125,8 +126,7 @@ def test_ci_image_is_built_once_and_pulled() -> None:
     assert options["provenance"] is False
     assert _JOBS["image"]["outputs"]["image"] == "${{ steps.ref.outputs.image }}"
     check = _JOBS["check"]
-    assert check["needs"] == "image"
-    assert "if" not in check
+    assert check["needs"] == ["gate", "image"]
     assert check["permissions"]["packages"] == "read"
     ((_, start),) = _uses("./.github/actions/devenv-ci-container")
     assert start["with"] == {"image": "${{ needs.image.outputs.image }}"}
@@ -135,6 +135,42 @@ def test_ci_image_is_built_once_and_pulled() -> None:
     assert 'docker pull --quiet "$CI_IMAGE"' in container
     assert "Re-run all jobs" in container
     assert "--no-build" in container
+
+
+def test_check_waits_for_the_gate_and_image() -> None:
+    """
+    Check runs only after a passing gate that reused nothing.
+
+    In container mode the image must have succeeded; only native mode may
+    skip it. !cancelled() is needed because the image is skipped there.
+    """
+    condition = _JOBS["check"]["if"]
+    assert "!cancelled()" in condition
+    assert "needs.gate.result == 'success'" in condition
+    assert "needs.gate.outputs.dist_found != 'true'" in condition
+    assert "needs.image.result == 'success'" in condition
+    assert "!inputs.container && needs.image.result == 'skipped'" in condition
+
+
+def test_native_mode() -> None:
+    """container: false skips the image and runs make on inputs.runner."""
+    inputs = _CALL["inputs"]
+    assert inputs["container"]["default"] is True
+    assert inputs["runner"]["default"] == "ubuntu-24.04"
+    assert _JOBS["image"]["if"].startswith("inputs.container && ")
+    check = _JOBS["check"]
+    assert check["runs-on"] == "${{ inputs.runner }}"
+    for job_id in ("gate", "image", "prune", "result"):
+        assert _JOBS[job_id]["runs-on"] == "ubuntu-24.04", job_id
+    steps = {step.get("name"): step for step in check["steps"]}
+    assert steps["Start CI container"]["if"] == "inputs.container"
+    for name in ("Set up uv", "Set up bun", "Install"):
+        assert steps[name]["if"] == "${{ !inputs.container }}", name
+    assert "make install" in steps["Install"]["run"]
+    work = steps["${{ matrix.name }}"]
+    assert work["env"]["IN_CONTAINER"] == "${{ inputs.container }}"
+    assert 'docker exec "$CI_CONTAINER" make "${targets[@]}"' in work["run"]
+    assert '\n  make "${targets[@]}"\n' in work["run"]
 
 
 def test_prune_keeps_recent_untagged_images() -> None:

@@ -89,6 +89,10 @@ overwritten on every update, so edit them here, not in the project.
     Its outputs (`deploy`, `release`, `version`, `final`) are the only trigger
     logic that later jobs need.
 
+    Projects that cannot run in a Linux container (wpls needs macOS) pass
+    `container: false` and `runner: macos-latest`. Then no image is built, and
+    each combo runs `make install` and its targets directly on that runner.
+
 - `.github/workflows/devenv-release.yml`: a reusable workflow that tags the
   release, creates the GitHub Release from NEWS.md and merges main into develop.
 - `.github/actions/devenv-ci-container`: pulls the CI image by digest and starts
