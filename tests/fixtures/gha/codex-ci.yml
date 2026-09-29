@@ -23,7 +23,7 @@ jobs:
     with:
       ci-target: codex-ci
       matrix: >-
-        [{"name": "Lint", "make": "lint", "write-cache": true},
+        [{"name": "Lint", "make": "lint"},
         {"name": "Test Frontend", "make": "test-frontend"},
         {"name": "Test Python", "make": "django-check test-python", "junit": true},
         {"name": "Build Dist", "make": "build-choices build-frontend collectstatic build-only", "dist": true}]
