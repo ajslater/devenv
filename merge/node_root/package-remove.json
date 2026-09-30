@@ -9,5 +9,16 @@
         }
       }
     ]
-  }
+  },
+  "remarkConfig": {
+    "plugins": [
+      "gfm",
+      "lint",
+      "preset-lint-consistent",
+      "preset-lint-markdown-style-guide",
+      "preset-lint-recommended",
+      "preset-prettier"
+    ]
+  },
+  "scripts": { "lint": ["bin/remark-for-claude.sh"] }
 }

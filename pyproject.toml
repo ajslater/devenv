@@ -65,7 +65,6 @@ source-include = [
   ".env.platforms",
   ".picopt_treestamps.yaml",
   ".readthedocs.yaml",
-  ".remarkignore",
   ".shellcheckrc",
   "Makefile",
   "NEWS.md",

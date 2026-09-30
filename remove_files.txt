@@ -27,3 +27,5 @@ cfg/eslint.config.js
 frontend/package-lock.json
 package-lock.json
 bin/ci-download-dist-if-identical.sh
+bin/remark-for-claude.sh
+.remarkignore

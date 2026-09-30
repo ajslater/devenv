@@ -49,7 +49,6 @@ source-include = [
   ".*ignore",
   ".picopt_treestamps.yaml",
   ".readthedocs.yaml",
-  ".remarkignore",
   ".shellcheckrc",
   "bin/**",
   "bun.lock",

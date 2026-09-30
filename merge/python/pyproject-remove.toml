@@ -2,5 +2,9 @@
 # here from the array at the same key path in a project's pyproject.toml.
 
 [tool.uv.build-backend]
-# CircleCI is no longer used (and this entry was misspelled anyway).
-source-include = [".circlci/**"]
+source-include = [
+  # CircleCI is no longer used (and this entry was misspelled anyway).
+  ".circlci/**",
+  # remark is no longer used; the ".*ignore" glob covered it anyway.
+  ".remarkignore",
+]
