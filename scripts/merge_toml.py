@@ -217,41 +217,29 @@ def get_max_version_from_specifier(spec: SpecifierSet) -> Version | None:
     return max(versions) if versions else None
 
 
+def _update_spec_wins(base_spec, update_spec) -> bool:
+    """Return whether a dependency's update spec replaces its base spec."""
+    # If neither has a version, keep the update (later precedence).
+    # If only one has a version, prefer the one with version.
+    if base_spec is None:
+        return True
+    if update_spec is None:
+        return False
+
+    # Both have versions - compare them
+    base_ver = get_max_version_from_specifier(base_spec)
+    update_ver = get_max_version_from_specifier(update_spec)
+
+    # If we can compare, use the higher version
+    if base_ver and update_ver:
+        return update_ver > base_ver
+    # Only update has a comparable version, else keep base
+    return bool(update_ver)
+
+
 def _merge_python_dependency(dep, deps):
     pkg_name, update_spec = parse_python_requirement(dep)
-
-    if pkg_name in deps:
-        _, base_spec = deps[pkg_name]
-
-        # If neither has a version, keep the update (later precedence)
-        if base_spec is None and update_spec is None:
-            deps[pkg_name] = (dep, update_spec)
-            return
-
-        # If only one has a version, prefer the one with version
-        if base_spec is None:
-            deps[pkg_name] = (dep, update_spec)
-            return
-        if update_spec is None:
-            # Keep base (it has a version)
-            return
-
-        # Both have versions - compare them
-        base_ver = get_max_version_from_specifier(base_spec)
-        update_ver = get_max_version_from_specifier(update_spec)
-
-        # If we can compare, use the higher version
-        if base_ver and update_ver:
-            if update_ver > base_ver:
-                deps[pkg_name] = (dep, update_spec)
-            # else keep base
-        elif update_ver:
-            # Only update has a comparable version
-            deps[pkg_name] = (dep, update_spec)
-        # else keep base
-
-    else:
-        # New package
+    if pkg_name not in deps or _update_spec_wins(deps[pkg_name][1], update_spec):
         deps[pkg_name] = (dep, update_spec)
 
 

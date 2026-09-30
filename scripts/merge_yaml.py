@@ -18,6 +18,22 @@ from typing import Any
 import yaml
 
 
+def _merge_value(base_value: Any, value: Any, list_strategy: str) -> Any:
+    """Merge one key's update value into its base value."""
+    # Both values are dictionaries - recurse
+    if isinstance(base_value, dict) and isinstance(value, dict):
+        return deep_merge(base_value, value, list_strategy)
+    # Both values are lists - apply strategy (append, or the default replace)
+    if (
+        isinstance(base_value, list)
+        and isinstance(value, list)
+        and list_strategy == "append"
+    ):
+        return base_value + value
+    # Otherwise, the new value overwrites the old
+    return value
+
+
 def deep_merge(
     base: dict[Any, Any], updates: dict[Any, Any], list_strategy: str = "replace"
 ) -> dict[Any, Any]:
@@ -37,18 +53,7 @@ def deep_merge(
 
     for key, value in updates.items():
         if key in result:
-            # Both values are dictionaries - recurse
-            if isinstance(result[key], dict) and isinstance(value, dict):
-                result[key] = deep_merge(result[key], value, list_strategy)
-            # Both values are lists - apply strategy
-            elif isinstance(result[key], list) and isinstance(value, list):
-                if list_strategy == "append":
-                    result[key] = result[key] + value
-                else:  # replace
-                    result[key] = value
-            # Otherwise, the new value overwrites the old
-            else:
-                result[key] = value
+            result[key] = _merge_value(result[key], value, list_strategy)
         else:
             # New key - just add it
             result[key] = value

@@ -135,7 +135,7 @@ skip = "*.pdf,*.svg,*~,./bun.lock,./dist,./node_modules,./package.json,./test-re
 
 [tool.complexipy]
 failed = true
-paths = ["tests"]
+paths = ["copy", "devenv", "scripts", "tests"]
 exclude = [
   "**/.*",
   "**/__pycache__",
@@ -328,14 +328,14 @@ exclude = [
 
 [tool.vulture]
 exclude = [
-  "*/.*",
+  "*/.venv/*",
   "*/__pycache__/*",
+  "*/dist/*",
+  "*/frontend/*",
   "*/node_modules/*",
-  "dist/",
-  "frontend/",
-  "site",
-  "test-results/",
-  "typings/"
+  "*/site/*",
+  "*/test-results/*",
+  "*/typings/*"
 ]
 min_confidence = 61
 sort_by_size = true
