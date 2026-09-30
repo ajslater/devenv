@@ -80,7 +80,7 @@ def test_no_template_ships_a_retired_line() -> None:
     """A template that still shipped a retired line would fight the retirement."""
     retired = merge_dotfiles.read_retired_lines(_ROOT)
     for template in sorted((_ROOT / "merge").glob("*/.*")):
-        if template.is_file() and not template.name.endswith("~"):
+        if template.is_file() and merge_dotfiles._is_dotfile(template.name):  # noqa: SLF001
             shipped = set(template.read_text().splitlines())
             assert not shipped & retired, template
 
