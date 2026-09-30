@@ -319,15 +319,19 @@ exclude = [
 [tool.vulture]
 # vulture fnmatches these against absolute paths: "*" also matches "/", "**"
 # is not a globstar, and a pattern without "*?[" is wrapped as "*pattern*".
+# So a pattern also matches the dirs above the project root. Name each dir as
+# a whole path component, and never one that may hold a checkout, such as
+# .claude: "*/.*" excluded every file of a .claude/worktrees/ checkout.
+# bin/lint-python.sh never passes vulture the root's dot-dirs.
 exclude = [
-  "*/.*",
+  "*/.venv/*",
   "*/__pycache__/*",
+  "*/dist/*",
+  "*/frontend/*",
   "*/node_modules/*",
-  "dist/",
-  "frontend/",
-  "site",
-  "test-results/",
-  "typings/",
+  "*/site/*",
+  "*/test-results/*",
+  "*/typings/*",
 ]
 min_confidence = 61
 sort_by_size = true

@@ -329,14 +329,14 @@ exclude = [
 
 [tool.vulture]
 exclude = [
-  "*/.*",
+  "*/.venv/*",
   "*/__pycache__/*",
+  "*/dist/*",
+  "*/frontend/*",
   "*/node_modules/*",
-  "dist/",
-  "frontend/",
-  "site",
-  "test-results/",
-  "typings/"
+  "*/site/*",
+  "*/test-results/*",
+  "*/typings/*"
 ]
 min_confidence = 61
 sort_by_size = true
