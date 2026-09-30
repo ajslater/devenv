@@ -466,7 +466,11 @@ def deep_merge_tomlkit(
 
 
 def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
-    """Remove drop's items from the array or comma-delimited string at doc[key]."""
+    """
+    Remove drop's items from the array or comma-delimited string at doc[key].
+
+    Drops the key itself once nothing is left.
+    """
     target = doc[key]
     if isinstance(target, list | Array):
         for index in reversed(range(len(target))):
@@ -477,6 +481,10 @@ def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
         kept = [item for item in items if item not in drop]
         if len(kept) < len(items):
             doc[key] = ",".join(kept)
+    else:
+        return
+    if not doc[key]:
+        del doc[key]
 
 
 def remove_values(doc: Any, retired: Any) -> None:
@@ -485,9 +493,11 @@ def remove_values(doc: Any, retired: Any) -> None:
 
     retired mirrors doc's structure. An array in it lists values to drop from
     the array, or from the comma-delimited string, at the same key path in doc.
-    Any other value drops the key itself when doc holds that same value.
-    Missing keys are ignored, the rest of each array keeps its order and
-    formatting, and the rest of each string keeps its order.
+    An array or string emptied that way is removed, so a fully retired key
+    vanishes instead of lingering as `[]` or `""`. Any other value drops the
+    key itself when doc holds that same value. Missing keys are ignored, the
+    rest of each array keeps its order and formatting, and the rest of each
+    string keeps its order.
     """
     for key, value in retired.items():
         if key not in doc:

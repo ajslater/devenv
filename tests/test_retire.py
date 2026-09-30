@@ -8,7 +8,8 @@ A child repo sheds these on its next update-devenv:
   dotfile.
 - merge_toml --remove-values drops the values in
   merge/python/pyproject-remove.toml from pyproject.toml's arrays and
-  comma-delimited strings, and drops each key that holds a scalar it lists.
+  comma-delimited strings, dropping any it empties, and drops each key that
+  holds a scalar it lists.
 - merge_package_json --remove-values drops the values in
   merge/node_root/package-remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
@@ -171,6 +172,58 @@ def test_merge_toml_cli_remove(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     source_include = merged["tool"]["uv"]["build-backend"]["source-include"]
     assert ".circlci/**" not in source_include
     assert "NEWS.md" in source_include
+
+
+def test_remove_values_prunes_emptied_keys() -> None:
+    """
+    An array or string emptied by retirement goes; one with a survivor stays.
+
+    Only keys on a retired path are pruned, so an intentionally empty array
+    elsewhere is untouched.
+    """
+    doc = tomlkit.parse("""\
+[tool.a]
+gone = ["x"]
+gone_csv = "x,y"
+kept = ["x", "y"]
+empty = []
+""")
+    retired = tomlkit.parse("""\
+[tool.a]
+gone = ["x"]
+gone_csv = ["x", "y"]
+kept = ["x"]
+""")
+
+    merge_toml.remove_values(doc, retired)
+
+    assert tomlkit.dumps(doc) == '[tool.a]\nkept = ["y"]\nempty = []\n'
+
+
+def test_complexipy_exclude_is_retired(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Every value the template shipped in complexipy's exclude matched nothing.
+
+    update-devenv drops them, and the key with them unless the project added
+    its own value.
+    """
+    shipped = tomlkit.parse(_PYPROJECT_REMOVE.read_text())["tool"]["complexipy"]
+    project = tmp_path / "pyproject.toml"
+    for own, expected in (([], None), (["migrations/**"], ["migrations/**"])):
+        exclude = [*shipped["exclude"], *own]
+        table = {"failed": True, "paths": ["pkg", "tests"], "exclude": exclude}
+        project.write_text(tomlkit.dumps({"tool": {"complexipy": table}}))
+        argv = ["merge_toml.py", str(_PYPROJECT_TEMPLATE), str(project)]
+        argv += ["-o", str(project), "--remove-values", str(_PYPROJECT_REMOVE)]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        merge_toml.main()
+
+        merged = tomlkit.parse(project.read_text())["tool"]["complexipy"]
+        assert merged.get("exclude") == expected
+        assert merged["paths"] == ["pkg", "tests"]
 
 
 def test_template_ships_no_retired_value() -> None:
