@@ -15,11 +15,21 @@ exclude = [
   # never a file under it.
   "**/__pycache__",
   "**/node_modules",
-  # Same as "*/.*", which replaces it.
+  # These also matched a hidden dir above the project root, so they excluded
+  # every file of a .claude/worktrees/ checkout. Replaced by "*/.venv/*".
   "**/.*",
+  "*/.*",
   # Replaced by "*/__pycache__/*" and "*/node_modules/*".
   "*/__pycache__*",
   "*/node_modules*",
+  # Wrapped as "*dist/*", "*site*" and so on, these also matched a dir above
+  # the project root, or any name containing them, such as composite.py.
+  # Replaced by "*/dist/*" and the like.
+  "dist/",
+  "frontend/",
+  "site",
+  "test-results/",
+  "typings/",
   # Misspelled; the real dir is test-results/.
   "test_results/",
 ]
