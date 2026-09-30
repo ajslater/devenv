@@ -2,3 +2,10 @@ eslint-plugin-array-func
 eslint-plugin-scanjs-rules
 eslint-plugin-simple-import-sort
 prettier-plugin-sh
+eslint-plugin-mdx
+remark-cli
+remark-gfm
+remark-preset-lint-consistent
+remark-preset-lint-markdown-style-guide
+remark-preset-lint-recommended
+remark-preset-prettier

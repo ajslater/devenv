@@ -59,6 +59,12 @@ def _parse_script_commands(script_value: str) -> list[str]:
     ]
 
 
+def _remove_script_commands(script_value: str, retired: list[str]) -> str:
+    """Drop retired commands from a script value's '&&' chain."""
+    kept = [cmd for cmd in _parse_script_commands(script_value) if cmd not in retired]
+    return SCRIPT_COMMAND_SEPARATOR.join(kept)
+
+
 def merge_script_entry(base_value: str, update_value: str) -> str:
     """
     Merge two script entries positionally, with base commands taking precedence.
@@ -397,19 +403,30 @@ def merge_package_json_files(
 
 def remove_values(data: Any, retired: Any) -> None:
     """
-    Remove retired values from data's arrays, in place.
+    Remove retired values from data, in place.
 
-    retired mirrors data's structure: every array in it lists values to drop
-    from the array at the same key path in data. A value matches only when it
-    is equal as a whole, so an object is dropped only if every field matches.
-    Missing keys are ignored and the rest of each array keeps its order.
+    retired mirrors data's structure. A list under an array key names values
+    to drop from that array; a list under a script key names commands to drop
+    from its `&&` chain. A value matches only when it is equal as a whole, so
+    an object is dropped only if every field matches. A dict or array emptied
+    by retirement is removed, so a fully retired config key vanishes instead
+    of lingering as `{}` or `[]`. Missing keys are ignored and everything else
+    keeps its order.
     """
     for key, value in retired.items():
         target = data.get(key) if isinstance(data, dict) else None
-        if isinstance(value, dict) and isinstance(target, dict):
-            remove_values(target, value)
-        elif isinstance(value, list) and isinstance(target, list):
-            target[:] = [item for item in target if item not in value]
+        match value, target:
+            case dict(), dict():
+                remove_values(target, value)
+            case list(), list():
+                target[:] = [item for item in target if item not in value]
+            case list(), str():
+                data[key] = _remove_script_commands(target, value)
+                continue
+            case _:
+                continue
+        if not target:
+            del data[key]
 
 
 def _create_remove_packages(args: argparse.Namespace) -> None:
@@ -491,7 +508,7 @@ Dependency Merging:
     parser.add_argument(
         "--remove-values",
         type=Path,
-        help="JSON file of retired array values to drop from the merged result",
+        help="JSON file of retired array values and script commands to drop from the merged result",
     )
 
     args = parser.parse_args()

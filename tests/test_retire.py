@@ -9,7 +9,8 @@ A child repo sheds these on its next update-devenv:
 - merge_toml --remove-values drops the values in
   merge/python/pyproject-remove.toml from pyproject.toml's arrays.
 - merge_package_json --remove-values drops the values in
-  merge/node_root/package-remove.json from package.json's arrays.
+  merge/node_root/package-remove.json from package.json's arrays and the
+  commands it lists from package.json's scripts.
 """
 
 from __future__ import annotations
@@ -32,6 +33,7 @@ _PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-remove.toml"
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
 _PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package-remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
+_PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
 _SH_PLUGIN = "prettier-plugin-sh"
 _SH_OVERRIDE = {"files": ["**/*Dockerfile"], "options": {"parser": "sh"}}
 _XSD_OVERRIDE = {"files": ["**/*.xsd"], "options": {"printWidth": 120}}
@@ -143,6 +145,11 @@ def test_template_ships_no_retired_value() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _removed_node_packages() -> list[str]:
+    lines = (_ROOT / "remove_node_packages.txt").read_text().splitlines()
+    return [line.strip() for line in lines if line.strip()]
+
+
 def _package(*, plugins: list[str], overrides: list[dict]) -> dict:
     return {
         "name": "demo",
@@ -182,6 +189,69 @@ def test_package_remove_retires_prettier_plugin_sh() -> None:
     assert retired["prettier"]["overrides"] == [_SH_OVERRIDE]
     removed_packages = (_ROOT / "remove_node_packages.txt").read_text().splitlines()
     assert _SH_PLUGIN in removed_packages
+
+
+def test_package_remove_values_retires_script_step() -> None:
+    """A retired command leaves its script's && chain; the other steps stay."""
+    data = {"scripts": {"lint": "a && b && c", "fix": "a && c"}}
+    retired = {"scripts": {"lint": ["b"], "missing": ["b"]}}
+
+    merge_package_json.remove_values(data, retired)
+
+    assert data == {"scripts": {"lint": "a && c", "fix": "a && c"}}
+
+
+def test_package_remove_values_prunes_emptied_containers() -> None:
+    """
+    A config key emptied by retirement goes; one with a survivor stays.
+
+    Only keys on a retired path are pruned, so an intentionally empty array
+    elsewhere is untouched.
+    """
+    retired = {"remarkConfig": {"plugins": ["gfm", "preset-prettier"]}}
+    emptied = {
+        "remarkConfig": {"plugins": ["gfm", "preset-prettier"]},
+        "files": [],
+    }
+    survivor = {"remarkConfig": {"plugins": ["gfm"], "settings": {"bullet": "-"}}}
+
+    merge_package_json.remove_values(emptied, retired)
+    merge_package_json.remove_values(survivor, retired)
+
+    assert emptied == {"files": []}
+    assert survivor == {"remarkConfig": {"settings": {"bullet": "-"}}}
+
+
+def test_package_remove_retires_remark() -> None:
+    """@eslint/markdown replaced remark; retire its config, script and packages."""
+    retired = json.loads(_PACKAGE_REMOVE.read_text())
+    assert set(retired["remarkConfig"]["plugins"]) == {
+        "gfm",
+        "lint",
+        "preset-lint-consistent",
+        "preset-lint-markdown-style-guide",
+        "preset-lint-recommended",
+        "preset-prettier",
+    }
+    assert retired["scripts"]["lint"] == ["bin/remark-for-claude.sh"]
+    removed_packages = set(_removed_node_packages())
+    assert {
+        "eslint-plugin-mdx",
+        "remark-cli",
+        "remark-gfm",
+        "remark-preset-lint-consistent",
+        "remark-preset-lint-markdown-style-guide",
+        "remark-preset-lint-recommended",
+        "remark-preset-prettier",
+    } <= removed_packages
+
+
+def test_template_ships_no_removed_package() -> None:
+    """A template that still listed a retired package would reinstall it."""
+    removed_packages = set(_removed_node_packages())
+    for template in (_PACKAGE_TEMPLATE, _PACKAGE_INIT_TEMPLATE):
+        dev_dependencies = json.loads(template.read_text())["devDependencies"]
+        assert not removed_packages & dev_dependencies.keys(), template
 
 
 def test_merge_package_json_cli_remove_values(
