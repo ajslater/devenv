@@ -2,15 +2,15 @@
 
 This repo houses generic boilerplate parent configurations and scripts for
 managing my development environment. The scripts non-destructively merge these
-parent configuations with child projects that use it.
+parent configurations with child projects that use it.
 
 This replaces my old boilerplate repo
 
 ## Setup
 
-This repo is indended to sit as a sibling directory to projects that reference
+This repo is intended to sit as a sibling directory to projects that reference
 it. The scripts could be expanded to find the files online but that doesn't
-currenty seem neccessary.
+currently seem necessary.
 
 ### Initializing a new project
 

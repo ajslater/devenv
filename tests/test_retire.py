@@ -7,7 +7,8 @@ A child repo sheds these on its next update-devenv:
 - merge_dotfiles drops the lines in remove_dotfile_lines.txt from every merged
   dotfile.
 - merge_toml --remove-values drops the values in
-  merge/python/pyproject-remove.toml from pyproject.toml's arrays.
+  merge/python/pyproject-remove.toml from pyproject.toml's arrays and
+  comma-delimited strings, and drops each key that holds a scalar it lists.
 - merge_package_json --remove-values drops the values in
   merge/node_root/package-remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
@@ -109,6 +110,49 @@ key = ["x"]
     assert backend["source-include"] == ["NEWS.md", "bin/**"]
     assert backend["other"] == [".circlci/**"]
     assert '\n  "NEWS.md",\n  "bin/**",\n' in tomlkit.dumps(doc)
+
+
+def test_remove_values_drops_items_from_comma_delimited_strings() -> None:
+    """A retired item leaves a comma-delimited string; the rest keep their order."""
+    doc = tomlkit.parse('[tool.codespell]\nskip = "z,.*,a,.*/*"\nother = "z,.*"\n')
+    retired = tomlkit.parse('[tool.codespell]\nskip = [".*", ".*/*"]\n')
+
+    merge_toml.remove_values(doc, retired)
+
+    assert doc["tool"]["codespell"]["skip"] == "z,a"
+    assert doc["tool"]["codespell"]["other"] == "z,.*"
+
+
+def test_remove_values_drops_keys_holding_a_retired_scalar() -> None:
+    """A retired scalar drops its key only when the key holds that value."""
+    doc = tomlkit.parse("[tool.a]\nflag = true\n\n[tool.b]\nflag = false\n")
+    retired = tomlkit.parse("[tool.a]\nflag = true\n\n[tool.b]\nflag = true\n")
+
+    merge_toml.remove_values(doc, retired)
+
+    assert "flag" not in doc["tool"]["a"]
+    assert doc["tool"]["b"]["flag"] is False
+
+
+def test_merge_toml_cli_retires_codespell_hidden_skips(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A project sheds the codespell globs that skipped its whole tree."""
+    project = tmp_path / "pyproject.toml"
+    project.write_text(
+        '[tool.codespell]\ncheck-hidden = true\nskip = "*~,.*,.*/*,comics,uv.lock"\n'
+    )
+    argv = ["merge_toml.py", str(_PYPROJECT_TEMPLATE), str(project)]
+    argv += ["-o", str(project), "--remove-values", str(_PYPROJECT_REMOVE)]
+    monkeypatch.setattr(sys, "argv", argv)
+
+    merge_toml.main()
+
+    codespell = tomlkit.parse(project.read_text())["tool"]["codespell"]
+    assert "check-hidden" not in codespell
+    skip = codespell["skip"].split(",")
+    assert not {".*", ".*/*"} & set(skip)
+    assert "comics" in skip
 
 
 def test_merge_toml_cli_remove(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
