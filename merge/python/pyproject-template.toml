@@ -322,7 +322,7 @@ exclude = [
 # So a pattern also matches the dirs above the project root. Name each dir as
 # a whole path component, and never one that may hold a checkout, such as
 # .claude: "*/.*" excluded every file of a .claude/worktrees/ checkout.
-# bin/lint-python.sh never passes vulture the root's dot-dirs.
+# bin/lint-vulture.sh never passes vulture the root's dot-dirs.
 exclude = [
   "*/.venv/*",
   "*/__pycache__/*",
