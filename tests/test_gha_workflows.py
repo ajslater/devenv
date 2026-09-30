@@ -115,8 +115,8 @@ def _uses(prefix: str) -> list[tuple[str, dict[str, Any]]]:
     ]
 
 
-def test_ci_image_is_built_once_and_pulled() -> None:
-    """One job builds and pushes the image by digest; each combo pulls it."""
+def test_ci_image_is_built_once() -> None:
+    """One job builds and pushes the image by digest."""
     ((job_id, build),) = _uses("docker/build-push-action@")
     assert job_id == "image"
     options = build["with"]
@@ -126,6 +126,10 @@ def test_ci_image_is_built_once_and_pulled() -> None:
     assert options["cache-to"].startswith("type=registry,")
     assert options["provenance"] is False
     assert _JOBS["image"]["outputs"]["image"] == "${{ steps.ref.outputs.image }}"
+
+
+def test_each_combo_pulls_the_ci_image() -> None:
+    """Each combo pulls the image job's image and never builds its own."""
     check = _JOBS["check"]
     assert check["needs"] == ["gate", "image"]
     assert check["permissions"]["packages"] == "read"
@@ -154,16 +158,19 @@ def test_check_waits_for_the_gate_and_image() -> None:
 
 
 def test_native_mode() -> None:
-    """container: false skips the image and runs make on inputs.runner."""
+    """container: false skips the image and runs the check on inputs.runner."""
     inputs = _CALL["inputs"]
     assert inputs["container"]["default"] is True
     assert inputs["runner"]["default"] == "ubuntu-24.04"
     assert _JOBS["image"]["if"].startswith("inputs.container && ")
-    check = _JOBS["check"]
-    assert check["runs-on"] == "${{ inputs.runner }}"
+    assert _JOBS["check"]["runs-on"] == "${{ inputs.runner }}"
     for job_id in ("gate", "image", "prune", "result"):
         assert _JOBS[job_id]["runs-on"] == "ubuntu-24.04", job_id
-    steps = {step.get("name"): step for step in check["steps"]}
+
+
+def test_native_mode_installs_and_runs_make_on_the_runner() -> None:
+    """Without the container, the check installs the project and runs make itself."""
+    steps = {step.get("name"): step for step in _steps("check")}
     assert steps["Start CI container"]["if"] == "inputs.container"
     for name in ("Set up uv", "Set up bun", "Install"):
         assert steps[name]["if"] == "${{ !inputs.container }}", name
@@ -403,6 +410,15 @@ def _pypi_jobs(jobs: dict[str, dict[str, Any]]) -> list[str]:
     ]
 
 
+def _pypi_publishes(action: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Return the action's uv publish steps keyed by their condition."""
+    return {
+        step["if"]: step
+        for step in action["runs"]["steps"]
+        if step.get("run", "").startswith("uv publish ")
+    }
+
+
 def test_pypi_publishes_with_a_token_or_trusted_publishing() -> None:
     """
     A passed token publishes as before; an empty one means trusted publishing.
@@ -414,11 +430,7 @@ def test_pypi_publishes_with_a_token_or_trusted_publishing() -> None:
     token = action["inputs"]["token"]
     assert token["required"] is False
     assert token["default"] == ""
-    publishes = {
-        step["if"]: step
-        for step in action["runs"]["steps"]
-        if step.get("run", "").startswith("uv publish ")
-    }
+    publishes = _pypi_publishes(action)
     assert set(publishes) == {"inputs.token != ''", "inputs.token == ''"}
     with_token = publishes["inputs.token != ''"]
     assert with_token["env"] == {"UV_PUBLISH_TOKEN": "${{ inputs.token }}"}
