@@ -23,3 +23,15 @@ exclude = [
   # Misspelled; the real dir is test-results/.
   "test_results/",
 ]
+
+[tool.codespell]
+# codespell skips hidden files and dirs itself, but never the "." it walks from.
+# The ".*" skip below undid this setting anyway.
+check-hidden = true
+skip = [
+  # codespell fnmatches the dirs it walks, and this matches the first one, ".",
+  # so it skipped the whole tree.
+  ".*",
+  # Matches every other dir it walks, like "./pkg".
+  ".*/*",
+]

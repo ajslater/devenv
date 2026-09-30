@@ -477,13 +477,29 @@ def deep_merge_tomlkit(
     return result
 
 
+def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
+    """Remove drop's items from the array or comma-delimited string at doc[key]."""
+    target = doc[key]
+    if isinstance(target, list | Array):
+        for index in reversed(range(len(target))):
+            if str(target[index]) in drop:
+                del target[index]
+    elif isinstance(target, str | String):
+        items = parse_comma_delimited(target)
+        kept = [item for item in items if item not in drop]
+        if len(kept) < len(items):
+            doc[key] = ",".join(kept)
+
+
 def remove_values(doc: Any, retired: Any) -> None:
     """
-    Remove retired values from doc's arrays, in place.
+    Remove retired values from doc, in place.
 
-    retired mirrors doc's structure: every array in it lists values to drop
-    from the array at the same key path in doc. Missing keys are ignored and
-    the rest of each array keeps its order and formatting.
+    retired mirrors doc's structure. An array in it lists values to drop from
+    the array, or from the comma-delimited string, at the same key path in doc.
+    Any other value drops the key itself when doc holds that same value.
+    Missing keys are ignored, the rest of each array keeps its order and
+    formatting, and the rest of each string keeps its order.
     """
     for key, value in retired.items():
         if key not in doc:
@@ -491,11 +507,10 @@ def remove_values(doc: Any, retired: Any) -> None:
         target = doc[key]
         if _is_table_like(value) and _is_table_like(target):
             remove_values(target, value)
-        elif isinstance(value, list | Array) and isinstance(target, list | Array):
-            drop = {str(item) for item in value}
-            for index in reversed(range(len(target))):
-                if str(target[index]) in drop:
-                    del target[index]
+        elif isinstance(value, list | Array):
+            _remove_items(doc, key, frozenset(str(item) for item in value))
+        elif value == target:
+            del doc[key]
 
 
 def load_toml_file(filepath: Path) -> TOMLDocument:
@@ -697,7 +712,7 @@ Comment and Format Preservation:
     parser.add_argument(
         "--remove-values",
         type=Path,
-        help="TOML file of retired array values to drop from the merged result",
+        help="TOML file of retired values to drop from the merged result",
     )
 
     args = parser.parse_args()

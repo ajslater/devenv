@@ -41,7 +41,7 @@ from scripts.merge_package_json import (
         ("^1.0.0-v10", "1.0.0-v10"),
         ("^1.0.0-next.x", "1.0.0-next.x"),
         ("1.2.3+build.5", "1.2.3+build.5"),
-        # Specs with no version at all are unparseable.
+        # Specs with no version at all are unparsable.
         ("*", None),
         ("latest", None),
         ("next", None),
@@ -136,7 +136,7 @@ def test_is_spec_unbounded(spec: str, *, unbounded: bool) -> None:
             "git+https://example.com/repo.git",
         ),
         ("^1.0.0", "workspace:*", "workspace:*"),
-        # Unparseable specs fall back to the update.
+        # Unparsable specs fall back to the update.
         ("*", "latest", "latest"),
         ("*", "^1.0.0", "^1.0.0"),
         ("^1.0.0", "latest", "^1.0.0"),

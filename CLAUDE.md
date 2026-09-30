@@ -91,10 +91,11 @@ retirement list. `update-devenv` then removes it from each child repo:
 - `remove_files.txt` — files to delete
 - `remove_node_packages.txt` — node packages to drop from `package.json`
 - `remove_dotfile_lines.txt` — lines to drop from every merged dotfile
-- `merge/python/pyproject-remove.toml` — values to drop from the array at the
-  same key path in `pyproject.toml`
-- `merge/node_root/package-remove.json` — the same for `package.json`, such as
-  `prettier.plugins`
+- `merge/python/pyproject-remove.toml` — values to drop from the array or
+  comma-delimited string at the same key path in `pyproject.toml`, such as
+  `tool.codespell.skip`; a non-array value drops its key when the key holds it
+- `merge/node_root/package-remove.json` — values to drop from the array at the
+  same key path in `package.json`, such as `prettier.plugins`
 
 ### Makefile Conventions
 
