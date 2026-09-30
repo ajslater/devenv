@@ -97,13 +97,21 @@ overwritten on every update, so edit them here, not in the project.
   release, creates the GitHub Release from NEWS.md and merges main into develop.
 - `.github/actions/devenv-ci-container`: pulls the CI image by digest and starts
   the CI container.
-- `.github/actions/devenv-pypi`: publishes `python-dist` to PyPI.
+- `.github/actions/devenv-pypi`: publishes `python-dist` to PyPI. Given a
+  `token`, it uploads with that API token. Without one, it uses PyPI trusted
+  publishing: GitHub Actions gives the job a short-lived identity token, and
+  PyPI exchanges it for an upload token. For that, the job must grant
+  `id-token: write` and must be in the project's own `ci.yml`, because PyPI
+  refuses trusted publishing from inside a reusable workflow. Register `ci.yml`
+  as the project's GitHub publisher on PyPI.
 
 The `gha_std` feature, which also needs `ci`, copies in the standard `ci.yml`.
-It runs `devenv-check`, then publishes to PyPI, then runs `devenv-release`. Its
-required check is `CI / Lint, Test & Build Dist`. A project that needs its own
-jobs drops `gha_std` and owns its `ci.yml`, composing the same blocks. To add
-your own jobs:
+It runs `devenv-check`, then publishes to PyPI, then runs `devenv-release`. It
+passes `secrets.PYPI_TOKEN` to `devenv-pypi`, so deleting that secret switches
+the project to trusted publishing. Its required check is
+`CI / Lint, Test & Build Dist`. A project that needs its own jobs drops
+`gha_std` and owns its `ci.yml`, composing the same blocks. To add your own
+jobs:
 
 1. Your jobs `needs: ci` and run under
    `!cancelled() && needs.ci.result == 'success' && needs.ci.outputs.deploy == 'true'`.
@@ -113,6 +121,7 @@ your own jobs:
 3. The release job's `needs` lists every deploy job, and each must be
    `== 'success'`. Allow `'skipped'` only for jobs that are legitimately
    optional.
+4. The job that runs `devenv-pypi` grants `id-token: write`.
 
 The repository variable `RELEASE_AUTOMATION=off` turns off the preflight and the
 release job.

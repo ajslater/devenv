@@ -4,8 +4,8 @@ The devenv CI building blocks in copy/ci/.github and their callers.
 Structural invariants that keep the gate, the fail-fast matrix and the
 required-check aggregator honest, the rules every caller follows (the
 standard copy/gha_std ci.yml and a codex-shaped fixture with its own jobs
-between ci and release), then actionlint over a child repo assembled from
-copy/ with each caller.
+between ci and release), what PyPI trusted publishing needs from them, then
+actionlint over a child repo assembled from copy/ with each caller.
 """
 
 from __future__ import annotations
@@ -34,6 +34,7 @@ _CALLERS = {
 }
 _CALL_CHECK = "./.github/workflows/devenv-check.yml"
 _CALL_RELEASE = "./.github/workflows/devenv-release.yml"
+_PYPI = "./.github/actions/devenv-pypi"
 _REUSE_SCRIPT = _CI / "bin" / "ci-reuse-dist.sh"
 _MANAGED = "# Managed by devenv (copy/ci)."
 _REQUIRED_CHECK = "Lint, Test & Build Dist"
@@ -387,6 +388,67 @@ def test_caller_release_runs_last(name: str) -> None:
     assert release["permissions"] == {"contents": "write"}
     deploy_jobs = set(_downstream(jobs)) - {release_id}
     assert deploy_jobs <= _ancestors(jobs, release_id)
+
+
+# ---------------------------------------------------------------------------
+# devenv-pypi: a token while one is passed, trusted publishing without
+# ---------------------------------------------------------------------------
+
+
+def _pypi_jobs(jobs: dict[str, dict[str, Any]]) -> list[str]:
+    return [
+        job_id
+        for job_id, job in jobs.items()
+        if any(step.get("uses") == _PYPI for step in job.get("steps", []))
+    ]
+
+
+def test_pypi_publishes_with_a_token_or_trusted_publishing() -> None:
+    """
+    A passed token publishes as before; an empty one means trusted publishing.
+
+    A caller's secrets.PYPI_TOKEN is empty once the secret is deleted, so each
+    repo switches when its secret goes. UV_PUBLISH_TOKEN must then stay unset.
+    """
+    action = _load(_ACTIONS / "devenv-pypi" / "action.yml")
+    token = action["inputs"]["token"]
+    assert token["required"] is False
+    assert token["default"] == ""
+    publishes = {
+        step["if"]: step
+        for step in action["runs"]["steps"]
+        if step.get("run", "").startswith("uv publish ")
+    }
+    assert set(publishes) == {"inputs.token != ''", "inputs.token == ''"}
+    with_token = publishes["inputs.token != ''"]
+    assert with_token["env"] == {"UV_PUBLISH_TOKEN": "${{ inputs.token }}"}
+    trusted = publishes["inputs.token == ''"]
+    assert "env" not in trusted
+    assert "--trusted-publishing always" in trusted["run"]
+    for step in publishes.values():
+        assert step["run"].endswith(" --check-url https://pypi.org/simple/ dist/*")
+
+
+@pytest.mark.parametrize("name", _CALLERS)
+def test_caller_pypi_job_can_get_an_identity_token(name: str) -> None:
+    """Trusted publishing fails at the token exchange without id-token: write."""
+    jobs = _caller_jobs(name)
+    publishers = _pypi_jobs(jobs)
+    assert publishers
+    for job_id in publishers:
+        assert jobs[job_id]["permissions"]["id-token"] == "write", job_id
+
+
+def test_only_ci_yml_publishes_to_pypi() -> None:
+    """
+    The publish runs in ci.yml itself, never in a reusable workflow.
+
+    Each PyPI publisher names ci.yml, and PyPI refuses trusted publishing from
+    inside a reusable workflow.
+    """
+    assert _STD_CALLER.name == "ci.yml"
+    for path in _WORKFLOWS.glob("devenv-*.yml"):
+        assert not _pypi_jobs(_load(path)["jobs"]), path
 
 
 # ---------------------------------------------------------------------------
