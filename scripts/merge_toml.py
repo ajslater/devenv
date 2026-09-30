@@ -477,13 +477,23 @@ def deep_merge_tomlkit(
     return result
 
 
+def _drop_array_values(target: list | Array, values: list | Array) -> None:
+    """Remove every item of values from target, in place."""
+    drop = {str(item) for item in values}
+    for index in reversed(range(len(target))):
+        if str(target[index]) in drop:
+            del target[index]
+
+
 def remove_values(doc: Any, retired: Any) -> None:
     """
     Remove retired values from doc's arrays, in place.
 
     retired mirrors doc's structure: every array in it lists values to drop
-    from the array at the same key path in doc. Missing keys are ignored and
-    the rest of each array keeps its order and formatting.
+    from the array at the same key path in doc. A table or array emptied by
+    retirement is removed, so a fully retired key vanishes instead of
+    lingering as `[]`. Missing keys are ignored and the rest of each array
+    keeps its order and formatting.
     """
     for key, value in retired.items():
         if key not in doc:
@@ -492,10 +502,11 @@ def remove_values(doc: Any, retired: Any) -> None:
         if _is_table_like(value) and _is_table_like(target):
             remove_values(target, value)
         elif isinstance(value, list | Array) and isinstance(target, list | Array):
-            drop = {str(item) for item in value}
-            for index in reversed(range(len(target))):
-                if str(target[index]) in drop:
-                    del target[index]
+            _drop_array_values(target, value)
+        else:
+            continue
+        if not target:
+            del doc[key]
 
 
 def load_toml_file(filepath: Path) -> TOMLDocument:

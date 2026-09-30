@@ -129,6 +129,62 @@ def test_merge_toml_cli_remove(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) 
     assert "NEWS.md" in source_include
 
 
+def test_remove_values_prunes_emptied_keys() -> None:
+    """
+    A key emptied by retirement goes; one with a survivor stays.
+
+    Only keys on a retired path are pruned, so an intentionally empty array
+    elsewhere is untouched.
+    """
+    doc = tomlkit.parse("""\
+[tool.a]
+gone = ["x"]
+kept = ["x", "y"]
+empty = []
+
+[tool.b]
+gone = ["x"]
+""")
+    retired = tomlkit.parse("""\
+[tool.a]
+gone = ["x"]
+kept = ["x"]
+
+[tool.b]
+gone = ["x"]
+""")
+
+    merge_toml.remove_values(doc, retired)
+
+    assert tomlkit.dumps(doc) == '[tool.a]\nkept = ["y"]\nempty = []\n\n'
+
+
+def test_complexipy_exclude_is_retired(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Every value the template shipped in complexipy's exclude matched nothing.
+
+    update-devenv drops them, and the key with them unless the project added
+    its own value.
+    """
+    shipped = tomlkit.parse(_PYPROJECT_REMOVE.read_text())["tool"]["complexipy"]
+    project = tmp_path / "pyproject.toml"
+    for own, expected in (([], None), (["migrations/**"], ["migrations/**"])):
+        exclude = [*shipped["exclude"], *own]
+        table = {"failed": True, "paths": ["pkg", "tests"], "exclude": exclude}
+        project.write_text(tomlkit.dumps({"tool": {"complexipy": table}}))
+        argv = ["merge_toml.py", str(_PYPROJECT_TEMPLATE), str(project)]
+        argv += ["-o", str(project), "--remove-values", str(_PYPROJECT_REMOVE)]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        merge_toml.main()
+
+        merged = tomlkit.parse(project.read_text())["tool"]["complexipy"]
+        assert merged.get("exclude") == expected
+        assert merged["paths"] == ["pkg", "tests"]
+
+
 def test_template_ships_no_retired_value() -> None:
     """The template must not reintroduce what pyproject-remove.toml retires."""
     retired = tomlkit.parse(_PYPROJECT_REMOVE.read_text())

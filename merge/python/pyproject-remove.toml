@@ -1,6 +1,29 @@
 # Values retired from pyproject.toml. update-devenv drops each value listed
 # here from the array at the same key path in a project's pyproject.toml.
 
+[tool.complexipy]
+exclude = [
+  # complexipy matches these globs against each file's whole path, relative
+  # to each root in paths. A dir name such as "node_modules" or
+  # "**/__pycache__" never matches a file, and "vulture_ignorelist.py"
+  # matched <root>/vulture_ignorelist.py, not the one at the project root.
+  # Discovery already skips hidden and gitignored paths, which covers what
+  # "**/.*" and "*/.*" were after.
+  "**/.*",
+  "*/.*",
+  ".cache",
+  ".git",
+  ".github",
+  ".venv",
+  "**/__pycache__",
+  "frontend",
+  "node_modules",
+  "site",
+  "test-results",
+  "typings",
+  "vulture_ignorelist.py",
+]
+
 [tool.uv.build-backend]
 source-include = [
   # CircleCI is no longer used (and this entry was misspelled anyway).

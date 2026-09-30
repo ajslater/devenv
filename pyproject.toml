@@ -137,21 +137,6 @@ skip = "*.svg,*~,.*,.*/*,./bun.lock,./dist,./node_modules,./package.json,./test-
 [tool.complexipy]
 failed = true
 paths = ["tests"]
-exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "*/.*",
-  ".cache",
-  ".git",
-  ".github",
-  ".venv",
-  "frontend",
-  "node_modules",
-  "site",
-  "test-results",
-  "typings",
-  "vulture_ignorelist.py"
-]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
