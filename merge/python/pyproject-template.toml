@@ -111,9 +111,8 @@ reportUnusedParameter = false  # ruff does this
 
 [tool.codespell]
 builtin = "clear,rare,code"
-check-hidden = true
-ignore-words-list = "crate,falsy,iff,ro,thead,versio,wan,warmup,ws"
-skip = "*.svg,*~,.*,.*/*,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
+ignore-words-list = "crate,deque,falsy,iff,ro,thead,versio,wan,warmup,ws"
+skip = "*.pdf,*.svg,*~,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true

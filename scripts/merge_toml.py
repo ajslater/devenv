@@ -217,41 +217,29 @@ def get_max_version_from_specifier(spec: SpecifierSet) -> Version | None:
     return max(versions) if versions else None
 
 
+def _update_spec_wins(base_spec, update_spec) -> bool:
+    """Return whether a dependency's update spec replaces its base spec."""
+    # If neither has a version, keep the update (later precedence).
+    # If only one has a version, prefer the one with version.
+    if base_spec is None:
+        return True
+    if update_spec is None:
+        return False
+
+    # Both have versions - compare them
+    base_ver = get_max_version_from_specifier(base_spec)
+    update_ver = get_max_version_from_specifier(update_spec)
+
+    # If we can compare, use the higher version
+    if base_ver and update_ver:
+        return update_ver > base_ver
+    # Only update has a comparable version, else keep base
+    return bool(update_ver)
+
+
 def _merge_python_dependency(dep, deps):
     pkg_name, update_spec = parse_python_requirement(dep)
-
-    if pkg_name in deps:
-        _, base_spec = deps[pkg_name]
-
-        # If neither has a version, keep the update (later precedence)
-        if base_spec is None and update_spec is None:
-            deps[pkg_name] = (dep, update_spec)
-            return
-
-        # If only one has a version, prefer the one with version
-        if base_spec is None:
-            deps[pkg_name] = (dep, update_spec)
-            return
-        if update_spec is None:
-            # Keep base (it has a version)
-            return
-
-        # Both have versions - compare them
-        base_ver = get_max_version_from_specifier(base_spec)
-        update_ver = get_max_version_from_specifier(update_spec)
-
-        # If we can compare, use the higher version
-        if base_ver and update_ver:
-            if update_ver > base_ver:
-                deps[pkg_name] = (dep, update_spec)
-            # else keep base
-        elif update_ver:
-            # Only update has a comparable version
-            deps[pkg_name] = (dep, update_spec)
-        # else keep base
-
-    else:
-        # New package
+    if pkg_name not in deps or _update_spec_wins(deps[pkg_name][1], update_spec):
         deps[pkg_name] = (dep, update_spec)
 
 
@@ -477,23 +465,39 @@ def deep_merge_tomlkit(
     return result
 
 
-def _drop_array_values(target: list | Array, values: list | Array) -> None:
-    """Remove every item of values from target, in place."""
-    drop = {str(item) for item in values}
-    for index in reversed(range(len(target))):
-        if str(target[index]) in drop:
-            del target[index]
+def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
+    """
+    Remove drop's items from the array or comma-delimited string at doc[key].
+
+    Drops the key itself once nothing is left.
+    """
+    target = doc[key]
+    if isinstance(target, list | Array):
+        for index in reversed(range(len(target))):
+            if str(target[index]) in drop:
+                del target[index]
+    elif isinstance(target, str | String):
+        items = parse_comma_delimited(target)
+        kept = [item for item in items if item not in drop]
+        if len(kept) < len(items):
+            doc[key] = ",".join(kept)
+    else:
+        return
+    if not doc[key]:
+        del doc[key]
 
 
 def remove_values(doc: Any, retired: Any) -> None:
     """
-    Remove retired values from doc's arrays, in place.
+    Remove retired values from doc, in place.
 
-    retired mirrors doc's structure: every array in it lists values to drop
-    from the array at the same key path in doc. A table or array emptied by
-    retirement is removed, so a fully retired key vanishes instead of
-    lingering as `[]`. Missing keys are ignored and the rest of each array
-    keeps its order and formatting.
+    retired mirrors doc's structure. An array in it lists values to drop from
+    the array, or from the comma-delimited string, at the same key path in doc.
+    An array or string emptied that way is removed, so a fully retired key
+    vanishes instead of lingering as `[]` or `""`. Any other value drops the
+    key itself when doc holds that same value. Missing keys are ignored, the
+    rest of each array keeps its order and formatting, and the rest of each
+    string keeps its order.
     """
     for key, value in retired.items():
         if key not in doc:
@@ -501,11 +505,9 @@ def remove_values(doc: Any, retired: Any) -> None:
         target = doc[key]
         if _is_table_like(value) and _is_table_like(target):
             remove_values(target, value)
-        elif isinstance(value, list | Array) and isinstance(target, list | Array):
-            _drop_array_values(target, value)
-        else:
-            continue
-        if not target:
+        elif isinstance(value, list | Array):
+            _remove_items(doc, key, frozenset(str(item) for item in value))
+        elif value == target:
             del doc[key]
 
 
@@ -708,7 +710,7 @@ Comment and Format Preservation:
     parser.add_argument(
         "--remove-values",
         type=Path,
-        help="TOML file of retired array values to drop from the merged result",
+        help="TOML file of retired values to drop from the merged result",
     )
 
     args = parser.parse_args()

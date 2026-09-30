@@ -130,13 +130,12 @@ reportUnusedParameter = false
 
 [tool.codespell]
 builtin = "clear,code,rare"
-check-hidden = true
-ignore-words-list = "coverd,crate,falsy,iff,ro,searchd,thead,versio,wan,warmup,ws"
-skip = "*.svg,*~,.*,.*/*,./bun.lock,./dist,./node_modules,./package.json,./test-results,/uv.lock,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
+ignore-words-list = "coverd,crate,deque,falsy,iff,ro,searchd,thead,versio,wan,warmup,ws"
+skip = "*.pdf,*.svg,*~,./bun.lock,./dist,./node_modules,./package.json,./test-results,/uv.lock,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
-paths = ["tests"]
+paths = ["copy", "devenv", "scripts", "tests"]
 
 [tool.coverage.html]
 directory = "test-results/coverage"
