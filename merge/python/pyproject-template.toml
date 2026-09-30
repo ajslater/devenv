@@ -317,10 +317,12 @@ exclude = [
 ]
 
 [tool.vulture]
+# vulture fnmatches these against absolute paths: "*" also matches "/", "**"
+# is not a globstar, and a pattern without "*?[" is wrapped as "*pattern*".
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
+  "*/.*",
+  "*/__pycache__/*",
+  "*/node_modules/*",
   "dist/",
   "frontend/",
   "site",

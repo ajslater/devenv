@@ -8,3 +8,18 @@ source-include = [
   # remark is no longer used; the ".*ignore" glob covered it anyway.
   ".remarkignore",
 ]
+
+[tool.vulture]
+exclude = [
+  # vulture fnmatches absolute paths, so these matched only the dir itself,
+  # never a file under it.
+  "**/__pycache__",
+  "**/node_modules",
+  # Same as "*/.*", which replaces it.
+  "**/.*",
+  # Replaced by "*/__pycache__/*" and "*/node_modules/*".
+  "*/__pycache__*",
+  "*/node_modules*",
+  # Misspelled; the real dir is test-results/.
+  "test_results/",
+]

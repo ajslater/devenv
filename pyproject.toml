@@ -329,17 +329,13 @@ exclude = [
 
 [tool.vulture]
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
   "*/.*",
-  "*/__pycache__*",
-  "*/node_modules*",
+  "*/__pycache__/*",
+  "*/node_modules/*",
   "dist/",
   "frontend/",
   "site",
   "test-results/",
-  "test_results/",
   "typings/"
 ]
 min_confidence = 61
