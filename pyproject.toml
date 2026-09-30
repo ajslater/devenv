@@ -136,7 +136,7 @@ skip = "*.svg,*~,.*,.*/*,./bun.lock,./dist,./node_modules,./package.json,./test-
 
 [tool.complexipy]
 failed = true
-paths = ["tests"]
+paths = ["copy", "devenv", "scripts", "tests"]
 exclude = [
   "**/.*",
   "**/__pycache__",
