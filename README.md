@@ -39,6 +39,38 @@ Available and default features are are listed with `-h`
 The old Makefile and eslint.config.js are saved for reference. Copy project
 unique sections into the new Makefile and eslint.config.js
 
+#### Shell script lint exclusions
+
+`make fix-sh` and `make lint-sh` run shellharden, shfmt and shellcheck on every
+`*.sh` file in the project. To skip some of them, list patterns in a
+`.shellignore` file at the project root, one per line:
+
+- Blank lines and lines starting with `#` are ignored.
+- A pattern without a `/` matches a file or directory name at any depth, like
+  `node_modules` or `*_old.sh`.
+- A pattern with a `/` is anchored to the project root. `scripts/vendor` skips
+  `./scripts/vendor` but not `./lib/scripts/vendor`. A leading `./` or `/` and a
+  trailing `/` are stripped.
+- `*`, `?` and `[...]` are glob characters. In a pattern with a `/`, `*` also
+  matches `/`, so `scripts/*_old.sh` skips `scripts/sub/x_old.sh` too.
+- A leading `!` re-includes what the other patterns skip. The order of lines
+  does not matter.
+
+Skipped directories are never searched. As with `.gitignore`, a file inside a
+skipped directory cannot be re-included: `!.github/scripts` does nothing while
+`.github` is skipped. Re-include the directory itself instead.
+
+devenv seeds `.shellignore` with `.*` (hidden files and directories) and
+`node_modules`, and `make update-devenv` adds those two lines back if they are
+removed. To lint a hidden directory such as `.github`, keep them and add a
+negation:
+
+```text
+.*
+!.github
+node_modules
+```
+
 ## Use
 
 Everything is done via the makefile.
