@@ -28,7 +28,7 @@ dev = [
   "pypi-cleanup~=0.1.10",
   "semver~=3.1.0",
   "toml-cli~=0.7",
-  "tomlkit~=0.14"
+  "tomlkit~=0.14",
 ]
 build = []
 lint = [
@@ -43,13 +43,13 @@ lint = [
   "tomlkit~=0.14",
   "types-python-dateutil~=2.9",
   "ty~=0.0.17",
-  "vulture~=2.3"
+  "vulture~=2.3",
 ]
 test = [
   "coverage~=7.0",
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
-  "pyyaml~=6.0"
+  "pyyaml~=6.0",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
@@ -91,7 +91,7 @@ source-include = [
   "package.json",
   "tests/**",
   "uv.lock",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 source-exclude = ["**/*\\~", "**/.DS_Store", "frontend/node_modules"]
 wheel-exclude = ["**/*\\~", "**/.DS_Store"]
@@ -107,7 +107,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 pythonVersion = "3.14"
 failOnWarnings = false
@@ -153,7 +153,7 @@ omit = [
   "site/*",
   "test-results/*",
   "typings/*",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 
 [tool.pytest]
@@ -166,7 +166,7 @@ addopts = [
   "--junit-xml=test-results/pytest/results.xml",
   "--strict-config",
   "--strict-markers",
-  "-ra"
+  "-ra",
 ]
 junit_family = "xunit2"
 strict = true
@@ -187,7 +187,7 @@ extend-exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 show-fixes = true
 target-version = "py314"
@@ -208,7 +208,7 @@ extend-ignore = [
   "PERF203",
   "PLC0415",
   "S101",
-  "W191"
+  "W191",
 ]
 extend-select = [
   "A",
@@ -267,7 +267,7 @@ extend-select = [
   "TRY",
   "UP",
   "W",
-  "YTT"
+  "YTT",
 ]
 external = ["V101"]
 task-tags = ["FIXME", "HACK", "TODO", "XXX", "http"]
@@ -308,7 +308,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py"
+  "vulture_ignorelist.py",
 ]
 
 [tool.vulture]
@@ -320,7 +320,7 @@ exclude = [
   "*/node_modules/*",
   "*/site/*",
   "*/test-results/*",
-  "*/typings/*"
+  "*/typings/*",
 ]
 min_confidence = 61
 sort_by_size = true
