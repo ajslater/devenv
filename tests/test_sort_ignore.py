@@ -92,6 +92,22 @@ def test_keeps_the_file_mode(tmp_path: Path) -> None:
     assert path.stat().st_mode & 0o777 == mode
 
 
+@pytest.mark.skipif(os.geteuid() == 0, reason="root reads any file")
+def test_unreadable_file_is_left_alone(tmp_path: Path) -> None:
+    """A file it can write but not read fails the run instead of emptying."""
+    path = tmp_path / ".gitignore"
+    path.write_text("b\na\n")
+    path.chmod(0o200)
+
+    result = subprocess.run(  # noqa: S603
+        [_BASH, str(_SORT_IGNORE)], cwd=tmp_path, check=False, capture_output=True
+    )
+
+    path.chmod(0o644)
+    assert result.returncode != 0
+    assert path.read_text() == "b\na\n"
+
+
 def test_skips_symlinks(tmp_path: Path) -> None:
     """A symlinked ignore file belongs to whatever it points at."""
     shared = tmp_path / "shared"
