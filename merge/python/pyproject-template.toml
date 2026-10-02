@@ -79,10 +79,8 @@ source-exclude = ["**/*\\~", "**/.DS_Store", "frontend/node_modules"]
 wheel-exclude = ["**/*\\~", "**/.DS_Store"]
 
 [tool.basedpyright]
+# basedpyright also excludes "**/.*", "**/__pycache__" and "**/node_modules".
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
   "dist",
   "frontend",
   "site",
@@ -126,8 +124,6 @@ source = []
 branch = true
 concurrency = ["multiprocessing"]
 omit = [
-  "*/.*",
-  "*__pycache__*",
   "dist/*",
   "frontend/*",
   "node_modules/*",
@@ -155,9 +151,9 @@ testpaths = ["tests"]
 pythonpath = ["."]
 
 [tool.radon]
+# radon skips hidden dirs and files itself.
 exclude = """
-  *~,.*,.*/*,__pycache__/*
-  ,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*
+  *~,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*
   ,vulture_ignorelist.py
   """
 
@@ -165,7 +161,6 @@ exclude = """
 builtins = ["ic"]
 extend-exclude = [
   "**/.*",
-  "**/__pycache__",
   "frontend",
   "site",
   "test-results",
@@ -290,11 +285,9 @@ python = "./.venv"
 python-version = "3.11"
 
 [tool.ty.src]
+# ty also excludes "**/dist/", "**/node_modules/" and other build and tool dirs.
 exclude = [
   "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
-  "dist",
   "frontend",
   "site",
   "test-results",
@@ -311,7 +304,6 @@ exclude = [
 # bin/lint-vulture.sh never passes vulture the root's dot-dirs.
 exclude = [
   "*/.venv/*",
-  "*/__pycache__/*",
   "*/dist/*",
   "*/frontend/*",
   "*/node_modules/*",

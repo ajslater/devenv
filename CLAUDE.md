@@ -97,6 +97,12 @@ retirement list. `update-devenv` then removes it from each child repo:
 - `merge/node_root/package-remove.json` — values to drop from the array at the
   same key path in `package.json`, such as `prettier.plugins`
 
+An ignore-file merge also drops each pattern that another pattern in the same
+file covers, read in that file's syntax: `dist/` beside `dist` in a
+`.gitignore`, `node_modules` beside `**/node_modules` in a `.dockerignore`.
+Broadening a dotfile pattern therefore needs no retirement entry. A file with a
+`!` line is left whole.
+
 ### Makefile Conventions
 
 - Uses double-colon (`::`) rules to allow multiple definitions of the same
