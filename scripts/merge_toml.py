@@ -343,9 +343,7 @@ def _merge_arrays(
     if list_strategy == "merge":
         # Create new array with combined items
         new_array = tomlkit.array()
-        for item in base_value:
-            new_array.append(item)
-        for item in update_value:
+        for item in (*base_value, *update_value):
             if item not in new_array:
                 new_array.append(item)
         return sorted(new_array)
