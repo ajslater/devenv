@@ -100,11 +100,14 @@ def main() -> None:
         devenv_src / "merge", pd, features, read_retired_lines(devenv_src)
     )
     report_counts("Merged dotfiles", created=created, skipped=skipped, merged=merged)
-    run(["bin/sort-ignore.sh"])
 
     # Copy root files
     copied, file_skipped, _root_paths = copy_files(devenv_src / "copy", pd, features)
     report_counts("Copied files", copied=copied, skipped=file_skipped)
+
+    # Sort ignore files with the sort-ignore.sh just copied, not the
+    # project's old one.
+    run(["bin/sort-ignore.sh"])
 
     # Format copied files
     format_makefiles()
