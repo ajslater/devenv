@@ -70,7 +70,6 @@ source-include = [
   "NEWS.md",
   "bin/**",
   "bun.lock",
-  "ci/**",
   "compose.yaml",
   "docs/DOCKER.md",
   "docs/NEWS",
@@ -85,7 +84,6 @@ source-include = [
   "eslint.config.js",
   "frontend/**",
   "img/**",
-  "mkdocks.yml",
   "mkdocs.yml",
   "mock_comics/**",
   "package.json",
@@ -98,9 +96,6 @@ wheel-exclude = ["**/*\\~", "**/.DS_Store"]
 
 [tool.basedpyright]
 exclude = [
-  "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
   "copy/django/bin/manage.py",
   "dist",
   "frontend",
@@ -131,7 +126,7 @@ reportUnusedParameter = false
 [tool.codespell]
 builtin = "clear,code,rare"
 ignore-words-list = "coverd,crate,deque,falsy,iff,ro,searchd,thead,versio,wan,warmup,ws"
-skip = "*.pdf,*.svg,*~,./bun.lock,./dist,./node_modules,./package.json,./test-results,/uv.lock,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,test-results,typings,uv.lock"
+skip = "*.pdf,*.svg,*~,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,tasks,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
@@ -145,8 +140,6 @@ source = []
 branch = true
 concurrency = ["multiprocessing"]
 omit = [
-  "*/.*",
-  "*__pycache__*",
   "dist/*",
   "frontend/*",
   "node_modules/*",
@@ -175,14 +168,12 @@ pythonpath = ["."]
 asyncio_mode = "strict"
 
 [tool.radon]
-exclude = "*~,.*,.*/*,__pycache__/*,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
+exclude = "*~,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py"
 
 [tool.ruff]
 builtins = ["ic"]
 extend-exclude = [
   "**/.*",
-  "**/__pycache__",
-  "dist",
   "frontend",
   "site",
   "test-results",
@@ -300,10 +291,7 @@ python-version = "3.14"
 [tool.ty.src]
 exclude = [
   "**/.*",
-  "**/__pycache__",
-  "**/node_modules",
   "copy/django/bin/manage.py",
-  "dist",
   "frontend",
   "site",
   "test-results",
@@ -314,7 +302,6 @@ exclude = [
 [tool.vulture]
 exclude = [
   "*/.venv/*",
-  "*/__pycache__/*",
   "*/dist/*",
   "*/frontend/*",
   "*/node_modules/*",

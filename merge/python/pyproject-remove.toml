@@ -30,6 +30,10 @@ source-include = [
   ".circlci/**",
   # remark is no longer used; the ".*ignore" glob covered it anyway.
   ".remarkignore",
+  # No project has a ci/ dir.
+  "ci/**",
+  # Misspelled; "mkdocs.yml" is the real file.
+  "mkdocks.yml",
 ]
 
 [tool.vulture]
@@ -42,9 +46,11 @@ exclude = [
   # every file of a .claude/worktrees/ checkout. Replaced by "*/.venv/*".
   "**/.*",
   "*/.*",
-  # Replaced by "*/__pycache__/*" and "*/node_modules/*".
+  # Replaced by "*/node_modules/*".
   "*/__pycache__*",
   "*/node_modules*",
+  # vulture reads only .py files, and __pycache__ holds only .pyc files.
+  "*/__pycache__/*",
   # Wrapped as "*dist/*", "*site*" and so on, these also matched a dir above
   # the project root, or any name containing them, such as composite.py.
   # Replaced by "*/dist/*" and the like.
@@ -67,4 +73,54 @@ skip = [
   ".*",
   # Matches every other dir it walks, like "./pkg".
   ".*/*",
+  # codespell walks from ".", so "./name" skips the name at the root only. The
+  # bare name the template ships skips it at any depth.
+  "./bun.lock",
+  "./dist",
+  "./node_modules",
+  "./package.json",
+  "./test-results",
+  "./uv.lock",
+  # Every path codespell walks starts with ".", so this matched nothing.
+  "/uv.lock",
+]
+
+[tool.basedpyright]
+# basedpyright excludes these itself, on top of any exclude list.
+exclude = ["**/.*", "**/__pycache__", "**/node_modules"]
+
+[tool.coverage.run]
+omit = [
+  # coverage's "*" stops at "/", so this matched hidden files but no file
+  # under a hidden dir. coverage skips virtualenvs itself.
+  "*/.*",
+  # A pattern without "/" matches only a file name, and no source file has
+  # this in its name.
+  "*__pycache__*",
+]
+
+[tool.radon]
+exclude = [
+  # radon skips hidden dirs and files itself.
+  ".*",
+  ".*/*",
+  # radon reads .py files and python scripts, and __pycache__ holds neither.
+  "__pycache__/*",
+]
+
+[tool.ruff]
+extend-exclude = [
+  # One of ruff's default excludes, which extend-exclude adds to.
+  "dist",
+  # ruff reads no file that __pycache__ holds.
+  "**/__pycache__",
+]
+
+[tool.ty.src]
+exclude = [
+  # Covered by ty's default excludes, which apply on top of this list.
+  "**/node_modules",
+  "dist",
+  # ty reads no file that __pycache__ holds.
+  "**/__pycache__",
 ]
