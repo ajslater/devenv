@@ -463,6 +463,27 @@ def deep_merge_tomlkit(
     return result
 
 
+def _last_item_group(array: Array) -> Any:
+    """Return tomlkit's private group for array's last item, which holds its comma."""
+    return array._value[array._index_map[len(array) - 1]]  # noqa: SLF001
+
+
+def _remove_array_items(array: Array, drop: frozenset[str]) -> None:
+    """
+    Remove drop's items from array, keeping whether it ends in a comma.
+
+    tomlkit leaves a comma after the new last item when it deletes a multiline
+    array's last item, and prettier-plugin-toml keeps that comma as a request
+    to keep the array expanded.
+    """
+    comma = _last_item_group(array).comma if array else None
+    for index in reversed(range(len(array))):
+        if str(array[index]) in drop:
+            del array[index]
+    if array:
+        _last_item_group(array).comma = comma
+
+
 def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
     """
     Remove drop's items from the array or comma-delimited string at doc[key].
@@ -470,10 +491,8 @@ def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
     Drops the key itself once nothing is left.
     """
     target = doc[key]
-    if isinstance(target, list | Array):
-        for index in reversed(range(len(target))):
-            if str(target[index]) in drop:
-                del target[index]
+    if isinstance(target, Array):
+        _remove_array_items(target, drop)
     elif isinstance(target, str | String):
         items = parse_comma_delimited(target)
         kept = [item for item in items if item not in drop]
