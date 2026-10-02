@@ -4,10 +4,10 @@ Merge development environment dotfiles.
 
 For each enabled DEVENV_<FEATURE>, merges .*ignore and .*rc files from
 templates/<feature>/ into the destination directory by deduplicating and
-sorting lines. Lines listed in remove_dotfile_lines.txt are retired: they are
-dropped from every merged file. An ignore file also drops each pattern that
-another of its patterns already covers, such as "dist/" beside "dist". Skips
-symlinks.
+sorting lines, with "!" negations after every other line. Lines listed in
+remove_dotfile_lines.txt are retired: they are dropped from every merged file.
+An ignore file also drops each pattern that another of its patterns already
+covers, such as "dist/" beside "dist". Skips symlinks.
 """
 
 from __future__ import annotations
@@ -142,6 +142,17 @@ def prune_covered(file_name: str, lines: Iterable[str]) -> set[str]:
     return kept - {line for line, pattern in patterns.items() if covered(line, pattern)}
 
 
+def _negations_last(line: str) -> tuple[bool, str]:
+    """
+    Sort key that puts each "!" line after every other line.
+
+    git, docker and prettier let the last matching line win, so a negation
+    only works after the patterns it overrides. Within each group the order
+    does not matter, since every pattern ignores and every negation keeps.
+    """
+    return line.startswith("!"), line
+
+
 def _is_dotfile(name: str) -> bool:
     return name.startswith(".") and name.endswith(("ignore", "rc"))
 
@@ -193,7 +204,8 @@ def merge_dotfiles(
         src_lines = set(src_file.read_text().splitlines())
         existing_lines = set(dest_file.read_text().splitlines())
         merged_lines = sorted(
-            prune_covered(dest_file.name, (src_lines | existing_lines) - retired_lines)
+            prune_covered(dest_file.name, (src_lines | existing_lines) - retired_lines),
+            key=_negations_last,
         )
         dest_file.write_text("\n".join(merged_lines) + "\n" if merged_lines else "")
         dest_files.append(dest_file)

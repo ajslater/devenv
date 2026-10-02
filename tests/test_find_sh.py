@@ -290,7 +290,7 @@ def test_negation_can_reinclude_a_file(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize("ignore", [".*\n!.github\n", "!.github\n.*\n"])
 def test_line_order_does_not_matter(tmp_path: Path, ignore: str) -> None:
-    """sort-ignore.sh reorders .shellignore, so a negation may come first."""
+    """Unlike gitignore, a negation wins wherever it falls."""
     files = [".github/a.sh", ".other/b.sh", "c.sh"]
 
     assert _found(tmp_path, files, ignore) == _dot(".github/a.sh", "c.sh")

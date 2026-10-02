@@ -5,6 +5,9 @@ Each ignore file has its own syntax. In a .gitignore, "foo" matches at any
 depth, as "**/foo" does. In a .dockerignore, "foo" matches only at the context
 root, and "**/foo" matches at any depth. bin/find-sh.sh reads a .shellignore
 name at any depth, but has no "**/" form.
+
+The merged lines are sorted with "!" negations last, since the last matching
+line wins.
 """
 
 from __future__ import annotations
@@ -94,7 +97,7 @@ def test_shellignore_syntax(lines: tuple[str, ...], pruned: set[str]) -> None:
 
 
 def test_negation_keeps_every_line() -> None:
-    """A sorted file puts a "!" line out of place, so its file is left whole."""
+    """A file with a "!" line is left whole."""
     assert _pruned(".gitignore", "dist", "dist/", "!dist/keep") == set()
 
 
@@ -120,6 +123,22 @@ def test_merge_drops_lines_the_template_now_covers(tmp_path: Path) -> None:
     assert (
         project / ".dockerignore"
     ).read_text() == "**/.*cache\n**/node_modules\nmine\n"
+
+
+def test_merge_puts_negations_last(tmp_path: Path) -> None:
+    """A project's "!frontend/src/lib/" follows the template's "lib/"."""
+    templates = tmp_path / "merge"
+    (templates / "common").mkdir(parents=True)
+    (templates / "common" / ".gitignore").write_text("lib/\nnode_modules\n")
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / ".gitignore").write_text("!frontend/src/lib/\n!.github\nmine\n")
+
+    merge_dotfiles.merge_dotfiles(templates, project, ["common"])
+
+    assert (project / ".gitignore").read_text() == (
+        "lib/\nmine\nnode_modules\n!.github\n!frontend/src/lib/\n"
+    )
 
 
 def test_templates_have_no_covered_line() -> None:
