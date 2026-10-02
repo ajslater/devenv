@@ -6,9 +6,9 @@ mkdir -p bin
 DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
 
 # Set feature flags (defaults match add_makefiles.py)
-FEATURES=("${@:-common node python}")
+FEATURES=("$@")
 if [[ $# -eq 0 ]]; then
-  FEATURES=(common node python)
+  FEATURES=(common node node_root python)
 fi
 for feature in "${FEATURES[@]}"; do
   export "DEVENV_${feature^^}=1"
