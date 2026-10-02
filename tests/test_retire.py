@@ -113,6 +113,41 @@ key = ["x"]
     assert '\n  "NEWS.md",\n  "bin/**",\n' in tomlkit.dumps(doc)
 
 
+def test_remove_values_keeps_whether_an_array_ends_in_a_comma() -> None:
+    """Dropping an array's last item keeps whether the array ends in a comma."""
+    doc = tomlkit.parse("""\
+[tool.a]
+bare = [
+  "a",
+  "b",
+  "c"
+]
+comma = [
+  "a",
+  "b",
+  "c",
+]
+""")
+    retired = tomlkit.parse('[tool.a]\nbare = ["c"]\ncomma = ["c"]\n')
+
+    merge_toml.remove_values(doc, retired)
+
+    assert (
+        tomlkit.dumps(doc)
+        == """\
+[tool.a]
+bare = [
+  "a",
+  "b"
+]
+comma = [
+  "a",
+  "b",
+]
+"""
+    )
+
+
 def test_remove_values_drops_items_from_comma_delimited_strings() -> None:
     """A retired item leaves a comma-delimited string; the rest keep their order."""
     doc = tomlkit.parse('[tool.codespell]\nskip = "z,.*,a,.*/*"\nother = "z,.*"\n')
