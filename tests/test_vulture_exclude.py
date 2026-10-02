@@ -36,7 +36,6 @@ def _excluded(checkout: str, path: str) -> bool:
         "node_modules/katex/src/fonts/generate_fonts.py",
         "web/node_modules/pkg/setup.py",
         ".venv/lib/python3.14/site-packages/pkg/mod.py",
-        "pkg/__pycache__/mod.py",
         "dist/pkg/mod.py",
         "frontend/pkg/mod.py",
         "site/pkg/mod.py",
