@@ -28,7 +28,7 @@ fix::
 ## Fix shell script formatting
 ## @category Fix
 fix-sh:
-	./bin/fix-sh.sh
+	./bin/sh-tools.sh --fix
 
 .PHONY: lint
 ## Lint
@@ -40,7 +40,7 @@ lint::
 ## Lint shell scripts
 ## @category Lint
 lint-sh:
-	./bin/lint-sh.sh
+	./bin/sh-tools.sh --lint
 
 ## Version to set. Leave empty to show the version
 ## @category Update

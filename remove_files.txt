@@ -33,3 +33,6 @@ package-lock.json
 bin/ci-download-dist-if-identical.sh
 bin/remark-for-claude.sh
 .remarkignore
+bin/fix-sh.sh
+bin/lint-darwin.sh
+bin/lint-sh.sh
