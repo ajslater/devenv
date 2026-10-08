@@ -24,9 +24,6 @@ _STUB = "#!/bin/sh\nexit 0\n"
 # Merged files a second run still rewrites, each with the merger that does it.
 # Fixing a merger removes its file here; the strict xfail below insists.
 UNSTABLE = {
-    ".readthedocs.yaml": "merge_yaml sorts keys only when merging",
-    "compose.yaml": "merge_yaml sorts keys only when merging",
-    "mkdocs.yml": "merge_yaml sorts keys only when merging",
     "pyproject.toml": "merge_toml reflows on a second run",
 }
 FEATURE_SETS = {

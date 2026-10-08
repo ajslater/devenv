@@ -460,6 +460,7 @@ test = [
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pyyaml" },
+    { name = "ruamel-yaml" },
     { name = "semver" },
     { name = "tomlkit" },
 ]
@@ -502,6 +503,7 @@ test = [
     { name = "pytest-asyncio", specifier = "~=1.0" },
     { name = "pytest-cov", specifier = "~=7.0" },
     { name = "pyyaml", specifier = "~=6.0" },
+    { name = "ruamel-yaml", specifier = "~=0.19.1" },
     { name = "semver", specifier = "~=3.1.0" },
     { name = "tomlkit", specifier = "~=0.14" },
 ]

@@ -4,7 +4,7 @@
 # dependencies = [
 #   "mbake~=1.4.5",
 #   "packaging>=26.0",
-#   "pyyaml~=6.0",
+#   "ruamel.yaml~=0.19.1",
 #   "semver~=3.1",
 #   "tomlkit~=0.14",
 # ]
