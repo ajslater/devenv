@@ -11,13 +11,17 @@ Deep merge YAML files, keeping the last file's comments, order and style.
 The last file is the base of the result, so its values win and its comments,
 tags, anchors, quoting and key order all survive. Each earlier file only adds
 what the later ones lack: missing keys go at the end of their mapping, and
-missing list items at the end of their list.
+missing list items at the end of their list. A value the last file shares
+through an alias or a `<<` merge key is never changed in place: what gets
+added to it goes to a copy that its key then owns.
 """
 
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from contextlib import contextmanager
+from copy import deepcopy
 from functools import partial, reduce
 from io import StringIO
 from pathlib import Path
@@ -29,7 +33,7 @@ from ruamel.yaml.error import CommentMark
 from ruamel.yaml.tokens import CommentToken
 
 if TYPE_CHECKING:
-    from collections.abc import Generator, Sequence
+    from collections.abc import Callable, Generator, Mapping, Sequence
 
 # Wider than any line, so long scalars stay on one line, as prettier keeps them.
 _WIDTH: Final = 4096
@@ -45,6 +49,49 @@ def _yaml(indent: int = 2) -> YAML:
     yaml.width = _WIDTH
     yaml.indent(mapping=indent, sequence=indent + 2, offset=indent)
     return yaml
+
+
+def _collections(node: Any, seen: set[int] | None = None) -> Generator[Any]:
+    """
+    Yield each collection in node, once for each way the document reaches it.
+
+    An anchored collection is reached again through each alias of it, and an
+    inherited value through each mapping whose `<<` merge key brings it in.
+    Each collection is descended into once, which also ends recursive aliases.
+    """
+    if not isinstance(node, CommentedMap | CommentedSeq):
+        return
+    yield node
+    seen = set() if seen is None else seen
+    if id(node) in seen:
+        return
+    seen.add(id(node))
+    for child in node.values() if isinstance(node, CommentedMap) else node:
+        yield from _collections(child, seen)
+
+
+def _anchor(node: Any) -> Any:
+    """Return a collection's anchor, or None if it has none."""
+    if isinstance(node, CommentedMap | CommentedSeq):
+        anchor = node.yaml_anchor()
+        if anchor is not None and anchor.value:
+            return anchor
+    return None
+
+
+def _keep_anchors(doc: CommentedMap) -> None:
+    """Write back every anchor, not only the ones something aliases yet."""
+    for node in _collections(doc):
+        if (anchor := _anchor(node)) is not None:
+            anchor.always_dump = True
+
+
+def _shared(doc: CommentedMap) -> Mapping[int, Any]:
+    """Return the collections doc reaches more than once, by id."""
+    nodes = list(_collections(doc))
+    counts = Counter(map(id, nodes))
+    # Holding the nodes keeps their ids from being reused while in use.
+    return {id(node): node for node in nodes if counts[id(node)] > 1}
 
 
 def _last_entry(node: Any) -> tuple[Any, int] | None:
@@ -70,7 +117,10 @@ def _tail_slot(node: Any) -> tuple[Any, Any, int] | None:
     if (last := _last_entry(node)) is None:
         return None
     key, slot = last
-    return _tail_slot(node[key]) or (node, key, slot)
+    # An anchored entry's own lines belong where its anchor is written.
+    if _anchor(child := node[key]) is not None:
+        return node, key, slot
+    return _tail_slot(child) or (node, key, slot)
 
 
 def _take_tail(node: Any) -> str:
@@ -105,6 +155,34 @@ def _keeping_tail(node: Any) -> Generator[None]:
     _give_tail(node, tail)
 
 
+def _edit(
+    mapping: CommentedMap,
+    key: Any,
+    edit: Callable[[Any], None],
+    shared: Mapping[int, Any],
+) -> None:
+    """
+    Apply edit to mapping[key] without changing what other keys share.
+
+    A value inherited through a `<<` merge key, or reached through an alias,
+    is shared, so edit gets a deep copy without anchors instead. The copy
+    becomes the key's own value only if edit changed it, so a shared value
+    the edit leaves alone keeps its alias or merge key.
+    """
+    target = mapping[key]
+    own = any(own_key == key for own_key, _ in mapping.non_merged_items())
+    if own and id(target) not in shared:
+        edit(target)
+        return
+    copy = deepcopy(target)
+    for node in _collections(copy):
+        node.yaml_set_anchor(None)
+    _take_tail(copy)
+    edit(copy)
+    if copy != target:
+        mapping[key] = copy
+
+
 def _name(item: Any) -> Any:
     """
     Return what a list item is matched by.
@@ -128,8 +206,24 @@ def _merge_lists(base: CommentedSeq, update: CommentedSeq) -> None:
                 update.append(item)
 
 
+def _merge_value(
+    value: Any, target: Any, list_strategy: str, shared: Mapping[int, Any]
+) -> None:
+    """Merge one key's base value into update's target, in place."""
+    match value, target:
+        case CommentedMap(), CommentedMap():
+            deep_merge(value, target, list_strategy, shared)
+        case CommentedSeq(), CommentedSeq() if list_strategy == "merge":
+            _merge_lists(value, target)
+        case _:
+            pass
+
+
 def deep_merge(
-    base: CommentedMap, update: CommentedMap, list_strategy: str = "merge"
+    base: CommentedMap,
+    update: CommentedMap,
+    list_strategy: str = "merge",
+    shared: Mapping[int, Any] | None = None,
 ) -> CommentedMap:
     """
     Merge base into update, in place, and return update.
@@ -137,21 +231,20 @@ def deep_merge(
     update's values win. base adds the keys update lacks, at the end of their
     mapping, and, with the merge list strategy, the list items update lacks,
     at the end of their list. With the replace strategy update's lists stand.
+    A value update shares through an alias or a `<<` merge key is never
+    changed: what base adds to it goes to a copy owned by its key.
     """
+    shared = _shared(update) if shared is None else shared
     with _keeping_tail(update):
         for key, value in base.items():
             if key not in update:
                 _take_tail(value)
                 update[key] = value
                 continue
-            target = update[key]
-            match value, target:
-                case CommentedMap(), CommentedMap():
-                    deep_merge(value, target, list_strategy)
-                case CommentedSeq(), CommentedSeq() if list_strategy == "merge":
-                    _merge_lists(value, target)
-                case _:
-                    pass
+            merge = partial(
+                _merge_value, value, list_strategy=list_strategy, shared=shared
+            )
+            _edit(update, key, merge, shared)
     return update
 
 
@@ -164,7 +257,22 @@ def _remove_items(target: CommentedSeq, drop: CommentedSeq) -> None:
                 del target[index]
 
 
-def remove_values(data: CommentedMap, retired: CommentedMap) -> None:
+def _retire(retired: Any, target: Any, shared: Mapping[int, Any]) -> None:
+    """Remove one key's retired values from data's target, in place."""
+    match retired, target:
+        case CommentedMap(), CommentedMap():
+            remove_values(target, retired, shared)
+        case CommentedSeq(), CommentedSeq():
+            _remove_items(target, retired)
+        case _:
+            pass
+
+
+def remove_values(
+    data: CommentedMap,
+    retired: CommentedMap,
+    shared: Mapping[int, Any] | None = None,
+) -> None:
     """
     Remove retired values from data, in place.
 
@@ -174,18 +282,17 @@ def remove_values(data: CommentedMap, retired: CommentedMap) -> None:
     value drops only an equal item. A mapping or list emptied by retirement
     is removed, so a fully retired key vanishes instead of lingering as `{}`
     or `[]`. Missing keys are ignored and everything else keeps its order.
+    Like a merge, retirement never changes a value data shares through an
+    alias or a `<<` merge key; the key gets its own copy instead.
     """
+    shared = _shared(data) if shared is None else shared
     with _keeping_tail(data):
         for key, value in retired.items():
-            target = data.get(key)
-            match value, target:
-                case CommentedMap(), CommentedMap():
-                    remove_values(target, value)
-                case CommentedSeq(), CommentedSeq():
-                    _remove_items(target, value)
-                case _:
-                    continue
-            if not target:
+            if key not in data:
+                continue
+            _edit(data, key, partial(_retire, value, shared=shared), shared)
+            target = data[key]
+            if isinstance(target, CommentedMap | CommentedSeq) and not target:
                 del data[key]
 
 
@@ -197,6 +304,7 @@ def load_yaml_text(text: str, source: object = "YAML text") -> CommentedMap:
     if not isinstance(content, CommentedMap):
         reason = f"{source} does not contain a YAML mapping at its root"
         raise TypeError(reason)
+    _keep_anchors(content)
     return content
 
 
@@ -252,6 +360,8 @@ quoting and key order win. Earlier files add the keys it lacks, at the end of
 their mapping. Lists merge by value: the last file's items in its order, then
 earlier files' items it lacks. A one-key mapping item matches a bare item of
 the same name, so mkdocs' `minify` and `minify: {...}` are one plugin.
+A value shared through an alias or a `<<` merge key is never changed; what
+gets added to it goes to a copy that its key then owns.
 
 --remove-values takes a YAML file that mirrors the merged one. A list in it
 names values to drop from the list at the same key path, and a list or

@@ -148,9 +148,124 @@ def test_anchors_and_aliases_survive(tmp_path: Path) -> None:
 
     merged = _merge(tmp_path, _COMPOSE.read_text(), project)
 
-    assert merged.startswith("x-defaults: &defaults\n")
+    assert merged.startswith(project[: project.index("services:")])
     assert merged.count("<<: *defaults\n") == project.count("<<: *defaults\n")
-    assert merged.count("TZ=UTC") == 1
+
+
+def test_unaliased_anchor_survives(tmp_path: Path) -> None:
+    """An anchor that nothing aliases yet is still written back."""
+    project = "x-env: &env\n  - TZ=UTC\nservices: {}\n"
+
+    merged = _merge(tmp_path, "version: 2\n", project)
+
+    assert merged == f"{project}version: 2\n"
+
+
+# A template that adds an environment variable to the ci service only.
+_CI_ENV_TEMPLATE = "services:\n  ci:\n    environment:\n      - PYTHONUNBUFFERED=1\n"
+# Projects whose services share one environment, through a `<<` merge key
+# and through plain aliases.
+_SHARED_ENV = {
+    "merge-key": """\
+x-defaults: &defaults
+  restart: no
+  environment:
+    - TZ=UTC
+
+services:
+  ci:
+    <<: *defaults
+    image: ${CI_IMAGE}
+
+  web:
+    <<: *defaults
+    image: demo
+""",
+    "alias": """\
+x-env: &env
+  - TZ=UTC
+
+services:
+  ci:
+    environment: *env
+
+  web:
+    environment: *env
+""",
+}
+
+
+def test_merge_key_inherited_value_is_copied_not_changed(tmp_path: Path) -> None:
+    """
+    The template's addition to an inherited value goes to that service only.
+
+    Merging into the value a `<<` merge key brings in would change the anchor,
+    and so every other service that shares it.
+    """
+    project = _SHARED_ENV["merge-key"]
+
+    merged = _merge(tmp_path, _CI_ENV_TEMPLATE, project)
+
+    ci_env = "    environment:\n      - TZ=UTC\n      - PYTHONUNBUFFERED=1\n"
+    image = "    image: ${CI_IMAGE}\n"
+    assert merged == project.replace(image, image + ci_env)
+    services = merge_yaml.load_yaml_text(merged)["services"]
+    assert services["ci"]["environment"] == ["TZ=UTC", "PYTHONUNBUFFERED=1"]
+    assert services["web"]["environment"] == ["TZ=UTC"]
+
+
+def test_aliased_value_is_copied_not_changed(tmp_path: Path) -> None:
+    """The template's addition to an alias goes to that key only."""
+    project = _SHARED_ENV["alias"]
+
+    merged = _merge(tmp_path, _CI_ENV_TEMPLATE, project)
+
+    assert merged == project.replace(
+        "  ci:\n    environment: *env\n",
+        "  ci:\n    environment:\n      - TZ=UTC\n      - PYTHONUNBUFFERED=1\n",
+    )
+    services = merge_yaml.load_yaml_text(merged)["services"]
+    assert services["web"]["environment"] == ["TZ=UTC"]
+
+
+@pytest.mark.parametrize("project", _SHARED_ENV.values(), ids=_SHARED_ENV.keys())
+def test_shared_value_the_template_does_not_add_to_stays_shared(
+    tmp_path: Path, project: str
+) -> None:
+    """A shared value the template already matches keeps its alias or `<<`."""
+    template = "services:\n  ci:\n    environment:\n      - TZ=UTC\n"
+
+    merged = _merge(tmp_path, template, project)
+
+    assert merged == project
+
+
+@pytest.mark.parametrize("project", _SHARED_ENV.values(), ids=_SHARED_ENV.keys())
+def test_second_merge_into_a_shared_value_changes_nothing(
+    tmp_path: Path, project: str
+) -> None:
+    """Once copied, the service's own value is a fixed point."""
+    first = _merge(tmp_path, _CI_ENV_TEMPLATE, project)
+
+    assert _merge(tmp_path, _CI_ENV_TEMPLATE, first) == first
+
+
+def test_remove_values_copies_a_shared_value_too() -> None:
+    """Retiring a value from one service leaves the others sharing it alone."""
+    data = merge_yaml.load_yaml_text(
+        _SHARED_ENV["alias"].replace("  - TZ=UTC\n", "  - TZ=UTC\n  - OLD=1\n")
+    )
+    retired = merge_yaml.load_yaml_text(
+        "services:\n  ci:\n    environment:\n      - OLD=1\n"
+    )
+
+    merge_yaml.remove_values(data, retired)
+
+    assert merge_yaml.dump_yaml(data) == _SHARED_ENV["alias"].replace(
+        "  - TZ=UTC\n", "  - TZ=UTC\n  - OLD=1\n"
+    ).replace(
+        "  ci:\n    environment: *env\n", "  ci:\n    environment:\n      - TZ=UTC\n"
+    )
 
 
 def test_scalar_spellings_survive(tmp_path: Path) -> None:
