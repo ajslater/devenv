@@ -20,7 +20,6 @@ import pytest
 
 _ROOT = Path(__file__).resolve().parent.parent
 _SORT_IGNORE = _ROOT / "copy" / "common" / "bin" / "sort-ignore.sh"
-_BASH = shutil.which("bash") or ""
 _GIT = shutil.which("git") or ""
 # The sort-ignore.sh projects had before negations went last.
 _OLD_SORT_IGNORE = """\
@@ -35,12 +34,12 @@ sys.path.insert(0, str(_ROOT / "scripts"))
 devenv_common = importlib.import_module("_devenv_common")
 update_devenv = importlib.import_module("update_devenv")
 
-pytestmark = pytest.mark.skipif(not _BASH, reason="needs bash")
+pytestmark = pytest.mark.usefixtures("bash")
 
 
 def _sort_ignore(cwd: Path) -> None:
     subprocess.run(  # noqa: S603
-        [_BASH, str(_SORT_IGNORE)], cwd=cwd, check=True, capture_output=True
+        [_SORT_IGNORE], cwd=cwd, check=True, capture_output=True
     )
 
 
@@ -65,6 +64,24 @@ def test_sorts_patterns_then_negations(
     _sort_ignore(tmp_path)
 
     assert (tmp_path / ".gitignore").read_text() == sorted_text
+
+
+def test_sorts_bytewise_whatever_the_callers_locale(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The order is LC_ALL=C's, which is also merge_dotfiles.py's sorted()."""
+    lines = ["b", "B", "_x", ".y", "*z", "a-b", "a.b", "a/b", "é", "!Z", "!a"]
+    (tmp_path / ".gitignore").write_text("\n".join(lines) + "\n")
+    monkeypatch.setenv("LC_ALL", "en_US.UTF-8")
+
+    _sort_ignore(tmp_path)
+
+    patterns = sorted(line for line in lines if not line.startswith("!"))
+    negations = sorted(line for line in lines if line.startswith("!"))
+    assert (tmp_path / ".gitignore").read_text().splitlines() == [
+        *patterns,
+        *negations,
+    ]
 
 
 def test_sorts_every_ignore_file(tmp_path: Path) -> None:
@@ -100,7 +117,7 @@ def test_unreadable_file_is_left_alone(tmp_path: Path) -> None:
     path.chmod(0o200)
 
     result = subprocess.run(  # noqa: S603
-        [_BASH, str(_SORT_IGNORE)], cwd=tmp_path, check=False, capture_output=True
+        [_SORT_IGNORE], cwd=tmp_path, check=False, capture_output=True
     )
 
     path.chmod(0o644)
