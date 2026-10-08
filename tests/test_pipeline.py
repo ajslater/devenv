@@ -26,6 +26,7 @@ FEATURE_SETS = {
     "node-only": ("node", "node_root"),
     "python-only": ("python",),
     "defaults": ("common", "node", "node_root", "python"),
+    "no-python": ("common", "docker", "node", "node_root"),
     "all": tuple(FEATURES),
 }
 # A project that already has its own values in every merged file.

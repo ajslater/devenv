@@ -7,7 +7,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
 name = "devenv"
-version = "0.2.0"
+version = "0.2.1"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -34,7 +34,6 @@ lint = [
   "codespell~=2.4",
   "complexipy~=8.0.1",
   "icecream~=2.1",
-  "mbake~=1.4.5",
   "pathspec~=1.1.0",
   "radon~=6.0",
   "ruff~=0.16",

@@ -40,7 +40,7 @@ FEATURES: Final = MappingProxyType(
         "docs": Feature(requires=("python",)),
         "node": Feature(default=True),
         "node_root": Feature(default=True),
-        "common": Feature(requires=("python", "node_root"), default=True),
+        "common": Feature(requires=("node_root",), default=True),
     }
 )
 DEFAULT_FEATURES: Final = tuple(name for name, f in FEATURES.items() if f.default)

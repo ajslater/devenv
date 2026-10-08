@@ -1,5 +1,10 @@
 # devenv News
 
+## v0.2.1
+
+- Fixes
+    - common no longer needs python, and runs the latest mbake.
+
 ## v0.2.0
 
 - Breaking Changes
