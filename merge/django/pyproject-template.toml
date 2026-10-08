@@ -1,0 +1,2 @@
+[dependency-groups]
+lint = ["djlint~=1.39"]

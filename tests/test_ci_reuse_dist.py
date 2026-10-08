@@ -14,7 +14,7 @@ import os
 import shutil
 import subprocess
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
@@ -109,7 +109,11 @@ class Reuse:
     def set_artifacts(self, *artifacts: dict) -> None:
         """Set the artifact listing the fake gh api returns."""
         listing = {"total_count": len(artifacts), "artifacts": list(artifacts)}
-        (self.tmp / "artifacts.json").write_text(json.dumps(listing))
+        self.set_listing(json.dumps(listing))
+
+    def set_listing(self, text: str) -> None:
+        """Set the raw text the fake gh api returns."""
+        (self.tmp / "artifacts.json").write_text(text)
 
     def run(self, *, download: str = "ok") -> subprocess.CompletedProcess[str]:
         """Run the script in the repo."""
@@ -264,6 +268,38 @@ def test_api_failure_falls_through(reuse: Reuse) -> None:
     assert result.returncode == 0, result.stderr
     assert not reuse.outputs()
     assert "::warning::Could not list artifacts" in result.stdout
+
+
+def test_tree_failure_falls_through(reuse: Reuse) -> None:
+    """A HEAD without a tree, as in a repo with no commits, never aborts the gate."""
+    empty = reuse.tmp / "empty"
+    empty.mkdir()
+    subprocess.run([_GIT, "init", "-q"], cwd=empty, env=_base_env(), check=True)  # noqa: S603
+    reuse.set_artifacts(_artifact(4, "2026-09-04T00:00:00Z"))
+
+    result = replace(reuse, repo=empty).run()
+
+    assert result.returncode == 0, result.stderr
+    assert not reuse.outputs()
+    assert not reuse.gh_calls()
+    assert "::warning::Could not read the git tree of HEAD" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "listing",
+    ["<html>Service Unavailable</html>", '{"message": "Bad credentials"}'],
+    ids=["not-json", "no-artifacts"],
+)
+def test_unreadable_listing_falls_through(reuse: Reuse, listing: str) -> None:
+    """A listing jq cannot read warns and continues with the full check."""
+    reuse.set_listing(listing)
+
+    result = reuse.run()
+
+    assert result.returncode == 0, result.stderr
+    assert not reuse.outputs()
+    assert len(reuse.gh_calls()) == 1
+    assert "::warning::Could not read the artifact list" in result.stdout
 
 
 def test_script_parses() -> None:

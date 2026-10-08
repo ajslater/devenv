@@ -421,7 +421,7 @@ wheels = [
 
 [[package]]
 name = "devenv"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "." }
 dependencies = [
     { name = "packaging" },
@@ -434,9 +434,7 @@ dev = [
     { name = "nplusone" },
     { name = "picopt" },
     { name = "pypi-cleanup" },
-    { name = "semver" },
     { name = "toml-cli" },
-    { name = "tomlkit" },
 ]
 docs = [
     { name = "mkdocs" },
@@ -458,9 +456,13 @@ lint = [
 ]
 test = [
     { name = "coverage" },
+    { name = "mbake" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pyyaml" },
+    { name = "ruamel-yaml" },
+    { name = "semver" },
+    { name = "tomlkit" },
 ]
 
 [package.metadata]
@@ -475,9 +477,7 @@ dev = [
     { name = "nplusone", specifier = "~=1.0" },
     { name = "picopt", specifier = "~=6.1" },
     { name = "pypi-cleanup", specifier = "~=0.1.10" },
-    { name = "semver", specifier = "~=3.1.0" },
     { name = "toml-cli", specifier = "~=0.7" },
-    { name = "tomlkit", specifier = "~=0.14" },
 ]
 docs = [
     { name = "mkdocs", specifier = "~=1.6" },
@@ -499,9 +499,13 @@ lint = [
 ]
 test = [
     { name = "coverage", specifier = "~=7.0" },
+    { name = "mbake", specifier = "~=1.4.5" },
     { name = "pytest-asyncio", specifier = "~=1.0" },
     { name = "pytest-cov", specifier = "~=7.0" },
     { name = "pyyaml", specifier = "~=6.0" },
+    { name = "ruamel-yaml", specifier = "~=0.19.1" },
+    { name = "semver", specifier = "~=3.1.0" },
+    { name = "tomlkit", specifier = "~=0.14" },
 ]
 
 [[package]]

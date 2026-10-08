@@ -6,17 +6,11 @@ keywords = []
 readme = "README.md"
 requires-python = ">=3.11"
 
-[[project.authors]]
-name = "AJ Slater"
-email = "aj@slater.net"
-
 [dependency-groups]
 dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
-  "semver~=3.1.0",
   "toml-cli~=0.7",
-  "tomlkit~=0.14",
   "pypi-cleanup~=0.1.10"
 ]
 build = []

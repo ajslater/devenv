@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.14"
+# dependencies = []
+# ///
 """
 Merge development environment dotfiles.
 
 For each enabled DEVENV_<FEATURE>, merges .*ignore and .*rc files from
-templates/<feature>/ into the destination directory by deduplicating and
+merge/<feature>/ into the destination directory by deduplicating and
 sorting lines, with "!" negations after every other line. Lines listed in
 remove_dotfile_lines.txt are retired: they are dropped from every merged file.
 An ignore file also drops each pattern that another of its patterns already
@@ -18,15 +22,18 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, NamedTuple
 
-from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
+from _devenv_common import (  # ty: ignore[unresolved-import]
     get_devenv_src,
     git_status,
     iter_feature_dirs,
+    read_lines,
     report_counts,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterable
+
+    from _devenv_common import Version  # ty: ignore[unresolved-import]
 
 RETIRED_LINES_FILE = "remove_dotfile_lines.txt"
 NO_RETIRED_LINES: frozenset[str] = frozenset()
@@ -157,18 +164,17 @@ def _is_dotfile(name: str) -> bool:
     return name.startswith(".") and name.endswith(("ignore", "rc"))
 
 
-def read_retired_lines(devenv_src: Path) -> frozenset[str]:
-    """Return the dotfile lines devenv has retired, one per non-blank line."""
-    path = devenv_src / RETIRED_LINES_FILE
-    if not path.exists():
-        return frozenset()
-    return frozenset(line for line in path.read_text().splitlines() if line.strip())
+def read_retired_lines(
+    devenv_src: Path, stamp: Version | None = None
+) -> frozenset[str]:
+    """Return the dotfile lines devenv retired after the project's stamp."""
+    return frozenset(read_lines(devenv_src / RETIRED_LINES_FILE, stamp))
 
 
 def _iter_template_dotfiles(
     templates_dir: Path, features: list[str] | None
 ) -> Generator[Path]:
-    """Yield the dotfiles in templates/<feature>/ for each enabled feature."""
+    """Yield the dotfiles in merge/<feature>/ for each enabled feature."""
     for _feature, feature_dir in iter_feature_dirs(templates_dir, features):
         for src_file in sorted(feature_dir.iterdir()):
             if src_file.is_file() and _is_dotfile(src_file.name):
@@ -182,7 +188,7 @@ def merge_dotfiles(
     retired_lines: frozenset[str] = NO_RETIRED_LINES,
 ) -> tuple[int, int, int, list[Path]]:
     """
-    Merge dotfiles from templates/<feature>/ into dest, dropping retired lines.
+    Merge dotfiles from merge/<feature>/ into dest, dropping retired lines.
 
     Returns (created_count, skipped_count, merged_count, list_of_dest_files).
     """

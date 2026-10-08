@@ -7,12 +7,14 @@ A child repo sheds these on its next update-devenv:
 - merge_dotfiles drops the lines in remove_dotfile_lines.txt from every merged
   dotfile.
 - merge_toml --remove-values drops the values in
-  merge/python/pyproject-remove.toml from pyproject.toml's arrays and
+  merge/python/pyproject-template.remove.toml from pyproject.toml's arrays and
   comma-delimited strings, dropping any it empties, and drops each key that
   holds a scalar it lists.
 - merge_package_json --remove-values drops the values in
-  merge/node_root/package-remove.json from package.json's arrays and the
+  merge/node_root/package.remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
+- merge_package_json --remove drops the packages in remove_node_packages.txt
+  from every dependency section of package.json.
 """
 
 from __future__ import annotations
@@ -24,16 +26,20 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tomlkit
+import update_devenv
+from _devenv_common import read_lines
 
 from scripts import merge_package_json, merge_toml
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import pytest
 
 _ROOT = Path(__file__).resolve().parent.parent
-_PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-remove.toml"
+_PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
-_PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package-remove.json"
+_PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package.remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
 _SH_PLUGIN = "prettier-plugin-sh"
@@ -160,13 +166,13 @@ def test_remove_values_drops_items_from_comma_delimited_strings() -> None:
 
 
 def test_remove_values_drops_keys_holding_a_retired_scalar() -> None:
-    """A retired scalar drops its key only when the key holds that value."""
+    """A retired scalar drops its key, and the table it empties, only on a match."""
     doc = tomlkit.parse("[tool.a]\nflag = true\n\n[tool.b]\nflag = false\n")
     retired = tomlkit.parse("[tool.a]\nflag = true\n\n[tool.b]\nflag = true\n")
 
     merge_toml.remove_values(doc, retired)
 
-    assert "flag" not in doc["tool"]["a"]
+    assert "a" not in doc["tool"]
     assert doc["tool"]["b"]["flag"] is False
 
 
@@ -192,7 +198,7 @@ def test_merge_toml_cli_retires_codespell_hidden_skips(
 
 
 def test_merge_toml_cli_remove(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """--remove-values applies pyproject-remove.toml after the merge."""
+    """--remove-values applies pyproject-template.remove.toml after the merge."""
     template = tmp_path / "template.toml"
     template.write_text('[tool.uv.build-backend]\nsource-include = ["NEWS.md"]\n')
     project = tmp_path / "pyproject.toml"
@@ -262,7 +268,7 @@ def test_complexipy_exclude_is_retired(
 
 
 def test_template_ships_no_retired_value() -> None:
-    """The template must not reintroduce what pyproject-remove.toml retires."""
+    """The template must not reintroduce what pyproject-template.remove.toml retires."""
     retired = tomlkit.parse(_PYPROJECT_REMOVE.read_text())
     template = tomlkit.parse(_PYPROJECT_TEMPLATE.read_text())
     before = tomlkit.dumps(template)
@@ -278,8 +284,7 @@ def test_template_ships_no_retired_value() -> None:
 
 
 def _removed_node_packages() -> list[str]:
-    lines = (_ROOT / "remove_node_packages.txt").read_text().splitlines()
-    return [line.strip() for line in lines if line.strip()]
+    return read_lines(_ROOT / "remove_node_packages.txt")
 
 
 def _package(*, plugins: list[str], overrides: list[dict]) -> dict:
@@ -319,8 +324,7 @@ def test_package_remove_retires_prettier_plugin_sh() -> None:
     retired = json.loads(_PACKAGE_REMOVE.read_text())
     assert retired["prettier"]["plugins"] == [_SH_PLUGIN]
     assert retired["prettier"]["overrides"] == [_SH_OVERRIDE]
-    removed_packages = (_ROOT / "remove_node_packages.txt").read_text().splitlines()
-    assert _SH_PLUGIN in removed_packages
+    assert _SH_PLUGIN in _removed_node_packages()
 
 
 def test_package_remove_values_retires_script_step() -> None:
@@ -382,14 +386,14 @@ def test_template_ships_no_removed_package() -> None:
     """A template that still listed a retired package would reinstall it."""
     removed_packages = set(_removed_node_packages())
     for template in (_PACKAGE_TEMPLATE, _PACKAGE_INIT_TEMPLATE):
-        dev_dependencies = json.loads(template.read_text())["devDependencies"]
+        dev_dependencies = json.loads(template.read_text()).get("devDependencies", {})
         assert not removed_packages & dev_dependencies.keys(), template
 
 
 def test_merge_package_json_cli_remove_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """--remove-values applies package-remove.json after the merge."""
+    """--remove-values applies package.remove.json after the merge."""
     project = tmp_path / "package.json"
     project.write_text(
         json.dumps(
@@ -414,8 +418,58 @@ def test_merge_package_json_cli_remove_values(
     assert _XSD_OVERRIDE in prettier["overrides"]
 
 
+def test_merge_package_json_cli_remove_reaches_every_dependency_section(
+    tmp_path: Path,
+) -> None:
+    """
+    --remove drops retired packages from sections the template lacks too.
+
+    A section the retirement empties goes; the project's own packages stay.
+    """
+    project = tmp_path / "package.json"
+    project.write_text(
+        json.dumps(
+            {
+                "dependencies": {"remark-cli": "^12.0.0", "left-pad": "^1.3.0"},
+                "devDependencies": {"remark-gfm": "^4.0.0", "prettier": "^3.0.0"},
+                "optionalDependencies": {"remark-preset-prettier": "^2.0.0"},
+                "peerDependencies": {"eslint-plugin-mdx": "^3.0.0", "react": "^18.0.0"},
+                "bundledDependencies": ["left-pad", "remark-cli"],
+            }
+        )
+    )
+    argv = [str(_PACKAGE_TEMPLATE), str(project), "-o", str(project)]
+    argv += ["--remove", str(_ROOT / "remove_node_packages.txt")]
+
+    merge_package_json.main(argv)
+
+    merged = json.loads(project.read_text())
+    assert merged["dependencies"] == {"left-pad": "^1.3.0"}
+    assert "remark-gfm" not in merged["devDependencies"]
+    assert "prettier" in merged["devDependencies"]
+    assert "optionalDependencies" not in merged
+    assert merged["peerDependencies"] == {"react": "^18.0.0"}
+    assert merged["bundledDependencies"] == ["left-pad"]
+
+
+def test_merge_package_json_cli_retires_a_script_step_the_project_moved(
+    tmp_path: Path,
+) -> None:
+    """A retired step goes wherever the project put it; its own steps stay."""
+    project = tmp_path / "package.json"
+    lint = "bin/remark-for-claude.sh && tsc --noEmit && eslint_d --cache ."
+    project.write_text(json.dumps({"scripts": {"lint": lint}}))
+    argv = [str(_PACKAGE_TEMPLATE), str(project), "-o", str(project)]
+    argv += ["--remove-values", str(_PACKAGE_REMOVE)]
+
+    merge_package_json.main(argv)
+
+    scripts = json.loads(project.read_text())["scripts"]
+    assert scripts["lint"] == "tsc --noEmit && eslint_d --cache . && prettier --check ."
+
+
 def test_package_template_ships_no_retired_value() -> None:
-    """The template must not reintroduce what package-remove.json retires."""
+    """The template must not reintroduce what package.remove.json retires."""
     template = json.loads(_PACKAGE_TEMPLATE.read_text())
     before = json.dumps(template)
 
@@ -430,8 +484,7 @@ def test_package_template_ships_no_retired_value() -> None:
 
 
 def _removed_files() -> set[str]:
-    lines = (_ROOT / "remove_files.txt").read_text().splitlines()
-    return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+    return set(read_lines(_ROOT / "remove_files.txt"))
 
 
 def test_old_gate_script_is_retired() -> None:
@@ -450,3 +503,34 @@ def test_no_copied_file_is_also_removed() -> None:
         if path.is_file()
     }
     assert not shipped & _removed_files()
+
+
+# ---------------------------------------------------------------------------
+# Retirement siblings
+# ---------------------------------------------------------------------------
+
+
+def test_every_remove_file_pairs_with_a_template() -> None:
+    """A .remove file without its template would never be applied."""
+    removes = sorted((_ROOT / "merge").glob("*/*.remove.*"))
+    assert removes
+    for remove in removes:
+        stem, ext = remove.name.split(".remove", 1)
+        assert (remove.parent / f"{stem}{ext}").is_file(), remove
+
+
+def test_update_passes_each_templates_sibling(tmp_path: Path) -> None:
+    """update-devenv retires through the sibling of every template it merges."""
+    calls: list[list[str]] = []
+
+    def merger(argv: Sequence[str]) -> None:
+        calls.append(list(argv))
+
+    merge = update_devenv.ConfigMerge(
+        "python", merger, "pyproject-template.toml", "pyproject.toml"
+    )
+
+    update_devenv.merge_config(_ROOT, tmp_path, ["python", "django"], merge)
+
+    (argv,) = calls
+    assert argv[argv.index("--remove-values") + 1] == str(_PYPROJECT_REMOVE)

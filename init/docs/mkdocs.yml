@@ -3,3 +3,5 @@ site_author: AJ
 site_description:
 theme:
   logo: img/logo.svg
+nav:
+  - NEWS.md

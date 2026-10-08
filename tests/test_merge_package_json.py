@@ -1,6 +1,9 @@
-"""Tests for semver-aware dependency spec merging."""
+"""Tests for merging package.json files."""
 
-from argparse import Namespace
+from __future__ import annotations
+
+import json
+from pathlib import Path
 
 import pytest
 
@@ -8,8 +11,49 @@ from scripts.merge_package_json import (
     deep_merge,
     extract_version_from_range,
     is_spec_unbounded,
+    main,
     merge_dependency_specs,
+    merge_script_entry,
 )
+
+_ROOT = Path(__file__).resolve().parent.parent
+_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
+_REMOVE_PACKAGES = _ROOT / "remove_node_packages.txt"
+_REMOVE_VALUES = _ROOT / "merge" / "node_root" / "package.remove.json"
+# A child project that has drifted from the template the ways real ones do.
+_PROJECT = {
+    "name": "demo",
+    "version": "1.2.0",
+    "private": True,
+    "scripts": {
+        "build": "vite build",
+        "lint": "tsc --noEmit && eslint_d --cache . && prettier --check . && bin/remark-for-claude.sh",
+    },
+    "browserslist": ["defaults", "> 1%"],
+    "prettier": {
+        "plugins": ["prettier-plugin-svelte", "prettier-plugin-sh"],
+        "overrides": [
+            {"files": ["*.svelte"], "options": {"parser": "svelte"}},
+            {"files": ["**/*Dockerfile"], "options": {"parser": "sh"}},
+            {"files": ["**/*.xsd"], "options": {"printWidth": 120}},
+        ],
+    },
+    "remarkConfig": {"plugins": ["gfm", "preset-prettier"]},
+    "dependencies": {
+        "lib": "workspace:*",
+        "remark-cli": "^12.0.0",
+        "svelte": "catalog:",
+        "vite": "<7.0.0",
+    },
+    "devDependencies": {
+        "eslint": "10.9.0",
+        "eslint-plugin-unicorn": "^74.1.0",
+        "local-config": "link:../config",
+        "prettier": "^3.9.9",
+        "remark-gfm": "^4.0.0",
+    },
+    "bundledDependencies": ["lib"],
+}
 
 
 @pytest.mark.parametrize(
@@ -41,6 +85,11 @@ from scripts.merge_package_json import (
         ("^1.0.0-v10", "1.0.0-v10"),
         ("^1.0.0-next.x", "1.0.0-next.x"),
         ("1.2.3+build.5", "1.2.3+build.5"),
+        # An upper bound is no floor, wherever it sits in the range.
+        ("<2.0.0", None),
+        ("<=2.0.0", None),
+        ("<9.5.0 >=9.0.0", "9.0.0"),
+        ("<1.0.0 || >=2.0.0", "2.0.0"),
         # Specs with no version at all are unparsable.
         ("*", None),
         ("latest", None),
@@ -136,6 +185,27 @@ def test_is_spec_unbounded(spec: str, *, unbounded: bool) -> None:
             "git+https://example.com/repo.git",
         ),
         ("^1.0.0", "workspace:*", "workspace:*"),
+        # Any protocol or path spec is opaque: kept as written, never compared.
+        ("^3.6.2", "catalog:", "catalog:"),
+        ("catalog:", "^3.6.2", "catalog:"),
+        ("^3.6.2", "catalog:lint", "catalog:lint"),
+        ("^1.0.0", "link:../pkg", "link:../pkg"),
+        ("^1.0.0", "portal:../pkg", "portal:../pkg"),
+        ("^1.0.0", "npm:other@^0.5.0", "npm:other@^0.5.0"),
+        ("npm:other@^0.5.0", "^1.0.0", "npm:other@^0.5.0"),
+        (
+            "^1.0.0",
+            "git://github.com/o/r.git#v0.5.0",
+            "git://github.com/o/r.git#v0.5.0",
+        ),
+        ("^1.0.0", "o/r#v0.5.0", "o/r#v0.5.0"),
+        # Between two opaque specs the later file's wins.
+        ("workspace:*", "catalog:", "catalog:"),
+        # An upper bound alone has no floor, so it loses to one that does.
+        ("^1.0.0", "<2.0.0", "^1.0.0"),
+        ("<2.0.0", "^1.0.0", "^1.0.0"),
+        ("^1.0.0", "<=2.0.0", "^1.0.0"),
+        (">=1.0.0 <2.0.0", "<3.0.0", ">=1.0.0 <2.0.0"),
         # Unparsable specs fall back to the update.
         ("*", "latest", "latest"),
         ("*", "^1.0.0", "^1.0.0"),
@@ -158,9 +228,8 @@ def test_deep_merge_preserves_unbounded_template_spec(key: str) -> None:
     """
     template = {key: {"eslint-plugin-unicorn": ">=73.0.0"}}
     project = {key: {"eslint-plugin-unicorn": "^73.1.0"}}
-    args = Namespace(remove_packages=frozenset())
 
-    merged = deep_merge(template, project, args)
+    merged = deep_merge(template, project)
 
     assert merged == {key: {"eslint-plugin-unicorn": ">=73.0.0"}}
 
@@ -174,9 +243,8 @@ def test_deep_merge_keeps_widest_peer_dependency_or_range() -> None:
     """
     template = {"peerDependencies": {"react": "^17.0.0"}}
     project = {"peerDependencies": {"react": "^16.0.0 || ^17.0.0 || ^18.0.0"}}
-    args = Namespace(remove_packages=frozenset())
 
-    merged = deep_merge(template, project, args)
+    merged = deep_merge(template, project)
 
     assert merged == {"peerDependencies": {"react": "^16.0.0 || ^17.0.0 || ^18.0.0"}}
 
@@ -199,9 +267,8 @@ def test_deep_merge_list_of_mixed_plugin_forms() -> None:
             ]
         }
     }
-    args = Namespace(remove_packages=frozenset())
 
-    merged = deep_merge(template, project, args, "merge")
+    merged = deep_merge(template, project)
 
     assert merged == {
         "remarkConfig": {
@@ -218,22 +285,18 @@ def test_deep_merge_list_of_mixed_plugin_forms() -> None:
 def test_deep_merge_list_dedupes_unhashable_entries() -> None:
     """Identical [name, options] entries collapse to one."""
     entry = ["lint-maximum-line-length", 80]
-    args = Namespace(remove_packages=frozenset())
 
-    merged = deep_merge(
-        {"plugins": [entry]}, {"plugins": [entry, "gfm"]}, args, "merge"
-    )
+    merged = deep_merge({"plugins": [entry]}, {"plugins": [entry, "gfm"]})
 
     assert merged == {"plugins": ["gfm", entry]}
 
 
 def test_deep_merge_list_orders_configured_entries_by_name() -> None:
     """Configured entries sort among themselves by plugin name."""
-    args = Namespace(remove_packages=frozenset())
     template = {"plugins": [["lint-maximum-line-length", 80]]}
     project = {"plugins": [["lint-list-item-indent", "one"], "gfm"]}
 
-    merged = deep_merge(template, project, args, "merge")
+    merged = deep_merge(template, project)
 
     assert merged == {
         "plugins": [
@@ -242,3 +305,137 @@ def test_deep_merge_list_orders_configured_entries_by_name() -> None:
             ["lint-maximum-line-length", 80],
         ]
     }
+
+
+def test_deep_merge_list_strategy_replace() -> None:
+    """--list-strategy replace keeps the later file's array as it is."""
+    merged = deep_merge({"plugins": ["b", "c"]}, {"plugins": ["c", "a"]}, "replace")
+
+    assert merged == {"plugins": ["c", "a"]}
+
+
+@pytest.mark.parametrize("key", ["bundledDependencies", "bundleDependencies"])
+def test_deep_merge_bundled_dependencies_array(key: str) -> None:
+    """An array of bundled names merges as an array, not as a spec object."""
+    merged = deep_merge({key: ["b"]}, {key: ["a", "b"]})
+
+    assert merged == {key: ["a", "b"]}
+
+
+def test_deep_merge_overrides_keep_their_order() -> None:
+    """
+    Prettier applies overrides in order, so the merge keeps it on every pass.
+
+    The earlier file's entries come first, in its order, and win for the same
+    files globs; the later file's new entries follow in its order.
+    """
+    md = {"files": ["**/*.md"], "options": {"proseWrap": "always"}}
+    nginx = {"files": ["**/nginx/*.conf"], "options": {"parser": "nginx"}}
+    xsd = {"files": ["**/*.xsd"], "options": {"printWidth": 120}}
+    svelte = {"files": ["*.svelte"], "options": {"parser": "svelte"}}
+    own_md = {"files": ["**/*.md"], "options": {"proseWrap": "never"}}
+    template = {"prettier": {"overrides": [md, nginx, xsd]}}
+    project = {"prettier": {"overrides": [svelte, own_md, xsd]}}
+
+    merged = deep_merge(template, project)
+
+    assert deep_merge(template, template) == template
+    assert merged == {"prettier": {"overrides": [md, nginx, xsd, svelte]}}
+    assert deep_merge(template, merged) == merged
+
+
+@pytest.mark.parametrize(
+    ("base", "update", "expected"),
+    [
+        # A project step before the template's survives and none duplicates.
+        (
+            "eslint_d --cache . && prettier --check .",
+            "tsc --noEmit && eslint_d --cache .",
+            "tsc --noEmit && eslint_d --cache . && prettier --check .",
+        ),
+        # The project's order wins over the template's.
+        ("a && b", "b && a", "b && a"),
+        # Template steps the project lacks follow its own, in template order.
+        ("a && b && c", "x && b", "x && b && a && c"),
+        # A project that repeats a step keeps every repeat.
+        ("make", "cd a && make && cd b && make", "cd a && make && cd b && make"),
+        ("a && b", "a && b", "a && b"),
+        ("a && b", "", "a && b"),
+    ],
+)
+def test_merge_script_entry(base: str, update: str, expected: str) -> None:
+    """A script is an ordered union of its && commands, project first."""
+    merged = merge_script_entry(base, update)
+
+    assert merged == expected
+    assert merge_script_entry(base, merged) == merged
+
+
+def _update(project: Path) -> bytes:
+    """Merge the template into project the way update_devenv does."""
+    sources = [_TEMPLATE, project] if project.is_file() else [_TEMPLATE]
+    argv = [*map(str, sources), "-o", str(project)]
+    argv += ["--remove", str(_REMOVE_PACKAGES)]
+    argv += ["--remove-values", str(_REMOVE_VALUES)]
+    main(argv)
+    return project.read_bytes()
+
+
+@pytest.mark.parametrize(
+    "seed", [None, "", json.dumps(_PROJECT, indent=2)], ids=["new", "empty", "real"]
+)
+def test_second_merge_is_a_fixed_point(tmp_path: Path, seed: str | None) -> None:
+    """merge(merge(x)) == merge(x), byte for byte."""
+    project = tmp_path / "package.json"
+    if seed is not None:
+        project.write_text(seed)
+
+    first = _update(project)
+
+    assert _update(project) == first
+
+
+def test_merge_keeps_a_drifted_project_s_own_choices(tmp_path: Path) -> None:
+    """The realistic project keeps its own steps, specs and overrides."""
+    project = tmp_path / "package.json"
+    project.write_text(json.dumps(_PROJECT))
+
+    merged = json.loads(_update(project))
+
+    assert merged["scripts"] == {
+        "fix": "eslint_d --cache --fix . && prettier --write .",
+        "lint": "tsc --noEmit && eslint_d --cache . && prettier --check .",
+        "build": "vite build",
+    }
+    assert merged["dependencies"] == {
+        "lib": "workspace:*",
+        "svelte": "catalog:",
+        "vite": "<7.0.0",
+    }
+    dev = merged["devDependencies"]
+    assert dev["eslint"] == "^10.9.0"
+    assert dev["eslint-plugin-unicorn"] == ">=74.0.0"
+    assert dev["local-config"] == "link:../config"
+    assert "remark-gfm" not in dev
+    assert merged["bundledDependencies"] == ["lib"]
+    assert "remarkConfig" not in merged
+    files = [override["files"] for override in merged["prettier"]["overrides"]]
+    assert files == [
+        ["**/*.md"],
+        ["**/nginx/http.d/**/*.conf"],
+        ["**/*.xsd"],
+        ["*.svelte"],
+    ]
+
+
+@pytest.mark.parametrize("text", ["", "\n"])
+def test_empty_project_file_merges_as_an_empty_object(
+    tmp_path: Path, text: str
+) -> None:
+    """A 0-byte package.json, as `touch` leaves it, is {} rather than an error."""
+    project = tmp_path / "package.json"
+    project.write_text(text)
+
+    main([str(_TEMPLATE), str(project), "-o", str(project)])
+
+    assert json.loads(project.read_text()) == json.loads(_TEMPLATE.read_text())

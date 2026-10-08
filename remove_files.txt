@@ -1,3 +1,7 @@
+# Files update-devenv deletes from a project.
+# Entries below a `# since X.Y.Z` line were retired in devenv X.Y.Z; a
+# project stamped with that version or later already lost them, so a file
+# it has since added under the same name stays.
 .devenv.yaml
 bin/clean.sh
 bin/docker-build.sh
@@ -29,3 +33,9 @@ package-lock.json
 bin/ci-download-dist-if-identical.sh
 bin/remark-for-claude.sh
 .remarkignore
+
+# since 0.2.0
+bin/fix-sh.sh
+bin/lint-darwin.sh
+bin/lint-sh.sh
+bin/type-python.sh

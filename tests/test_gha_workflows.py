@@ -4,13 +4,16 @@ The devenv CI building blocks in copy/ci/.github and their callers.
 Structural invariants that keep the gate, the fail-fast matrix and the
 required-check aggregator honest, the rules every caller follows (the
 standard copy/gha_std ci.yml and a codex-shaped fixture with its own jobs
-between ci and release), what PyPI trusted publishing needs from them, then
-actionlint over a child repo assembled from copy/ with each caller.
+between ci and release), what PyPI trusted publishing needs from them,
+hardening shared with devenv's own .github (actions pinned by commit SHA, a
+timeout on every job), then actionlint over a child repo assembled from copy/
+with each caller.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -27,6 +30,9 @@ _CI = _ROOT / "copy" / "ci"
 _WORKFLOWS = _CI / ".github" / "workflows"
 _ACTIONS = _CI / ".github" / "actions"
 _STD_CALLER = _ROOT / "copy" / "gha_std" / ".github" / "workflows" / "ci.yml"
+_DEVENV_CI = _ROOT / ".github" / "workflows" / "ci.yml"
+# Every .github devenv ships or runs; the fixtures model other repos.
+_GITHUB_DIRS = (_CI / ".github", _STD_CALLER.parent.parent, _DEVENV_CI.parent.parent)
 _CALLERS = {
     "std": _STD_CALLER,
     "codex": Path(__file__).resolve().parent / "fixtures" / "gha" / "codex-ci.yml",
@@ -276,6 +282,22 @@ def test_deploy_and_release_triggers() -> None:
     assert "base_ref" not in outputs["release"]
 
 
+def test_gate_checks_develop_prs_only_from_release_branches() -> None:
+    """
+    A pull request into develop is checked from pre-release or v<digit>... only.
+
+    Expressions have no regex, so the gate lists one startsWith per digit; a
+    bare 'v' prefix would also run CI for a branch like vulture-fix.
+    """
+    condition = _JOBS["gate"]["if"]
+    assert "github.base_ref == 'develop'" in condition
+    assert "github.head_ref == 'pre-release'" in condition
+    prefixes = re.findall(r"startsWith\(github\.head_ref, '([^']*)'\)", condition)
+    assert sorted(prefixes) == [f"v{digit}" for digit in range(10)]
+    for branch, checked in (("v1.2.3", True), ("v10.0", True), ("vulture-fix", False)):
+        assert any(branch.startswith(prefix) for prefix in prefixes) is checked, branch
+
+
 # ---------------------------------------------------------------------------
 # devenv-release.yml
 # ---------------------------------------------------------------------------
@@ -329,7 +351,12 @@ def _ancestors(jobs: dict[str, dict[str, Any]], job_id: str) -> set[str]:
 
 
 def test_std_caller_is_managed() -> None:
-    """The standard caller runs on main pushes and PRs into main or develop."""
+    """
+    The standard caller runs on main pushes and PRs into main or develop.
+
+    Only a pull request's run is cancelled by a newer push: cancelling a main
+    run could cut between the PyPI publish and the tag.
+    """
     text = _STD_CALLER.read_text()
     assert text.startswith("# Managed by devenv (copy/gha_std).")
     workflow = _load(_STD_CALLER)
@@ -337,7 +364,9 @@ def test_std_caller_is_managed() -> None:
         "push": {"branches": ["main"]},
         "pull_request": {"branches": ["main", "develop"]},
     }
-    assert workflow["concurrency"]["cancel-in-progress"] is True
+    assert workflow["concurrency"]["cancel-in-progress"] == (
+        "${{ github.event_name == 'pull_request' }}"
+    )
 
 
 @pytest.mark.parametrize("name", _CALLERS)
@@ -464,7 +493,79 @@ def test_only_ci_yml_publishes_to_pypi() -> None:
 
 
 # ---------------------------------------------------------------------------
-# actionlint over a child repo
+# Hardening in every .github devenv ships or runs
+# ---------------------------------------------------------------------------
+
+
+_USES_LINE = re.compile(r"^\s*(?:- )?uses: (\S+)(.*)$", re.MULTILINE)
+_SHA_PIN = re.compile(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}")
+_TAG_COMMENT = re.compile(r" # v\d+\.\d+\.\d+")
+_MAX_TIMEOUT_MINUTES = 60
+
+
+def _github_files() -> list[Path]:
+    return sorted(path for root in _GITHUB_DIRS for path in root.rglob("*.yml"))
+
+
+def _uses_values(node: Any) -> Iterator[str]:
+    """Yield every uses: value in a parsed workflow or action."""
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key == "uses":
+                yield value
+            else:
+                yield from _uses_values(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _uses_values(item)
+
+
+def test_third_party_actions_are_pinned_by_sha() -> None:
+    """
+    A tag can be moved to other code; a commit SHA cannot.
+
+    The trailing "# vX.Y.Z" names the release for readers and Dependabot.
+    Each action has one pin everywhere, so a bump cannot half-apply.
+    """
+    pins: dict[str, set[str]] = {}
+    for path in _github_files():
+        lines = _USES_LINE.findall(path.read_text())
+        # The line scan sees every uses: the parser does, comments included.
+        assert sorted(ref for ref, _ in lines) == sorted(_uses_values(_load(path)))
+        for ref, comment in lines:
+            if ref.startswith("./"):
+                continue
+            assert _SHA_PIN.fullmatch(ref), (path, ref)
+            assert _TAG_COMMENT.fullmatch(comment), (path, ref, comment)
+            action, _, sha = ref.partition("@")
+            pins.setdefault(action, set()).add(sha + comment)
+    assert pins
+    for action, found in pins.items():
+        assert len(found) == 1, (action, found)
+
+
+def test_every_job_has_a_timeout() -> None:
+    """
+    A hung job otherwise holds its runner for GitHub's default six hours.
+
+    A job that calls a reusable workflow cannot set one; its jobs do.
+    """
+    jobs = [
+        (path, job_id, job)
+        for path in _github_files()
+        for job_id, job in _load(path).get("jobs", {}).items()
+        if "uses" not in job
+    ]
+    check_jobs = {job_id for path, job_id, _ in jobs if path.name == "devenv-check.yml"}
+    assert {"gate", "image", "check", "result"} <= check_jobs
+    for path, job_id, job in jobs:
+        timeout = job.get("timeout-minutes")
+        assert isinstance(timeout, int), (path, job_id)
+        assert 0 < timeout <= _MAX_TIMEOUT_MINUTES, (path, job_id, timeout)
+
+
+# ---------------------------------------------------------------------------
+# actionlint over a child repo and devenv's own CI
 # ---------------------------------------------------------------------------
 
 
@@ -478,9 +579,9 @@ def _child_repo(tmp_path: Path, caller: str) -> Path:
     return repo
 
 
-def _actionlint(repo: Path) -> subprocess.CompletedProcess[str]:
+def _actionlint(repo: Path, *files: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603
-        [_ACTIONLINT, "-no-color"],
+        [_ACTIONLINT, "-no-color", *files],
         cwd=repo,
         check=False,
         capture_output=True,
@@ -515,3 +616,11 @@ def test_actionlint_checks_the_call_contract(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert 'input "bogus" is not defined' in result.stdout
     assert 'property "deploy_it" is not defined' in result.stdout
+
+
+@pytest.mark.skipif(not _ACTIONLINT, reason="needs actionlint")
+def test_actionlint_devenv_ci() -> None:
+    """The repo's own workflow lints too; the ci feature that would lint it is off here."""
+    result = _actionlint(_ROOT, _DEVENV_CI)
+
+    assert result.returncode == 0, result.stdout + result.stderr

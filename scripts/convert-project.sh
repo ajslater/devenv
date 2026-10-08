@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Upgrade an old project based on aj's boilerplate repo to devenv managed
+# Convert a project from aj's old boilerplate to devenv. Like init-project.sh,
+# but the old Makefile and eslint.config.js are kept as *.orig.* files to copy
+# project-specific parts from.
 set -euo pipefail
-DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
-mv Makefile Makefile.orig.mk
-mv eslint.config.js eslint.config.orig.js
-"$DEVENV_SRC"/scripts/init-project.sh "$@"
+DEVENV_SRC=${DEVENV_SRC:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
+
+uv run "$DEVENV_SRC/scripts/add_features.py" --convert "$@"
+make update-devenv DEVENV_SRC="$DEVENV_SRC"

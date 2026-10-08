@@ -5,8 +5,11 @@ description = "."
 keywords = []
 license = "GPL-3.0-only"
 name = "x"
-requires-python = ">=3.10"
 version = "0.1.0"
+
+[[project.authors]]
+name = "AJ Slater"
+email = "aj@slater.net"
 
 [project.urls]
 News = "https://.readthedocs.io/NEWS/"

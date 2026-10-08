@@ -1,3 +1,9 @@
+# Lines update-devenv removes from every merged dotfile.
+# Entries below a `# since X.Y.Z` line were retired in devenv X.Y.Z; a
+# project stamped with that version or later already lost them.
 .circleci
 .*cache/
 .venv
+
+# since 0.2.0
+package-lock.json

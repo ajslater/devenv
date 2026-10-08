@@ -1,11 +1,14 @@
 """
-copy/common/bin/find-sh.sh and the fix-sh.sh / lint-sh.sh scripts built on it.
+copy/common/bin/find-sh.sh and the sh-tools.sh script built on it.
 
 find-sh.sh prints the shell scripts under the current directory, NUL-delimited
-and sorted, minus whatever ./.shellignore excludes. The finder tests run it
-against ``tmp_path`` trees. The fix and lint tests put fake shellcheck,
-shellharden and shfmt on PATH that only log their argv, so they show exactly
-which files each tool is handed.
+and sorted, minus whatever ./.shellignore excludes; find-files.sh does the
+finding and the excluding. The finder tests run it against ``tmp_path`` trees.
+The sh-tools.sh tests put fake shellcheck, shellharden and shfmt on PATH that
+only log their argv, so they show exactly which files each tool is handed.
+
+Every test runs once per bash the bash fixture finds, macOS's stock 3.2 among
+them, and runs scripts by their #!/usr/bin/env bash, as make does.
 """
 
 from __future__ import annotations
@@ -23,11 +26,11 @@ import pytest
 _ROOT = Path(__file__).resolve().parent.parent
 _BIN = _ROOT / "copy" / "common" / "bin"
 _FIND_SH = _BIN / "find-sh.sh"
-_BASH = shutil.which("bash") or ""
 
-_SCRIPT_NAMES = ("find-sh.sh", "fix-sh.sh", "lint-sh.sh")
+_SCRIPT_NAMES = ("_lib.sh", "find-files.sh", "find-sh.sh", "sh-tools.sh")
 # The exit status of a stub finder that fails after printing a file.
 _FINDER_EXIT = 3
+_USAGE_EXIT = 2
 _STRIPPED_ENV_PREFIXES = ("BASH_FUNC_", "FAKE_")
 # A startup file named by these could reset PATH and hide the fake tools.
 _STRIPPED_ENV_KEYS = frozenset(("BASH_ENV", "CDPATH", "ENV", "LC_ALL"))
@@ -42,36 +45,22 @@ with Path(os.environ["FAKE_TOOL_LOG"]).open("a") as log:
 """
 
 _SHFMT_FLAGS = ["--simplify", "--indent", "2"]
-# What each script runs, in order: (tool, flags before the file list).
+# What each sh-tools.sh mode runs, in order: (tool, flags before the files).
 _TOOL_RUNS = {
-    "fix-sh.sh": [
+    "--fix": [
         ("shellharden", ["--replace"]),
         ("shfmt", [*_SHFMT_FLAGS, "--write"]),
     ],
-    "lint-sh.sh": [
-        ("shellcheck", ["--external-sources"]),
+    "--lint": [
+        ("shellcheck", []),
         ("shellharden", ["--check"]),
         ("shfmt", [*_SHFMT_FLAGS, "--diff"]),
     ],
 }
+# Enough of a system for the scripts, without any real shell tools.
+_SYSTEM_PATH = ("/usr/bin", "/bin")
 
-
-def _bash_has_mapfile_delimiter() -> bool:
-    """Return True when bash can run ``mapfile -d`` (bash 4.4 and later)."""
-    if not _BASH:
-        return False
-    result = subprocess.run(  # noqa: S603
-        [_BASH, "-c", "mapfile -d '' _ </dev/null"],
-        check=False,
-        capture_output=True,
-    )
-    return result.returncode == 0
-
-
-pytestmark = pytest.mark.skipif(not _BASH, reason="needs bash")
-needs_mapfile = pytest.mark.skipif(
-    not _bash_has_mapfile_delimiter(), reason="needs bash 4.4+ for mapfile -d"
-)
+pytestmark = pytest.mark.usefixtures("bash")
 
 
 def _base_env() -> dict[str, str]:
@@ -98,7 +87,7 @@ def _dot(*names: str) -> list[str]:
 def _find(cwd: Path) -> list[str]:
     """Run find-sh.sh in cwd and return the NUL-delimited paths it printed."""
     result = subprocess.run(  # noqa: S603
-        [_BASH, str(_FIND_SH)],
+        [_FIND_SH],
         cwd=cwd,
         env=_base_env(),
         check=False,
@@ -129,7 +118,9 @@ def _found(
 def test_no_shellignore_finds_every_sh_file(tmp_path: Path) -> None:
     """Without a .shellignore, every regular *.sh is found, hidden ones too."""
     files = ["top.sh", "a/b/deep.sh", ".hidden/x.sh", ".dot.sh", "a-b.sh"]
-    _touch(tmp_path, *files, "notes.txt", "a/readme.md", "script.sh.bak", "shx")
+    _touch(tmp_path, *files)
+    for name in ("notes.txt", "a/readme.md", "script.sh.bak", "shx"):
+        (tmp_path / name).write_text("not a script\n")
     # Neither a directory nor a symlink named *.sh is a regular file.
     (tmp_path / "dir.sh").mkdir()
     (tmp_path / "dir.sh" / "inner.txt").write_text("x")
@@ -165,7 +156,7 @@ def test_output_is_independent_of_the_callers_locale(tmp_path: Path) -> None:
     env["LC_ALL"] = "en_US.UTF-8"
 
     result = subprocess.run(  # noqa: S603
-        [_BASH, str(_FIND_SH)],
+        [_FIND_SH],
         cwd=tmp_path,
         env=env,
         check=True,
@@ -186,6 +177,39 @@ def test_empty_tree_prints_nothing(tmp_path: Path) -> None:
     """No shell scripts is empty output and a zero exit, not an error."""
     _touch(tmp_path, "notes.txt")
     assert _find(tmp_path) == []
+
+
+def test_extensionless_scripts_are_found_by_shebang(tmp_path: Path) -> None:
+    """A file without an extension is a script when its shebang runs sh or bash."""
+    scripts = {
+        "bin/pm": "#!/usr/bin/env bash\n",
+        "bin/posix": "#!/bin/sh\necho hi\n",
+        "bin/spaced": "#! /bin/bash -e\n",
+        "no_newline": "#!/usr/bin/env sh",
+    }
+    others = {
+        "bin/py": "#!/usr/bin/env python3\n",
+        "bin/zsh": "#!/bin/zsh\n",
+        "bin/bashful": "#!/usr/bin/env bashful\n",
+        "bin/empty": "",
+        "bin/late": "\n#!/usr/bin/env bash\n",
+        "Makefile": "all:\n\ttrue\n",
+        "notes.txt": "#!/usr/bin/env bash\n",
+    }
+    for name, text in {**scripts, **others}.items():
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / name).write_text(text)
+
+    assert _find(tmp_path) == _dot(*scripts)
+
+
+def test_extensionless_scripts_honor_the_shellignore(tmp_path: Path) -> None:
+    """A script found by its shebang is excluded like any other."""
+    files = ["node_modules/x/cli", "bin/pm", "vendor/tool"]
+
+    found = _found(tmp_path, files, "node_modules\nvendor/tool\n")
+
+    assert found == _dot("bin/pm")
 
 
 def test_basename_pattern_is_pruned_at_any_depth(tmp_path: Path) -> None:
@@ -383,7 +407,7 @@ def test_runs_under_other_working_directories(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# fix-sh.sh and lint-sh.sh
+# sh-tools.sh
 # ---------------------------------------------------------------------------
 
 
@@ -393,13 +417,14 @@ class ShellProject:
 
     root: Path
     bindir: Path
+    fakebin: Path
     log: Path
     env: dict[str, str]
 
-    def run(self, script: str) -> subprocess.CompletedProcess[str]:
-        """Run one of the copied scripts with the project as the cwd."""
+    def run(self, *args: str) -> subprocess.CompletedProcess[str]:
+        """Run the copied sh-tools.sh with the project as the cwd."""
         return subprocess.run(  # noqa: S603
-            [_BASH, str(self.bindir / script)],
+            [self.bindir / "sh-tools.sh", *args],
             cwd=self.root,
             env=self.env,
             check=False,
@@ -431,7 +456,7 @@ def _make_project(tmp_path: Path, bindir: Path) -> ShellProject:
     env = _base_env()
     env["PATH"] = f"{fakebin}{os.pathsep}{env.get('PATH', '')}"
     env["FAKE_TOOL_LOG"] = str(log)
-    return ShellProject(root, bindir, log, env)
+    return ShellProject(root, bindir, fakebin, log, env)
 
 
 @pytest.fixture
@@ -459,45 +484,43 @@ def empty_project(tmp_path: Path) -> ShellProject:
     return shell_project
 
 
-@needs_mapfile
-@pytest.mark.parametrize("script", sorted(_TOOL_RUNS))
+@pytest.mark.parametrize("mode", sorted(_TOOL_RUNS))
 def test_tools_get_the_found_files_and_not_the_excluded(
-    project: ShellProject, script: str
+    project: ShellProject, mode: str
 ) -> None:
     """Each tool is handed every found script and never an excluded one."""
     files = [
+        "./bin/_lib.sh",
+        "./bin/find-files.sh",
         "./bin/find-sh.sh",
-        "./bin/fix-sh.sh",
-        "./bin/lint-sh.sh",
+        "./bin/sh-tools.sh",
         "./keep.sh",
         "./sub/also.sh",
     ]
 
-    result = project.run(script)
+    result = project.run(mode)
 
     assert result.returncode == 0, result.stderr
     assert project.calls() == [
-        {"tool": tool, "argv": [*flags, *files]} for tool, flags in _TOOL_RUNS[script]
+        {"tool": tool, "argv": [*flags, *files]} for tool, flags in _TOOL_RUNS[mode]
     ]
     for call in project.calls():
         assert "./vendor/skip.sh" not in call["argv"]
         assert "./.hidden/skip.sh" not in call["argv"]
 
 
-@needs_mapfile
-@pytest.mark.parametrize("script", sorted(_TOOL_RUNS))
-def test_no_files_runs_no_tools(empty_project: ShellProject, script: str) -> None:
+@pytest.mark.parametrize("mode", sorted(_TOOL_RUNS))
+def test_no_files_runs_no_tools(empty_project: ShellProject, mode: str) -> None:
     """With nothing to process the tools are not run, and the script succeeds."""
-    result = empty_project.run(script)
+    result = empty_project.run(mode)
 
     assert result.returncode == 0, result.stderr
     assert empty_project.calls() == []
 
 
-@needs_mapfile
-@pytest.mark.parametrize("script", sorted(_TOOL_RUNS))
+@pytest.mark.parametrize("mode", sorted(_TOOL_RUNS))
 def test_finder_is_found_next_to_the_script_not_in_the_cwd(
-    empty_project: ShellProject, script: str
+    empty_project: ShellProject, mode: str
 ) -> None:
     """A finder in the working directory's own bin is not the one that runs."""
     _touch(empty_project.root, "keep.sh")
@@ -506,7 +529,7 @@ def test_finder_is_found_next_to_the_script_not_in_the_cwd(
     decoy.write_text("#!/usr/bin/env bash\nprintf './decoy.sh\\0'\n")
     decoy.chmod(0o755)
 
-    result = empty_project.run(script)
+    result = empty_project.run(mode)
 
     assert result.returncode == 0, result.stderr
     for call in empty_project.calls():
@@ -514,16 +537,44 @@ def test_finder_is_found_next_to_the_script_not_in_the_cwd(
         assert "./decoy.sh" not in call["argv"]
 
 
-@needs_mapfile
-@pytest.mark.parametrize("script", sorted(_TOOL_RUNS))
+@pytest.mark.parametrize("mode", sorted(_TOOL_RUNS))
 def test_a_failing_finder_fails_the_script(
-    empty_project: ShellProject, script: str
+    empty_project: ShellProject, mode: str
 ) -> None:
     """A finder error must not look like zero files and a passing lint."""
     finder = empty_project.bindir / "find-sh.sh"
     finder.write_text(f"#!/usr/bin/env bash\nprintf './a.sh\\0'\nexit {_FINDER_EXIT}\n")
 
-    result = empty_project.run(script)
+    result = empty_project.run(mode)
 
     assert result.returncode == _FINDER_EXIT
     assert empty_project.calls() == []
+
+
+@pytest.mark.parametrize("mode", sorted(_TOOL_RUNS))
+def test_a_missing_tool_is_skipped_out_loud(
+    project: ShellProject, bash: str, mode: str
+) -> None:
+    """A tool that is not installed is named on stderr; the others still run."""
+    (project.fakebin / "shellharden").unlink()
+    path = [str(project.fakebin), str(Path(bash).parent), *_SYSTEM_PATH]
+    project.env["PATH"] = os.pathsep.join(path)
+
+    result = project.run(mode)
+
+    assert result.returncode == 0, result.stderr
+    assert "skipped: shellharden not installed" in result.stderr
+    ran = [tool for tool, _ in _TOOL_RUNS[mode] if tool != "shellharden"]
+    assert [call["tool"] for call in project.calls()] == ran
+
+
+@pytest.mark.parametrize("args", [(), ("--check",), ("lint",)])
+def test_an_unknown_mode_is_a_usage_error(
+    project: ShellProject, args: tuple[str, ...]
+) -> None:
+    """Without --fix or --lint nothing runs."""
+    result = project.run(*args)
+
+    assert result.returncode == _USAGE_EXIT
+    assert "usage:" in result.stderr
+    assert project.calls() == []
