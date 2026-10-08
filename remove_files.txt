@@ -36,3 +36,4 @@ bin/remark-for-claude.sh
 bin/fix-sh.sh
 bin/lint-darwin.sh
 bin/lint-sh.sh
+bin/type-python.sh
