@@ -78,8 +78,8 @@ def project(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def test_unmet_requirement_exits_before_copying(project: Path) -> None:
-    """Django without frontend fails with one line naming the gap."""
-    with pytest.raises(SystemExit, match="'django' requires 'frontend'"):
+    """Django without python fails with one line naming the gap."""
+    with pytest.raises(SystemExit, match="'django' requires 'python'"):
         add_features.add_features(["django"], init=False, convert=False)
     assert not any(project.iterdir())
 

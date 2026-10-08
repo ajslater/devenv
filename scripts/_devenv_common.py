@@ -31,7 +31,7 @@ class Feature:
 # python build.
 FEATURES: Final = MappingProxyType(
     {
-        "django": Feature(requires=("frontend", "python")),
+        "django": Feature(requires=("python",)),
         "frontend": Feature(),
         "python": Feature(default=True),
         "ci": Feature(requires=("python",)),

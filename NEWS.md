@@ -1,5 +1,11 @@
 # devenv News
 
+## v0.2.2
+
+- Fixes
+    - django no longer needs frontend. collectstatic still builds the frontend
+      first when the frontend feature or the project defines `build-frontend`.
+
 ## v0.2.1
 
 - Fixes
