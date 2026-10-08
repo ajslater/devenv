@@ -6,10 +6,6 @@ keywords = []
 readme = "README.md"
 requires-python = ">=3.11"
 
-[[project.authors]]
-name = "AJ Slater"
-email = "aj@slater.net"
-
 [dependency-groups]
 dev = [
   "infer-types~=1.0.0",

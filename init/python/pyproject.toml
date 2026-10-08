@@ -7,6 +7,10 @@ license = "GPL-3.0-only"
 name = "x"
 version = "0.1.0"
 
+[[project.authors]]
+name = "AJ Slater"
+email = "aj@slater.net"
+
 [project.urls]
 News = "https://.readthedocs.io/NEWS/"
 Documentation = "https://.readthedocs.io"

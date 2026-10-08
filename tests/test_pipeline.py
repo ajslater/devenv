@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import stat
+import tomllib
 from typing import TYPE_CHECKING
 
 import pytest
@@ -21,11 +22,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 _STUB = "#!/bin/sh\nexit 0\n"
-# Merged files a second run still rewrites, each with the merger that does it.
-# Fixing a merger removes its file here; the strict xfail below insists.
-UNSTABLE = {
-    "pyproject.toml": "merge_toml reflows on a second run",
-}
 FEATURE_SETS = {
     "node-only": ("node", "node_root"),
     "python-only": ("python",),
@@ -39,6 +35,10 @@ _EXISTING_PROJECT = {
 name = "demo"
 description = "A demo, with commas, in prose"
 version = "1.0.0"
+
+[[project.authors]]
+name = "Someone Else"
+email = "someone@example.com"
 
 [tool.pytest]
 addopts = ["-ra", "--strict-markers", "--cov"]
@@ -107,30 +107,32 @@ def test_second_run_changes_nothing(
     _run_update(child, features, monkeypatch)
     first = _snapshot(child)
     _run_update(child, features, monkeypatch)
-    second = _snapshot(child)
 
-    assert first.keys() == second.keys()
-    changed = {name for name in first if first[name] != second[name]}
-    assert changed <= UNSTABLE.keys()
+    assert _snapshot(child) == first
 
 
-@pytest.mark.parametrize(
-    "name",
-    [
-        pytest.param(name, marks=pytest.mark.xfail(strict=True, reason=why))
-        for name, why in UNSTABLE.items()
-    ],
-)
-def test_second_run_keeps_merged_file(
-    child: Path, monkeypatch: pytest.MonkeyPatch, name: str
+def test_first_run_keeps_the_projects_own_values(
+    child: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The merged files UNSTABLE lists are fixed points too, once fixed."""
-    features = FEATURE_SETS["all"]
-    _run_update(child, features, monkeypatch)
-    first = (child / name).read_text()
-    _run_update(child, features, monkeypatch)
+    """Merging adds devenv's values without rewriting the project's."""
+    for name, text in _EXISTING_PROJECT.items():
+        (child / name).write_text(text)
 
-    assert (child / name).read_text() == first
+    _run_update(child, FEATURE_SETS["all"], monkeypatch)
+
+    pyproject = tomllib.loads((child / "pyproject.toml").read_text())
+    assert pyproject["project"]["description"] == "A demo, with commas, in prose"
+    assert pyproject["project"]["authors"] == [
+        {"name": "Someone Else", "email": "someone@example.com"}
+    ]
+    assert pyproject["tool"]["pytest"]["addopts"][:3] == [
+        "-ra",
+        "--strict-markers",
+        "--cov",
+    ]
+    lint = json.loads((child / "package.json").read_text())["scripts"]["lint"]
+    assert lint.startswith("tsc --noEmit && eslint_d --cache .")
+    assert (child / "mkdocs.yml").read_text().startswith("# The demo's docs.\n")
 
 
 def test_no_features_fails_before_touching_the_project(

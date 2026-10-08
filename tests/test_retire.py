@@ -163,13 +163,13 @@ def test_remove_values_drops_items_from_comma_delimited_strings() -> None:
 
 
 def test_remove_values_drops_keys_holding_a_retired_scalar() -> None:
-    """A retired scalar drops its key only when the key holds that value."""
+    """A retired scalar drops its key, and the table it empties, only on a match."""
     doc = tomlkit.parse("[tool.a]\nflag = true\n\n[tool.b]\nflag = false\n")
     retired = tomlkit.parse("[tool.a]\nflag = true\n\n[tool.b]\nflag = true\n")
 
     merge_toml.remove_values(doc, retired)
 
-    assert "flag" not in doc["tool"]["a"]
+    assert "a" not in doc["tool"]
     assert doc["tool"]["b"]["flag"] is False
 
 
