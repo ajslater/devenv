@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tomlkit
+from _devenv_common import read_lines
 
 from scripts import merge_package_json, merge_toml
 
@@ -278,8 +279,7 @@ def test_template_ships_no_retired_value() -> None:
 
 
 def _removed_node_packages() -> list[str]:
-    lines = (_ROOT / "remove_node_packages.txt").read_text().splitlines()
-    return [line.strip() for line in lines if line.strip()]
+    return read_lines(_ROOT / "remove_node_packages.txt")
 
 
 def _package(*, plugins: list[str], overrides: list[dict]) -> dict:
@@ -319,8 +319,7 @@ def test_package_remove_retires_prettier_plugin_sh() -> None:
     retired = json.loads(_PACKAGE_REMOVE.read_text())
     assert retired["prettier"]["plugins"] == [_SH_PLUGIN]
     assert retired["prettier"]["overrides"] == [_SH_OVERRIDE]
-    removed_packages = (_ROOT / "remove_node_packages.txt").read_text().splitlines()
-    assert _SH_PLUGIN in removed_packages
+    assert _SH_PLUGIN in _removed_node_packages()
 
 
 def test_package_remove_values_retires_script_step() -> None:
@@ -430,8 +429,7 @@ def test_package_template_ships_no_retired_value() -> None:
 
 
 def _removed_files() -> set[str]:
-    lines = (_ROOT / "remove_files.txt").read_text().splitlines()
-    return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+    return set(read_lines(_ROOT / "remove_files.txt"))
 
 
 def test_old_gate_script_is_retired() -> None:

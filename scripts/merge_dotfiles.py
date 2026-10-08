@@ -26,11 +26,14 @@ from _devenv_common import (  # ty: ignore[unresolved-import]
     get_devenv_src,
     git_status,
     iter_feature_dirs,
+    read_lines,
     report_counts,
 )
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Generator, Iterable
+
+    from _devenv_common import Version  # ty: ignore[unresolved-import]
 
 RETIRED_LINES_FILE = "remove_dotfile_lines.txt"
 NO_RETIRED_LINES: frozenset[str] = frozenset()
@@ -161,12 +164,11 @@ def _is_dotfile(name: str) -> bool:
     return name.startswith(".") and name.endswith(("ignore", "rc"))
 
 
-def read_retired_lines(devenv_src: Path) -> frozenset[str]:
-    """Return the dotfile lines devenv has retired, one per non-blank line."""
-    path = devenv_src / RETIRED_LINES_FILE
-    if not path.exists():
-        return frozenset()
-    return frozenset(line for line in path.read_text().splitlines() if line.strip())
+def read_retired_lines(
+    devenv_src: Path, stamp: Version | None = None
+) -> frozenset[str]:
+    """Return the dotfile lines devenv retired after the project's stamp."""
+    return frozenset(read_lines(devenv_src / RETIRED_LINES_FILE, stamp))
 
 
 def _iter_template_dotfiles(

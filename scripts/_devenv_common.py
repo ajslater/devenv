@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
@@ -43,6 +45,12 @@ FEATURES: Final = MappingProxyType(
 )
 DEFAULT_FEATURES: Final = tuple(name for name, f in FEATURES.items() if f.default)
 
+# The devenv version that last updated a project, written into the project.
+STAMP_FILE: Final = ".devenv-version"
+_SINCE_RE = re.compile(r"#\s*since\s+v?(?P<version>\d+(?:\.\d+)*)")
+
+type Version = tuple[int, ...]
+
 
 def get_devenv_src() -> Path:
     """Get the devenv source directory."""
@@ -75,15 +83,47 @@ def exit_on_unmet_requirements(features: Collection[str]) -> None:
         sys.exit("\n".join(f"devenv: {problem}" for problem in problems))
 
 
-def read_lines(path: Path) -> list[str]:
-    """Read a list file: one entry per line; blanks and `#` lines are skipped."""
+def parse_version(text: str) -> Version:
+    """Parse "1.2.3" or "v1.2.3" into a comparable tuple."""
+    return tuple(int(part) for part in text.strip().removeprefix("v").split("."))
+
+
+def devenv_version(devenv_src: Path) -> str | None:
+    """Return devenv's own version, from its pyproject.toml."""
+    path = devenv_src / "pyproject.toml"
+    if not path.is_file():
+        return None
+    return tomllib.loads(path.read_text()).get("project", {}).get("version")
+
+
+def read_stamp(project: Path) -> Version | None:
+    """Return the devenv version that last updated project, if it says."""
+    path = project / STAMP_FILE
+    return parse_version(path.read_text()) if path.is_file() else None
+
+
+def read_lines(path: Path, stamp: Version | None = None) -> list[str]:
+    """
+    Read a list file: one entry per line; blanks and `#` lines are skipped.
+
+    In a retirement list, a `# since X.Y.Z` line marks the entries below it as
+    retired in devenv X.Y.Z; entries above the first marker predate stamping.
+    A project stamped with version S already had every entry from S or
+    earlier applied, so given a stamp, only newer entries are returned. That
+    lets a project keep a file of its own that devenv once shipped and
+    retired under the same name.
+    """
     if not path.exists():
         return []
-    return [
-        entry
-        for line in path.read_text().splitlines()
-        if (entry := line.strip()) and not entry.startswith("#")
-    ]
+    since: Version = ()
+    entries: list[str] = []
+    for line in path.read_text().splitlines():
+        entry = line.strip()
+        if match := _SINCE_RE.fullmatch(entry):
+            since = parse_version(match["version"])
+        elif entry and not entry.startswith("#") and (stamp is None or since > stamp):
+            entries.append(entry)
+    return entries
 
 
 def missing_tools(tools: Iterable[str]) -> list[str]:

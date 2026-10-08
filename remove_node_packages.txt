@@ -1,3 +1,6 @@
+# Node packages update-devenv removes from every dependency section.
+# Entries below a `# since X.Y.Z` line were retired in devenv X.Y.Z; a
+# project stamped with that version or later already lost them.
 eslint-plugin-array-func
 eslint-plugin-scanjs-rules
 eslint-plugin-simple-import-sort
@@ -11,4 +14,6 @@ remark-preset-lint-recommended
 remark-preset-prettier
 eslint-plugin-import
 eslint-import-resolver-alias
+
+# since 0.2.0
 eslint-plugin-package-json

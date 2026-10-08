@@ -18,6 +18,10 @@ Main orchestrator that:
 3. Copies files from copy/<feature>/
 4. Merges config files (package.json, YAML, TOML)
 5. Runs formatters on merged files
+6. Stamps the project with devenv's version in .devenv-version
+
+Retirements that the project's stamp says it already had are skipped, and
+devenv's NEWS since that version is printed.
 
 Run it with `make update-devenv`, which sets the DEVENV_<FEATURE> flags from
 the cfg/*.mk files the project Makefile includes.
@@ -26,22 +30,28 @@ the cfg/*.mk files the project Makefile includes.
 from __future__ import annotations
 
 import argparse
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TYPE_CHECKING, Final
 
 import merge_package_json  # ty: ignore[unresolved-import]
 import merge_toml  # ty: ignore[unresolved-import]
 import merge_yaml  # ty: ignore[unresolved-import]
 from _devenv_common import (  # ty: ignore[unresolved-import]
+    STAMP_FILE,
+    devenv_version,
     exit_on_unmet_requirements,
     get_devenv_src,
     get_enabled_features,
     git_status,
     missing_tools,
+    parse_version,
     read_lines,
+    read_stamp,
     report_counts,
     run,
 )
@@ -55,16 +65,19 @@ from merge_dotfiles import (  # ty: ignore[unresolved-import]
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
 
+    from _devenv_common import Version  # ty: ignore[unresolved-import]
+
 NO_FEATURES = (
     "devenv: no DEVENV_<FEATURE> flags are set. Run `make update-devenv`, "
     "which sets them from the cfg/*.mk files the Makefile includes."
 )
 NODE_TOOLS = ("bun", "bunx")
+_NEWS_HEADING_RE = re.compile(r"## v(?P<version>\d+(?:\.\d+)*)")
 
 
-def delete_files(devenv_src: Path) -> None:
-    """Delete the files listed in remove_files.txt, naming each one."""
-    for entry in read_lines(devenv_src / "remove_files.txt"):
+def delete_files(devenv_src: Path, stamp: Version | None = None) -> None:
+    """Delete the files remove_files.txt retired after the stamp, naming each."""
+    for entry in read_lines(devenv_src / "remove_files.txt", stamp):
         path = Path(entry)
         if path.is_file():
             path.unlink()
@@ -107,8 +120,21 @@ CONFIG_MERGES: Final = (
 )
 
 
+def _narrowed(path: Path, stamp: Version | None, tmp: Path) -> Path:
+    """Return a .txt retirement list cut down to entries newer than stamp."""
+    if path.suffix != ".txt" or stamp is None:
+        return path
+    narrowed = tmp / path.name
+    narrowed.write_text("".join(f"{entry}\n" for entry in read_lines(path, stamp)))
+    return narrowed
+
+
 def merge_config(
-    devenv_src: Path, pd: Path, features: list[str], merge: ConfigMerge
+    devenv_src: Path,
+    pd: Path,
+    features: list[str],
+    merge: ConfigMerge,
+    stamp: Version | None = None,
 ) -> Path | None:
     """
     Merge one config file with its merger's CLI, in process.
@@ -128,23 +154,26 @@ def merge_config(
     output = pd / merge.output
     if output.is_file():
         sources.append(output)
-    options = [
-        arg
-        for flag, rel in merge.options
-        if (devenv_src / rel).is_file()
-        for arg in (flag, str(devenv_src / rel))
-    ]
-    merge.merger([*map(str, sources), "-o", str(output), *options])
+    with TemporaryDirectory() as tmp:
+        options = [
+            arg
+            for flag, rel in merge.options
+            if (devenv_src / rel).is_file()
+            for arg in (flag, str(_narrowed(devenv_src / rel, stamp, Path(tmp))))
+        ]
+        merge.merger([*map(str, sources), "-o", str(output), *options])
     return output
 
 
-def merge_configs(devenv_src: Path, pd: Path, features: list[str]) -> list[Path]:
+def merge_configs(
+    devenv_src: Path, pd: Path, features: list[str], stamp: Version | None = None
+) -> list[Path]:
     """Merge each enabled feature's config templates into the project."""
     return [
         output
         for merge in CONFIG_MERGES
         if merge.feature in features
-        and (output := merge_config(devenv_src, pd, features, merge))
+        and (output := merge_config(devenv_src, pd, features, merge, stamp))
     ]
 
 
@@ -171,6 +200,22 @@ def format_merged(merged: list[Path]) -> None:
     run(["bunx", "prettier", "--write", *names])
 
 
+def print_news_since(devenv_src: Path, stamp: Version | None) -> None:
+    """Print the sections of devenv's NEWS.md newer than the project's stamp."""
+    news = devenv_src / "NEWS.md"
+    if stamp is None or not news.is_file():
+        return
+    newer = [
+        section
+        for section in re.split(r"(?m)^(?=## v)", news.read_text())
+        if (match := _NEWS_HEADING_RE.match(section))
+        and parse_version(match["version"]) > stamp
+    ]
+    if newer:
+        print("\ndevenv changes since this project's last update:\n")  # noqa: T201
+        print("".join(newer).rstrip())  # noqa: T201
+
+
 def main(*, update_deps: bool = True) -> None:
     """Run the full devenv update pipeline."""
     devenv_src = get_devenv_src()
@@ -183,10 +228,11 @@ def main(*, update_deps: bool = True) -> None:
     if uses_node and (missing := missing_tools(NODE_TOOLS)):
         sys.exit(f"devenv: install {' and '.join(missing)} first: brew install bun")
 
-    delete_files(devenv_src)
+    stamp = read_stamp(pd)
+    delete_files(devenv_src, stamp)
 
     created, skipped, merged, _dotfile_paths = merge_dotfiles(
-        devenv_src / "merge", pd, features, read_retired_lines(devenv_src)
+        devenv_src / "merge", pd, features, read_retired_lines(devenv_src, stamp)
     )
     report_counts("Merged dotfiles", created=created, skipped=skipped, merged=merged)
 
@@ -205,9 +251,12 @@ def main(*, update_deps: bool = True) -> None:
     if update_deps and (pd / "package.json").is_file():
         run(["bun", "update"])
 
-    merged_files = merge_configs(devenv_src, pd, features)
+    merged_files = merge_configs(devenv_src, pd, features, stamp)
     format_merged(merged_files)
+    if version := devenv_version(devenv_src):
+        (pd / STAMP_FILE).write_text(f"{version}\n")
     git_status([".*", "bin", "cfg", *merged_files])
+    print_news_since(devenv_src, stamp)
 
 
 if __name__ == "__main__":
