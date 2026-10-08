@@ -421,7 +421,7 @@ wheels = [
 
 [[package]]
 name = "devenv"
-version = "0.2.0"
+version = "0.2.1"
 source = { editable = "." }
 dependencies = [
     { name = "packaging" },
@@ -445,7 +445,6 @@ lint = [
     { name = "codespell" },
     { name = "complexipy" },
     { name = "icecream" },
-    { name = "mbake" },
     { name = "pathspec" },
     { name = "radon" },
     { name = "ruff" },
@@ -488,7 +487,6 @@ lint = [
     { name = "codespell", specifier = "~=2.4" },
     { name = "complexipy", specifier = "~=8.0.1" },
     { name = "icecream", specifier = "~=2.1" },
-    { name = "mbake", specifier = "~=1.4.5" },
     { name = "pathspec", specifier = "~=1.1.0" },
     { name = "radon", specifier = "~=6.0" },
     { name = "ruff", specifier = "~=0.16" },

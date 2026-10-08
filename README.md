@@ -62,18 +62,18 @@ Each feature is a `DEVENV_<FEATURE>` flag, set by including `cfg/<feature>.mk`
 in the project `Makefile`. A feature that needs another refuses to run without
 it: `add_features.py` and `update-devenv` stop with a one-line message.
 
-| Feature     | Adds                                                    | Requires             |
-| ----------- | ------------------------------------------------------- | -------------------- |
-| `common`    | lint, fix, clean, `update-devenv`, help, ignore files   | `python` `node_root` |
-| `python`    | uv install, lint, typecheck, test, build and publish    |                      |
-| `node`      | bun install and update, eslint_d                        |                      |
-| `node_root` | the root `package.json` and the base eslint config      |                      |
-| `docs`      | mkdocs build and serve                                  | `python`             |
-| `frontend`  | install, lint, test and build in `frontend/`            |                      |
-| `django`    | djlint, `bin/pm`, collectstatic before the python build | `frontend` `python`  |
-| `docker`    | hadolint and dockerfmt over every Dockerfile            |                      |
-| `ci`        | the GitHub Actions building blocks below                | `python`             |
-| `gha_std`   | the standard `ci.yml` that uses them                    | `ci`                 |
+| Feature     | Adds                                                    | Requires            |
+| ----------- | ------------------------------------------------------- | ------------------- |
+| `common`    | lint, fix, clean, `update-devenv`, help, ignore files   | `node_root`         |
+| `python`    | uv install, lint, typecheck, test, build and publish    |                     |
+| `node`      | bun install and update, eslint_d                        |                     |
+| `node_root` | the root `package.json` and the base eslint config      |                     |
+| `docs`      | mkdocs build and serve                                  | `python`            |
+| `frontend`  | install, lint, test and build in `frontend/`            |                     |
+| `django`    | djlint, `bin/pm`, collectstatic before the python build | `frontend` `python` |
+| `docker`    | hadolint and dockerfmt over every Dockerfile            |                     |
+| `ci`        | the GitHub Actions building blocks below                | `python`            |
+| `gha_std`   | the standard `ci.yml` that uses them                    | `ci`                |
 
 The order of the includes matters, and `add_features.py` keeps it: `OVERRIDE_*`
 is read when `python.mk` is parsed, and `::` recipes run in include order, so

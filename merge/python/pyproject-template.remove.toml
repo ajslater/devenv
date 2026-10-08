@@ -8,6 +8,11 @@ dev = [
   "semver~=3.1.0",
   "tomlkit~=0.14",
 ]
+lint = [
+  # common's fix.sh and lint.sh run the latest mbake through uvx, so a project
+  # without python needs no lint group for it.
+  "mbake~=1.4.5",
+]
 
 [tool.complexipy]
 exclude = [
