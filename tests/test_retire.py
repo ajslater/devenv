@@ -13,6 +13,8 @@ A child repo sheds these on its next update-devenv:
 - merge_package_json --remove-values drops the values in
   merge/node_root/package-remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
+- merge_package_json --remove drops the packages in remove_node_packages.txt
+  from every dependency section of package.json.
 """
 
 from __future__ import annotations
@@ -411,6 +413,56 @@ def test_merge_package_json_cli_remove_values(
     assert "prettier-plugin-toml" in prettier["plugins"]
     assert _SH_OVERRIDE not in prettier["overrides"]
     assert _XSD_OVERRIDE in prettier["overrides"]
+
+
+def test_merge_package_json_cli_remove_reaches_every_dependency_section(
+    tmp_path: Path,
+) -> None:
+    """
+    --remove drops retired packages from sections the template lacks too.
+
+    A section the retirement empties goes; the project's own packages stay.
+    """
+    project = tmp_path / "package.json"
+    project.write_text(
+        json.dumps(
+            {
+                "dependencies": {"remark-cli": "^12.0.0", "left-pad": "^1.3.0"},
+                "devDependencies": {"remark-gfm": "^4.0.0", "prettier": "^3.0.0"},
+                "optionalDependencies": {"remark-preset-prettier": "^2.0.0"},
+                "peerDependencies": {"eslint-plugin-mdx": "^3.0.0", "react": "^18.0.0"},
+                "bundledDependencies": ["left-pad", "remark-cli"],
+            }
+        )
+    )
+    argv = [str(_PACKAGE_TEMPLATE), str(project), "-o", str(project)]
+    argv += ["--remove", str(_ROOT / "remove_node_packages.txt")]
+
+    merge_package_json.main(argv)
+
+    merged = json.loads(project.read_text())
+    assert merged["dependencies"] == {"left-pad": "^1.3.0"}
+    assert "remark-gfm" not in merged["devDependencies"]
+    assert "prettier" in merged["devDependencies"]
+    assert "optionalDependencies" not in merged
+    assert merged["peerDependencies"] == {"react": "^18.0.0"}
+    assert merged["bundledDependencies"] == ["left-pad"]
+
+
+def test_merge_package_json_cli_retires_a_script_step_the_project_moved(
+    tmp_path: Path,
+) -> None:
+    """A retired step goes wherever the project put it; its own steps stay."""
+    project = tmp_path / "package.json"
+    lint = "bin/remark-for-claude.sh && tsc --noEmit && eslint_d --cache ."
+    project.write_text(json.dumps({"scripts": {"lint": lint}}))
+    argv = [str(_PACKAGE_TEMPLATE), str(project), "-o", str(project)]
+    argv += ["--remove-values", str(_PACKAGE_REMOVE)]
+
+    merge_package_json.main(argv)
+
+    scripts = json.loads(project.read_text())["scripts"]
+    assert scripts["lint"] == "tsc --noEmit && eslint_d --cache . && prettier --check ."
 
 
 def test_package_template_ships_no_retired_value() -> None:

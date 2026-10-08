@@ -27,7 +27,6 @@ UNSTABLE = {
     ".readthedocs.yaml": "merge_yaml sorts keys only when merging",
     "compose.yaml": "merge_yaml sorts keys only when merging",
     "mkdocs.yml": "merge_yaml sorts keys only when merging",
-    "package.json": "merge_package_json reorders on a second run",
     "pyproject.toml": "merge_toml reflows on a second run",
 }
 FEATURE_SETS = {

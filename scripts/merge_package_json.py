@@ -6,11 +6,11 @@
 # ]
 # ///
 """
-Deep merge multiple package.json files into a single merged file.
+Deep merge package.json files, each into the result of those before it.
 
-This script recursively merges package.json files, with later files taking precedence
-over earlier ones. Special handling for dependencies and devDependencies where
-semver ranges are intelligently merged to prefer higher version constraints.
+Scalars from later files win, objects merge recursively, arrays are a union,
+script `&&` chains are an ordered union of commands, and dependency specs keep
+the higher version constraint. `main --help` details the policy.
 """
 
 from __future__ import annotations
@@ -19,24 +19,25 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Final
 
 import semver
 from _devenv_common import read_lines  # ty: ignore[unresolved-import]
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Callable, Sequence
 
 SCRIPT_COMMAND_SEPARATOR = " && "
 NO_VERSION_SPECS = frozenset({"*", "latest", "", "next"})
 WILDCARDS = frozenset({"x", "X", "*"})
+UPPER_BOUND_OPERATORS: Final = frozenset({"<", "<="})
 # A single npm comparator: an optional range operator followed by a partial
 # semver. Matching the parts explicitly keeps operator and wildcard handling
 # off the prerelease and build identifiers, which are free-form text.
 COMPARATOR_RE = re.compile(
     r"""
-    (?:\^|~>?|>=|<=|>|<|=)?\s*         # optional npm range operator
-    v?                                 # optional leading v
+    (?P<operator>\^|~>?|>=|<=|>|<|=)?\s*  # optional npm range operator
+    v?                                    # optional leading v
     (?P<major>\d+|[xX*])
     (?:\.(?P<minor>\d+|[xX*]))?
     (?:\.(?P<patch>\d+|[xX*]))?
@@ -45,16 +46,55 @@ COMPARATOR_RE = re.compile(
     """,
     re.VERBOSE,
 )
-SPECIAL_PROTOCOLS = frozenset(
-    {
-        "git+",
-        "github:",
-        "file:",
-        "http://",
-        "https://",
-        "workspace:",
-    }
-)
+# A protocol (workspace:, catalog:, npm:, link:, portal:, git+ssh:, https:,
+# ...), or a path or GitHub owner/repo. npm semver ranges have neither a
+# colon nor a slash, so anything matching names a source, not a range.
+OPAQUE_SPEC_RE: Final = re.compile(r"^[A-Za-z][\w+.-]*:|/")
+EPILOG: Final = """
+Merge policy (each file merges into the result of the files before it):
+  Scalars       the later file's value wins.
+  Objects       merge key by key, recursively.
+  Arrays        an array both files have becomes a de-duplicated union,
+                sorted with plain strings before [name, options] pairs. An
+                "overrides" array keeps its order, since prettier applies
+                overrides in order: the earlier file's entries first, winning
+                for the same "files" globs, then the later file's new ones.
+                --list-strategy replace keeps the later file's array instead.
+  Scripts       a script both files have is an ordered union of its "&&"
+                commands: the later file's commands in its order, then the
+                earlier file's commands it lacks.
+  Dependencies  in every *dependencies object, the spec with the higher
+                floor (the lowest version it admits) wins, whichever file it
+                comes from (earlier + later -> merged):
+                  ^4.17.1   + ^4.18.0  -> ^4.18.0
+                  ^1.2.0    + 1.0.0    -> ^1.2.0    a lower project pin loses
+                  ^1.2.0    + 1.5.0    -> 1.5.0     a higher one wins
+                A bare >= or > beats any bounded range, even a higher one:
+                  >=73.0.0  + ^73.1.0  -> >=73.0.0
+                At an equal floor the wider range wins (^ over ~ over an
+                exact pin), so an exact pin becomes a caret:
+                  ^1.2.3    + 1.2.3    -> ^1.2.3
+                An OR range ranks by its highest branch. A spec with no
+                floor (*, latest, <2.0.0) loses to one with a floor; between
+                two, the later file's wins. A protocol or path spec
+                (workspace:, catalog:, npm:, link:, portal:, file:, git or
+                http URLs, owner/repo) is kept as written and never
+                compared; between two, the later file's wins.
+
+Retirement, applied to the merged result:
+  --remove FILE         drops each package it lists (one per line; blank and
+                        # lines skipped) from every dependency section.
+  --remove-values FILE  drops the array values and script commands it lists
+                        at the same key path.
+  An object or array that either option empties is dropped too.
+
+Examples:
+  # Merge the template into a project, as update-devenv does
+  %(prog)s template/package.json package.json -o package.json
+
+  # Merge, keeping the later file's arrays as they are
+  %(prog)s package.json package-extra.json --list-strategy replace
+"""
 
 
 def _parse_script_commands(script_value: str) -> list[str]:
@@ -74,42 +114,30 @@ def _remove_script_commands(script_value: str, retired: list[str]) -> str:
 
 def merge_script_entry(base_value: str, update_value: str) -> str:
     """
-    Merge two script entries positionally, with base commands taking precedence.
+    Merge two script entries as an ordered union of their '&&' commands.
 
-    For each index, the base command wins if present. Extra commands from the
-    longer (update) list are appended.
+    The later (update) chain keeps its order, repeats included, so a project
+    can put its own step before or between the template's. The base commands
+    it lacks follow, in base order.
     """
-    base_commands = _parse_script_commands(base_value)
     update_commands = _parse_script_commands(update_value)
-
-    merged = [
-        base_commands[i] if i < len(base_commands) else update_commands[i]
-        for i in range(max(len(base_commands), len(update_commands)))
+    missing = [
+        cmd for cmd in _parse_script_commands(base_value) if cmd not in update_commands
     ]
-
-    return SCRIPT_COMMAND_SEPARATOR.join(merged)
+    return SCRIPT_COMMAND_SEPARATOR.join([*update_commands, *missing])
 
 
 def merge_scripts(base: dict[str, str], updates: dict[str, str]) -> dict[str, str]:
-    """
-    Merge two scripts dictionaries with command-level merging.
-
-    Earlier (base) commands take precedence over later (update) commands.
-    New script keys from updates are added; existing keys have their
-    commands merged at the individual command level.
-    """
+    """Merge two scripts objects, merging the scripts both have by command."""
     result = base.copy()
     for key, value in updates.items():
-        if key in result:
-            result[key] = merge_script_entry(result[key], value)
-        else:
-            result[key] = value
+        result[key] = merge_script_entry(result[key], value) if key in result else value
     return result
 
 
-def is_spec_special(spec_str):
-    """Determine if the spec start with a protocol."""
-    return any(spec_str.startswith(prefix) for prefix in SPECIAL_PROTOCOLS)
+def is_spec_opaque(spec: str) -> bool:
+    """Determine if the spec names a source (protocol or path), not a range."""
+    return OPAQUE_SPEC_RE.search(spec.strip()) is not None
 
 
 def _comparator_version(match: re.Match[str]) -> str | None:
@@ -132,10 +160,13 @@ def _comparator_version(match: re.Match[str]) -> str | None:
 
 def _extract_branch_version(branch: str) -> str | None:
     """Extract the floor version of a single non-OR range branch."""
-    # The leftmost comparator is the floor for both compound ranges
-    # (">=9.0.0 <9.5.0") and hyphen ranges ("1.2.3 - 2.3.4").
-    match = COMPARATOR_RE.search(branch)
-    return _comparator_version(match) if match else None
+    # The leftmost lower bound is the floor for both compound ranges
+    # (">=9.0.0 <9.5.0") and hyphen ranges ("1.2.3 - 2.3.4"). An upper
+    # bound is no floor, so "<2.0.0" alone has none.
+    for match in COMPARATOR_RE.finditer(branch):
+        if match["operator"] not in UPPER_BOUND_OPERATORS:
+            return _comparator_version(match)
+    return None
 
 
 def extract_version_from_range(version_str: str) -> str | None:
@@ -212,12 +243,13 @@ def merge_dependency_specs(base_spec: str, update_spec: str) -> str:
     Merge two npm semver version strings, preferring the higher version.
 
     Uses the semver package for proper semantic version comparison.
-    Handles npm-specific version ranges (^, ~, >=, etc.)
+    Handles npm-specific version ranges (^, ~, >=, etc.). An opaque spec is
+    kept as written; between two, the update wins.
     """
-    if is_spec_special(base_spec):
-        return base_spec
-    if is_spec_special(update_spec):
+    if is_spec_opaque(update_spec):
         return update_spec
+    if is_spec_opaque(base_spec):
+        return base_spec
 
     # Try to extract actual versions from ranges
     base_extracted = extract_version_from_range(base_spec)
@@ -238,57 +270,61 @@ def merge_dependency_specs(base_spec: str, update_spec: str) -> str:
     )
 
 
-def merge_dependencies(
-    base: dict[str, str], updates: dict[str, str], args: argparse.Namespace
-) -> dict[str, str]:
-    """
-    Merge two dependency dictionaries with semver-aware version selection.
-
-    Args:
-        base: Base dependencies
-        updates: Update dependencies
-        args: argument options from cli
-
-    Returns:
-        Merged dependencies with higher versions preferred
-
-    """
+def merge_dependencies(base: dict[str, str], updates: dict[str, str]) -> dict[str, str]:
+    """Merge two dependency objects, keeping the higher spec for shared packages."""
     result = base.copy()
-
     for package, version in updates.items():
-        if package in args.remove_packages:
-            continue
-        if package in result:
-            # Merge versions, preferring higher
-            result[package] = merge_dependency_specs(result[package], version)
-        else:
-            # New package
-            result[package] = version
-
+        result[package] = (
+            merge_dependency_specs(result[package], version)
+            if package in result
+            else version
+        )
     return result
 
 
-def _deep_merge_override(base_val, value):
-    """Handle overrides: deduplicate by "files" key."""
-    # Prioritize base values when there are duplicates
-    dedup_dict: dict[str, Any] = {}
+def _is_dependency_key(key: str) -> bool:
+    """Name dependencies, devDependencies, bundledDependencies and the like."""
+    return key.lower().endswith("dependencies")
 
-    # Add base items first (these take priority)
-    for item in base_val:
-        if isinstance(item, dict) and "files" in item:
-            dedup_key = ":".join(sorted(item["files"]))
-            dedup_dict[dedup_key] = item
 
-    # Add update items only if not already present
-    for item in value:
-        if isinstance(item, dict) and "files" in item:
-            dedup_key = ":".join(sorted(item["files"]))
-            if dedup_key not in dedup_dict:
-                dedup_dict[dedup_key] = item
+def _without_packages(section: Any, retired: frozenset[str]) -> Any:
+    """Return a dependency object or array of names without the retired ones."""
+    match section:
+        case dict():
+            return {name: spec for name, spec in section.items() if name not in retired}
+        case list():
+            return [name for name in section if name not in retired]
+        case _:
+            return section
 
-    dedup_dict = dict(sorted(dedup_dict.items()))
 
-    return list(dedup_dict.values())
+def remove_packages(data: dict[str, Any], retired: frozenset[str]) -> None:
+    """
+    Drop retired packages from every dependency section, in place.
+
+    An object section loses the package's key and an array section, such as
+    bundledDependencies, its name. A section emptied this way is removed.
+    """
+    for key in [key for key in data if _is_dependency_key(key)]:
+        section = data[key]
+        kept = _without_packages(section, retired)
+        if section and not kept:
+            del data[key]
+        else:
+            data[key] = kept
+
+
+def _json_key(item: Any) -> str:
+    """Key an item by its JSON form, so unhashable items compare by value."""
+    return json.dumps(item, sort_keys=True)
+
+
+def _override_key(item: Any) -> str:
+    """Key a prettier override by its files globs; other items by value."""
+    if isinstance(item, dict) and "files" in item:
+        files = item["files"]
+        return _json_key(sorted(files) if isinstance(files, list) else [files])
+    return _json_key(item)
 
 
 def _list_item_sort_key(item: Any) -> tuple[int, str, str]:
@@ -303,87 +339,63 @@ def _list_item_sort_key(item: Any) -> tuple[int, str, str]:
     if isinstance(item, str):
         return (0, item, "")
     if item and isinstance(item, list) and isinstance(item[0], str):
-        return (1, item[0], json.dumps(item[1:], sort_keys=True))
-    return (2, json.dumps(item, sort_keys=True), "")
+        return (1, item[0], _json_key(item[1:]))
+    return (2, _json_key(item), "")
 
 
-def _dedupe_list(items: list[Any]) -> list[Any]:
-    """Drop duplicates, keying on JSON form so unhashable items work too."""
+def _dedupe_list(items: list[Any], key: Callable[[Any], str] = _json_key) -> list[Any]:
+    """Drop items whose key an earlier item has; the rest keep their order."""
     deduped: dict[str, Any] = {}
     for item in items:
-        deduped.setdefault(json.dumps(item, sort_keys=True), item)
+        deduped.setdefault(key(item), item)
     return list(deduped.values())
 
 
-def _deep_merge_value_list(
-    list_strategy: str, key: str, result: dict[str, Any], base_val, value
-):
-    if list_strategy == "merge":
-        if key == "overrides":
-            result[key] = _deep_merge_override(base_val, value)
-        else:
-            # Regular list merging with deduplication and sorting
-            merged_list = _dedupe_list(base_val + value)
-            result[key] = sorted(merged_list, key=_list_item_sort_key)
-    else:
-        result[key] = value
+def _merge_lists(key: str, base: list[Any], update: list[Any]) -> list[Any]:
+    """
+    Union two arrays, sorted, except an "overrides" array keeps its order.
+
+    Prettier applies overrides in order, so sorting them could change what
+    they do. Base entries come first and win for the same files globs.
+    """
+    if key == "overrides":
+        return _dedupe_list([*base, *update], _override_key)
+    return sorted(_dedupe_list([*base, *update]), key=_list_item_sort_key)
 
 
-def _deep_merge_value(
-    key,
-    value,
-    result,
-    args: argparse.Namespace,
-    list_strategy: str,
-):
-    if key not in result:
-        # New key - just add it
-        result[key] = value
-        return
-
-    base_val = result[key]
-
-    # Special handling for dependency objects
-    if key.lower().endswith("dependencies"):
-        result[key] = merge_dependencies(base_val, value, args)
-
-    # Special handling for scripts - merge at command level
-    elif key == "scripts" and isinstance(base_val, dict) and isinstance(value, dict):
-        result[key] = merge_scripts(base_val, value)
-
-    # Both values are dictionaries - recurse
-    elif isinstance(base_val, dict) and isinstance(value, dict):
-        result[key] = deep_merge(base_val, value, args, list_strategy)
-
-    # Both values are lists - apply strategy
-    elif isinstance(base_val, list) and isinstance(value, list):
-        _deep_merge_value_list(list_strategy, key, result, base_val, value)
-
-    # Otherwise, the new value overwrites the old
-    else:
-        result[key] = value
+def _merge_value(key: str, base: Any, update: Any, list_strategy: str) -> Any:
+    """Merge one key's values; the update wins unless both are containers."""
+    match base, update:
+        case dict(), dict() if _is_dependency_key(key):
+            return merge_dependencies(base, update)
+        case dict(), dict() if key == "scripts":
+            return merge_scripts(base, update)
+        case dict(), dict():
+            return deep_merge(base, update, list_strategy)
+        case list(), list() if list_strategy == "merge":
+            return _merge_lists(key, base, update)
+        case _:
+            return update
 
 
 def deep_merge(
-    base: dict[Any, Any],
-    updates: dict[Any, Any],
-    args: argparse.Namespace,
-    list_strategy: str = "replace",
+    base: dict[Any, Any], updates: dict[Any, Any], list_strategy: str = "merge"
 ) -> dict[Any, Any]:
-    """
-    Recursively merge two dictionaries.
-
-    Special handling for dependency keys where semver versions are compared.
-    """
+    """Recursively merge updates into base; base keys keep their order."""
     result = base.copy()
     for key, value in updates.items():
-        _deep_merge_value(key, value, result, args, list_strategy)
+        result[key] = (
+            _merge_value(key, result[key], value, list_strategy)
+            if key in result
+            else value
+        )
     return result
 
 
 def load_package_json(filepath: Path) -> dict[Any, Any]:
-    """Load a package.json file and return its contents."""
-    content = json.loads(filepath.read_text())
+    """Load a package.json file; an empty one, as `touch` leaves it, is {}."""
+    text = filepath.read_text()
+    content = json.loads(text) if text.strip() else {}
     if not isinstance(content, dict):
         reason = f"{filepath} does not contain a JSON object at root level"
         raise TypeError(reason)
@@ -391,20 +403,12 @@ def load_package_json(filepath: Path) -> dict[Any, Any]:
 
 
 def merge_package_json_files(
-    filepaths: list[Path], args: argparse.Namespace, list_strategy: str = "replace"
+    filepaths: Sequence[Path], list_strategy: str = "merge"
 ) -> dict[Any, Any]:
-    """Merge multiple package.json files in order."""
-    if not filepaths:
-        return {}
-
-    # Start with the first file
-    result = load_package_json(filepaths[0])
-
-    # Merge in each subsequent file
-    for filepath in filepaths[1:]:
-        updates = load_package_json(filepath)
-        result = deep_merge(result, updates, args, list_strategy)
-
+    """Merge package.json files in order, each into the result of those before."""
+    result: dict[Any, Any] = {}
+    for filepath in filepaths:
+        result = deep_merge(result, load_package_json(filepath), list_strategy)
     return result
 
 
@@ -436,10 +440,6 @@ def remove_values(data: Any, retired: Any) -> None:
             del data[key]
 
 
-def _create_remove_packages(args: argparse.Namespace) -> None:
-    args.remove_packages = frozenset(read_lines(args.remove) if args.remove else ())
-
-
 def main(argv: Sequence[str] | None = None) -> None:
     """
     Run cli.
@@ -448,42 +448,16 @@ def main(argv: Sequence[str] | None = None) -> None:
     with semver-aware dependency handling, and outputs the result to stdout or a file.
     """
     parser = argparse.ArgumentParser(
-        description="Deep merge multiple package.json files with semver-aware dependency merging",
+        description="Deep merge package.json files with semver-aware dependency merging",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Examples:
-  # Merge three files, output to stdout
-  %(prog)s package.json package-override.json package-local.json
-
-  # Merge and save to output file
-  %(prog)s package.json package-dev.json -o package-merged.json
-
-  # Merge with array appending instead of replacement
-  %(prog)s package.json package-extra.json --list-strategy append
-
-Script Merging:
-  For scripts earlier script command components separated by && replace later or local ones.
-
-Dependency Merging:
-  For dependencies, devDependencies, and related keys, the tool compares
-  semver version strings and keeps the higher version constraint.
-
-  Example:
-    base:    "express": "^4.17.1"
-    update:  "express": "^4.18.0"
-    result:  "express": "^4.18.0"
-
-    base:    "react": "~16.8.0"
-    update:  "react": "^17.0.0"
-    result:  "react": "^17.0.0"
-        """,
+        epilog=EPILOG,
     )
 
     parser.add_argument(
         "files",
         nargs="+",
         type=Path,
-        help="package.json files to merge (in order of precedence - later files override earlier ones)",
+        help="package.json files to merge, earliest first (template, then project); an empty file counts as {}",
     )
 
     parser.add_argument(
@@ -494,7 +468,7 @@ Dependency Merging:
         "--list-strategy",
         choices=["merge", "replace"],
         default="merge",
-        help="How to handle array merging: replace (default) or append",
+        help="How to merge arrays both files have: merge (default) takes their union, replace keeps the later file's array",
     )
 
     parser.add_argument(
@@ -505,7 +479,9 @@ Dependency Merging:
     )
 
     parser.add_argument(
-        "--remove", type=Path, help="File listing node packages to remove."
+        "--remove",
+        type=Path,
+        help="File listing packages to drop from every dependency section",
     )
 
     parser.add_argument(
@@ -525,10 +501,10 @@ Dependency Merging:
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
-    _create_remove_packages(args)
-
-    # Perform the merge
-    merged_data = merge_package_json_files(args.files, args, args.list_strategy)
+    # Perform the merge, then retire what devenv no longer ships
+    merged_data = merge_package_json_files(args.files, args.list_strategy)
+    if args.remove:
+        remove_packages(merged_data, frozenset(read_lines(args.remove)))
     if args.remove_values:
         remove_values(merged_data, load_package_json(args.remove_values))
 
