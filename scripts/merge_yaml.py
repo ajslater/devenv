@@ -390,7 +390,9 @@ mapping emptied that way is removed.
     parser.add_argument(
         "--remove-values",
         type=Path,
-        help="YAML file of retired values to drop from the merged result",
+        action="append",
+        default=[],
+        help="YAML file of retired values to drop from the merged result; may repeat",
     )
 
     parser.add_argument(
@@ -405,15 +407,15 @@ mapping emptied that way is removed.
     # Validate input files exist
     for filepath in [
         *args.files,
-        *([args.remove_values] if args.remove_values else []),
+        *args.remove_values,
     ]:
         if not filepath.exists():
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
     merged_data = merge_yaml_files(args.files, args.list_strategy)
-    if args.remove_values:
-        remove_values(merged_data, load_yaml_file(args.remove_values))
+    for path in args.remove_values:
+        remove_values(merged_data, load_yaml_file(path))
 
     yaml_output = dump_yaml(merged_data, args.indent)
     if args.output:
