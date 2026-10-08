@@ -1,24 +1,12 @@
 #!/usr/bin/env bash
-# Initialize a new project
+# Set up devenv in the current directory: starter files, feature makefiles and
+# a first update. Arguments add features to the defaults; see
+# scripts/add_features.py --help. Existing files are never replaced.
 set -euo pipefail
-PD=$PWD
-mkdir -p bin
-DEVENV_SRC=${DEVENV_SRC:-$(realpath "$(dirname "$0")/..")}
+DEVENV_SRC=${DEVENV_SRC:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
 
-# Set feature flags (defaults match add_makefiles.py)
-FEATURES=("$@")
-if [[ $# -eq 0 ]]; then
-  FEATURES=(common node node_root python)
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git init --quiet
 fi
-for feature in "${FEATURES[@]}"; do
-  export "DEVENV_${feature^^}=1"
-done
-
-uv run "$DEVENV_SRC"/scripts/add_makefiles.py "${FEATURES[@]}"
-if [[ ${DEVENV_PYTHON:-} ]]; then
-  uv init
-fi
-uv run "$DEVENV_SRC"/scripts/copy_files.py "$PD" --root "$DEVENV_SRC"/init
-mv eslint.config.init.js eslint.config.js
-uv pip install packaging pathspec semver tomlkit mbake
-uv run "$DEVENV_SRC/scripts/update_devenv.py"
+uv run "$DEVENV_SRC/scripts/add_features.py" --init "$@"
+make update-devenv DEVENV_SRC="$DEVENV_SRC"

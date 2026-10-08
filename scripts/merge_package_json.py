@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#   "semver~=3.1",
+# ]
+# ///
 """
 Deep merge multiple package.json files into a single merged file.
 
 This script recursively merges package.json files, with later files taking precedence
 over earlier ones. Special handling for dependencies and devDependencies where
 semver ranges are intelligently merged to prefer higher version constraints.
-
-Requirements:
-    pip install semver
 """
 
 from __future__ import annotations
@@ -16,9 +19,13 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import semver
+from _devenv_common import read_lines  # ty: ignore[unresolved-import]
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 SCRIPT_COMMAND_SEPARATOR = " && "
 NO_VERSION_SPECS = frozenset({"*", "latest", "", "next"})
@@ -430,14 +437,10 @@ def remove_values(data: Any, retired: Any) -> None:
 
 
 def _create_remove_packages(args: argparse.Namespace) -> None:
-    remove_packages: set[str] = set()
-    with args.remove.open("r") as remove_file:
-        while pkg := remove_file.readline().strip():
-            remove_packages.add(pkg)
-    args.remove_packages = frozenset(remove_packages)
+    args.remove_packages = frozenset(read_lines(args.remove) if args.remove else ())
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     """
     Run cli.
 
@@ -511,7 +514,7 @@ Dependency Merging:
         help="JSON file of retired array values and script commands to drop from the merged result",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate input files exist
     for filepath in [

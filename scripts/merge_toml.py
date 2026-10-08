@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#   "packaging>=26.0",
+#   "tomlkit~=0.14",
+# ]
+# ///
 """
 Deep merge multiple TOML files into a single merged file using tomlkit.
 
@@ -7,10 +14,6 @@ over earlier ones. Uses tomlkit to preserve formatting, comments, and style.
 String values containing commas are treated as comma-delimited lists that get
 merged and sorted. Python dependency lists are merged with version-aware
 comparison to prefer higher version constraints.
-
-Requirements:
-    pip install tomlkit packaging
-    Python 3.14+
 """
 
 from __future__ import annotations
@@ -27,6 +30,8 @@ from tomlkit import TOMLDocument, inline_table, table
 from tomlkit.items import Array, InlineTable, String, Table
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from packaging.specifiers import SpecifierSet
 
 PYTHON_DEP_KEY_PATH_LEN = 2
@@ -652,7 +657,7 @@ def merge_toml_files(
     return result
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     """
     Run CLI.
 
@@ -730,7 +735,7 @@ Comment and Format Preservation:
         help="TOML file of retired values to drop from the merged result",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate input files exist
     for filepath in [
@@ -741,25 +746,16 @@ Comment and Format Preservation:
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
-    try:
-        # Perform the merge
-        merged_doc = merge_toml_files(args.files, args.list_strategy)
-        if args.remove_values:
-            remove_values(merged_doc, load_toml_file(args.remove_values))
+    merged_doc = merge_toml_files(args.files, args.list_strategy)
+    if args.remove_values:
+        remove_values(merged_doc, load_toml_file(args.remove_values))
 
-        # Output the result
-        toml_output = tomlkit.dumps(merged_doc)
-
-        if args.output:
-            args.output.write_text(toml_output)
-            print(f"Merged TOML written to: {args.output}")  # noqa: T201
-        else:
-            print(toml_output)  # noqa: T201
-
-    except Exception as e:
-        # Broad except is acceptable here for CLI error handling
-        reason = f"Error during merge: {e}"
-        parser.error(reason)
+    toml_output = tomlkit.dumps(merged_doc)
+    if args.output:
+        args.output.write_text(toml_output)
+        print(f"Merged TOML written to: {args.output}")  # noqa: T201
+    else:
+        print(toml_output)  # noqa: T201
 
 
 if __name__ == "__main__":

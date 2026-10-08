@@ -171,9 +171,11 @@ def test_update_devenv_sorts_with_the_copied_script(
 
     monkeypatch.chdir(project)
     monkeypatch.setenv("DEVENV_SRC", str(src))
-    for feature in devenv_common.ALL_FEATURES:
+    for feature in devenv_common.FEATURES:
         monkeypatch.delenv(f"DEVENV_{feature.upper()}", raising=False)
-    monkeypatch.setenv("DEVENV_COMMON", "1")
+    # common's requirements; the fake devenv ships no templates for them.
+    for feature in ("COMMON", "PYTHON", "NODE_ROOT"):
+        monkeypatch.setenv(f"DEVENV_{feature}", "1")
     monkeypatch.setattr(update_devenv, "run", run_only_sort_ignore)
 
     update_devenv.main()

@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.14"
+# dependencies = [
+#   "pyyaml~=6.0",
+# ]
+# ///
 """
 Deep merge multiple YAML files into a single merged YAML file.
 
 This script recursively merges YAML files, with later files taking precedence
 over earlier ones. Lists can be either replaced or appended based on configuration.
-
-Requirements:
-    Python 3.14+
 """
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 def _merge_value(base_value: Any, value: Any, list_strategy: str) -> Any:
@@ -110,7 +116,7 @@ def merge_yaml_files(
     return result
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> None:
     """
     Run CLI.
 
@@ -158,7 +164,7 @@ Examples:
         help="Number of spaces for YAML indentation (default: 2)",
     )
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # Validate input files exist
     for filepath in args.files:

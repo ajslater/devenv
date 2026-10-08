@@ -26,9 +26,7 @@ dev = [
   "nplusone~=1.0",
   "picopt~=6.1",
   "pypi-cleanup~=0.1.10",
-  "semver~=3.1.0",
-  "toml-cli~=0.7",
-  "tomlkit~=0.14"
+  "toml-cli~=0.7"
 ]
 build = []
 lint = [
@@ -47,9 +45,12 @@ lint = [
 ]
 test = [
   "coverage~=7.0",
+  "mbake~=1.4.5",
   "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
-  "pyyaml~=6.0"
+  "pyyaml~=6.0",
+  "semver~=3.1.0",
+  "tomlkit~=0.14"
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
@@ -122,6 +123,7 @@ reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportUnusedCallResult = false
 reportUnusedParameter = false
+extraPaths = ["scripts"]
 
 [tool.codespell]
 builtin = "clear,code,rare"
@@ -164,7 +166,7 @@ addopts = [
 junit_family = "xunit2"
 strict = true
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "scripts"]
 asyncio_mode = "strict"
 
 [tool.radon]
@@ -287,6 +289,7 @@ max-args = 8
 [tool.ty.environment]
 python = "./.venv"
 python-version = "3.14"
+extra-paths = ["scripts"]
 
 [tool.ty.src]
 exclude = [

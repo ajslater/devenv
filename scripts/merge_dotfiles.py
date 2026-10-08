@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.14"
+# dependencies = []
+# ///
 """
 Merge development environment dotfiles.
 
@@ -18,7 +22,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, NamedTuple
 
-from _devenv_common import (  # pyright: ignore[reportImplicitRelativeImport]
+from _devenv_common import (  # ty: ignore[unresolved-import]
     get_devenv_src,
     git_status,
     iter_feature_dirs,

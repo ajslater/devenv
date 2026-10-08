@@ -1,6 +1,14 @@
 # Values retired from pyproject.toml. update-devenv drops each value listed
 # here from the array at the same key path in a project's pyproject.toml.
 
+[dependency-groups]
+dev = [
+  # devenv's scripts declare these themselves (PEP 723); no copied script
+  # imports them.
+  "semver~=3.1.0",
+  "tomlkit~=0.14",
+]
+
 [tool.complexipy]
 exclude = [
   # complexipy matches these globs against each file's whole path, relative
