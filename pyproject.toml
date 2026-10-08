@@ -124,6 +124,7 @@ reportUnknownParameterType = false
 reportUnknownVariableType = false
 reportUnusedCallResult = false
 reportUnusedParameter = false
+# Tests import the scripts as the top-level modules they are at run time.
 extraPaths = ["scripts"]
 
 [tool.codespell]
@@ -290,6 +291,7 @@ max-args = 8
 [tool.ty.environment]
 python = "./.venv"
 python-version = "3.14"
+# Tests import the scripts as the top-level modules they are at run time.
 extra-paths = ["scripts"]
 
 [tool.ty.src]
