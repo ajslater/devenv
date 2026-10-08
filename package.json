@@ -33,18 +33,18 @@
       },
       {
         "files": [
-          "**/*.xsd"
-        ],
-        "options": {
-          "printWidth": 120
-        }
-      },
-      {
-        "files": [
           "**/nginx/http.d/**/*.conf"
         ],
         "options": {
           "parser": "nginx"
+        }
+      },
+      {
+        "files": [
+          "**/*.xsd"
+        ],
+        "options": {
+          "printWidth": 120
         }
       }
     ]
