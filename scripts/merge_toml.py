@@ -710,7 +710,9 @@ Comma-Delimited Strings:
     parser.add_argument(
         "--remove-values",
         type=Path,
-        help="TOML file of retired values to drop from the merged result",
+        action="append",
+        default=[],
+        help="TOML file of retired values to drop from the merged result; may repeat",
     )
 
     args = parser.parse_args(argv)
@@ -718,15 +720,15 @@ Comma-Delimited Strings:
     # Validate input files exist
     for filepath in [
         *args.files,
-        *([args.remove_values] if args.remove_values else []),
+        *args.remove_values,
     ]:
         if not filepath.exists():
             reason = f"File not found: {filepath}"
             parser.error(reason)
 
     merged_doc = merge_toml_files(args.files, args.list_strategy)
-    if args.remove_values:
-        remove_values(merged_doc, load_toml_file(args.remove_values))
+    for path in args.remove_values:
+        remove_values(merged_doc, load_toml_file(path))
 
     toml_output = tomlkit.dumps(merged_doc)
     if args.output:

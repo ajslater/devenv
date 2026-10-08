@@ -19,7 +19,7 @@ from scripts.merge_package_json import (
 _ROOT = Path(__file__).resolve().parent.parent
 _TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _REMOVE_PACKAGES = _ROOT / "remove_node_packages.txt"
-_REMOVE_VALUES = _ROOT / "merge" / "node_root" / "package-remove.json"
+_REMOVE_VALUES = _ROOT / "merge" / "node_root" / "package.remove.json"
 # A child project that has drifted from the template the ways real ones do.
 _PROJECT = {
     "name": "demo",

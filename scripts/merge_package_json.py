@@ -487,7 +487,9 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser.add_argument(
         "--remove-values",
         type=Path,
-        help="JSON file of retired array values and script commands to drop from the merged result",
+        action="append",
+        default=[],
+        help="JSON file of retired array values and script commands to drop from the merged result; may repeat",
     )
 
     args = parser.parse_args(argv)
@@ -495,7 +497,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     # Validate input files exist
     for filepath in [
         *args.files,
-        *([args.remove_values] if args.remove_values else []),
+        *args.remove_values,
     ]:
         if not filepath.exists():
             reason = f"File not found: {filepath}"
@@ -505,8 +507,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     merged_data = merge_package_json_files(args.files, args.list_strategy)
     if args.remove:
         remove_packages(merged_data, frozenset(read_lines(args.remove)))
-    if args.remove_values:
-        remove_values(merged_data, load_package_json(args.remove_values))
+    for path in args.remove_values:
+        remove_values(merged_data, load_package_json(path))
 
     # Output the result
     json_output = json.dumps(merged_data, indent=args.indent, ensure_ascii=False)

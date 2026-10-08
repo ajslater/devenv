@@ -96,26 +96,27 @@ class ConfigMerge:
     options: tuple[tuple[str, str], ...] = ()
 
 
+def retirement_sibling(template: Path) -> Path:
+    """
+    Return the file that retires values from what template merges.
+
+    merge/<feature>/<stem><ext> pairs with merge/<feature>/<stem>.remove<ext>,
+    in the same format, listing values to drop at the same key paths.
+    """
+    return template.with_name(f"{template.stem}.remove{template.suffix}")
+
+
 CONFIG_MERGES: Final = (
     ConfigMerge(
         "node_root",
         merge_package_json.main,
         "package.json",
         "package.json",
-        (
-            ("--remove", "remove_node_packages.txt"),
-            ("--remove-values", "merge/node_root/package-remove.json"),
-        ),
+        (("--remove", "remove_node_packages.txt"),),
     ),
     ConfigMerge("docs", merge_yaml.main, ".readthedocs.yaml", ".readthedocs.yaml"),
     ConfigMerge("docs", merge_yaml.main, "mkdocs.yml", "mkdocs.yml"),
-    ConfigMerge(
-        "python",
-        merge_toml.main,
-        "pyproject-template.toml",
-        "pyproject.toml",
-        (("--remove-values", "merge/python/pyproject-remove.toml"),),
-    ),
+    ConfigMerge("python", merge_toml.main, "pyproject-template.toml", "pyproject.toml"),
     ConfigMerge("ci", merge_yaml.main, "compose.yaml", "compose.yaml"),
 )
 
@@ -151,6 +152,12 @@ def merge_config(
     ]
     if not sources:
         return None
+    retirements = [
+        arg
+        for template in sources
+        if (sibling := retirement_sibling(template)).is_file()
+        for arg in ("--remove-values", str(sibling))
+    ]
     output = pd / merge.output
     if output.is_file():
         sources.append(output)
@@ -161,7 +168,7 @@ def merge_config(
             if (devenv_src / rel).is_file()
             for arg in (flag, str(_narrowed(devenv_src / rel, stamp, Path(tmp))))
         ]
-        merge.merger([*map(str, sources), "-o", str(output), *options])
+        merge.merger([*map(str, sources), "-o", str(output), *options, *retirements])
     return output
 
 

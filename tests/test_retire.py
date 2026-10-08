@@ -7,11 +7,11 @@ A child repo sheds these on its next update-devenv:
 - merge_dotfiles drops the lines in remove_dotfile_lines.txt from every merged
   dotfile.
 - merge_toml --remove-values drops the values in
-  merge/python/pyproject-remove.toml from pyproject.toml's arrays and
+  merge/python/pyproject-template.remove.toml from pyproject.toml's arrays and
   comma-delimited strings, dropping any it empties, and drops each key that
   holds a scalar it lists.
 - merge_package_json --remove-values drops the values in
-  merge/node_root/package-remove.json from package.json's arrays and the
+  merge/node_root/package.remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
 - merge_package_json --remove drops the packages in remove_node_packages.txt
   from every dependency section of package.json.
@@ -26,17 +26,20 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import tomlkit
+import update_devenv
 from _devenv_common import read_lines
 
 from scripts import merge_package_json, merge_toml
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     import pytest
 
 _ROOT = Path(__file__).resolve().parent.parent
-_PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-remove.toml"
+_PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
-_PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package-remove.json"
+_PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package.remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
 _SH_PLUGIN = "prettier-plugin-sh"
@@ -195,7 +198,7 @@ def test_merge_toml_cli_retires_codespell_hidden_skips(
 
 
 def test_merge_toml_cli_remove(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """--remove-values applies pyproject-remove.toml after the merge."""
+    """--remove-values applies pyproject-template.remove.toml after the merge."""
     template = tmp_path / "template.toml"
     template.write_text('[tool.uv.build-backend]\nsource-include = ["NEWS.md"]\n')
     project = tmp_path / "pyproject.toml"
@@ -265,7 +268,7 @@ def test_complexipy_exclude_is_retired(
 
 
 def test_template_ships_no_retired_value() -> None:
-    """The template must not reintroduce what pyproject-remove.toml retires."""
+    """The template must not reintroduce what pyproject-template.remove.toml retires."""
     retired = tomlkit.parse(_PYPROJECT_REMOVE.read_text())
     template = tomlkit.parse(_PYPROJECT_TEMPLATE.read_text())
     before = tomlkit.dumps(template)
@@ -390,7 +393,7 @@ def test_template_ships_no_removed_package() -> None:
 def test_merge_package_json_cli_remove_values(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """--remove-values applies package-remove.json after the merge."""
+    """--remove-values applies package.remove.json after the merge."""
     project = tmp_path / "package.json"
     project.write_text(
         json.dumps(
@@ -466,7 +469,7 @@ def test_merge_package_json_cli_retires_a_script_step_the_project_moved(
 
 
 def test_package_template_ships_no_retired_value() -> None:
-    """The template must not reintroduce what package-remove.json retires."""
+    """The template must not reintroduce what package.remove.json retires."""
     template = json.loads(_PACKAGE_TEMPLATE.read_text())
     before = json.dumps(template)
 
@@ -500,3 +503,34 @@ def test_no_copied_file_is_also_removed() -> None:
         if path.is_file()
     }
     assert not shipped & _removed_files()
+
+
+# ---------------------------------------------------------------------------
+# Retirement siblings
+# ---------------------------------------------------------------------------
+
+
+def test_every_remove_file_pairs_with_a_template() -> None:
+    """A .remove file without its template would never be applied."""
+    removes = sorted((_ROOT / "merge").glob("*/*.remove.*"))
+    assert removes
+    for remove in removes:
+        stem, ext = remove.name.split(".remove", 1)
+        assert (remove.parent / f"{stem}{ext}").is_file(), remove
+
+
+def test_update_passes_each_templates_sibling(tmp_path: Path) -> None:
+    """update-devenv retires through the sibling of every template it merges."""
+    calls: list[list[str]] = []
+
+    def merger(argv: Sequence[str]) -> None:
+        calls.append(list(argv))
+
+    merge = update_devenv.ConfigMerge(
+        "python", merger, "pyproject-template.toml", "pyproject.toml"
+    )
+
+    update_devenv.merge_config(_ROOT, tmp_path, ["python", "django"], merge)
+
+    (argv,) = calls
+    assert argv[argv.index("--remove-values") + 1] == str(_PYPROJECT_REMOVE)

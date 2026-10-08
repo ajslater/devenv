@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 _ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
 _DJANGO_TEMPLATE = _ROOT / "merge" / "django" / "pyproject-template.toml"
-_PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-remove.toml"
+_PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"
 _PYPROJECT_INIT = _ROOT / "init" / "python" / "pyproject.toml"
 # A child's own pyproject.toml, with the comments, layout and values a merge
 # used to mangle.
