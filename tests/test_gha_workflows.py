@@ -5,8 +5,9 @@ Structural invariants that keep the gate, the fail-fast matrix and the
 required-check aggregator honest, the rules every caller follows (the
 standard copy/gha_std ci.yml and a codex-shaped fixture with its own jobs
 between ci and release), what PyPI trusted publishing needs from them,
-hardening (actions pinned by commit SHA, a timeout on every job), then
-actionlint over a child repo assembled from copy/ with each caller.
+hardening shared with devenv's own .github (actions pinned by commit SHA, a
+timeout on every job), then actionlint over a child repo assembled from copy/
+with each caller.
 """
 
 from __future__ import annotations
@@ -29,8 +30,9 @@ _CI = _ROOT / "copy" / "ci"
 _WORKFLOWS = _CI / ".github" / "workflows"
 _ACTIONS = _CI / ".github" / "actions"
 _STD_CALLER = _ROOT / "copy" / "gha_std" / ".github" / "workflows" / "ci.yml"
-# Every .github devenv ships; the fixtures model other repos.
-_GITHUB_DIRS = (_CI / ".github", _STD_CALLER.parent.parent)
+_DEVENV_CI = _ROOT / ".github" / "workflows" / "ci.yml"
+# Every .github devenv ships or runs; the fixtures model other repos.
+_GITHUB_DIRS = (_CI / ".github", _STD_CALLER.parent.parent, _DEVENV_CI.parent.parent)
 _CALLERS = {
     "std": _STD_CALLER,
     "codex": Path(__file__).resolve().parent / "fixtures" / "gha" / "codex-ci.yml",
@@ -491,7 +493,7 @@ def test_only_ci_yml_publishes_to_pypi() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Hardening in every .github devenv ships
+# Hardening in every .github devenv ships or runs
 # ---------------------------------------------------------------------------
 
 
@@ -563,7 +565,7 @@ def test_every_job_has_a_timeout() -> None:
 
 
 # ---------------------------------------------------------------------------
-# actionlint over a child repo
+# actionlint over a child repo and devenv's own CI
 # ---------------------------------------------------------------------------
 
 
@@ -577,9 +579,9 @@ def _child_repo(tmp_path: Path, caller: str) -> Path:
     return repo
 
 
-def _actionlint(repo: Path) -> subprocess.CompletedProcess[str]:
+def _actionlint(repo: Path, *files: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(  # noqa: S603
-        [_ACTIONLINT, "-no-color"],
+        [_ACTIONLINT, "-no-color", *files],
         cwd=repo,
         check=False,
         capture_output=True,
@@ -614,3 +616,11 @@ def test_actionlint_checks_the_call_contract(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert 'input "bogus" is not defined' in result.stdout
     assert 'property "deploy_it" is not defined' in result.stdout
+
+
+@pytest.mark.skipif(not _ACTIONLINT, reason="needs actionlint")
+def test_actionlint_devenv_ci() -> None:
+    """The repo's own workflow lints too; the ci feature that would lint it is off here."""
+    result = _actionlint(_ROOT, _DEVENV_CI)
+
+    assert result.returncode == 0, result.stdout + result.stderr
