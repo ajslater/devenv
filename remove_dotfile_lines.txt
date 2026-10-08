@@ -1,3 +1,4 @@
 .circleci
 .*cache/
 .venv
+package-lock.json

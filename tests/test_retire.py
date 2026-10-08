@@ -382,7 +382,7 @@ def test_template_ships_no_removed_package() -> None:
     """A template that still listed a retired package would reinstall it."""
     removed_packages = set(_removed_node_packages())
     for template in (_PACKAGE_TEMPLATE, _PACKAGE_INIT_TEMPLATE):
-        dev_dependencies = json.loads(template.read_text())["devDependencies"]
+        dev_dependencies = json.loads(template.read_text()).get("devDependencies", {})
         assert not removed_packages & dev_dependencies.keys(), template
 
 

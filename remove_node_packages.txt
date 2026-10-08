@@ -11,3 +11,4 @@ remark-preset-lint-recommended
 remark-preset-prettier
 eslint-plugin-import
 eslint-import-resolver-alias
+eslint-plugin-package-json

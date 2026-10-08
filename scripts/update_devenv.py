@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Update a project by merging devenv templates and copying root files.
+Update a project by merging devenv templates and copying feature files.
 
 Main orchestrator that:
 1. Deletes obsolete files listed in remove_files.txt
-2. Merges dotfiles from templates/
-3. Copies root files from root/<feature>/
+2. Merges dotfiles from merge/<feature>/
+3. Copies files from copy/<feature>/
 4. Merges config files (package.json, YAML, TOML)
 5. Runs formatters on merged files
 """
@@ -84,7 +84,7 @@ def merge_template(
     return output_name
 
 
-def main() -> None:
+def main(*, update_deps: bool = True) -> None:
     """Run the full devenv update pipeline."""
     devenv_src = get_devenv_src()
     pd = Path.cwd()
@@ -118,7 +118,7 @@ def main() -> None:
     # Refresh node dependency versions before merging. `bun update` rewrites
     # every spec to a caret range, so running it after the merge would clobber
     # the deliberately unbounded (>=) ranges the template reasserts.
-    if (pd / "package.json").exists():
+    if update_deps and (pd / "package.json").exists():
         run(["bun", "update"])
 
     # Merge config templates
@@ -179,7 +179,13 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    argparse.ArgumentParser(
-        description="Update project with devenv templates and root files"
-    ).parse_args()
-    main()
+    parser = argparse.ArgumentParser(
+        description="Update project with devenv templates and feature files"
+    )
+    parser.add_argument(
+        "--no-update-deps",
+        action="store_true",
+        help="Keep node dependency versions instead of running `bun update`",
+    )
+    args = parser.parse_args()
+    main(update_deps=not args.no_update_deps)

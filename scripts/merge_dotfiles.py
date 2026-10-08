@@ -3,7 +3,7 @@
 Merge development environment dotfiles.
 
 For each enabled DEVENV_<FEATURE>, merges .*ignore and .*rc files from
-templates/<feature>/ into the destination directory by deduplicating and
+merge/<feature>/ into the destination directory by deduplicating and
 sorting lines, with "!" negations after every other line. Lines listed in
 remove_dotfile_lines.txt are retired: they are dropped from every merged file.
 An ignore file also drops each pattern that another of its patterns already
@@ -168,7 +168,7 @@ def read_retired_lines(devenv_src: Path) -> frozenset[str]:
 def _iter_template_dotfiles(
     templates_dir: Path, features: list[str] | None
 ) -> Generator[Path]:
-    """Yield the dotfiles in templates/<feature>/ for each enabled feature."""
+    """Yield the dotfiles in merge/<feature>/ for each enabled feature."""
     for _feature, feature_dir in iter_feature_dirs(templates_dir, features):
         for src_file in sorted(feature_dir.iterdir()):
             if src_file.is_file() and _is_dotfile(src_file.name):
@@ -182,7 +182,7 @@ def merge_dotfiles(
     retired_lines: frozenset[str] = NO_RETIRED_LINES,
 ) -> tuple[int, int, int, list[Path]]:
     """
-    Merge dotfiles from templates/<feature>/ into dest, dropping retired lines.
+    Merge dotfiles from merge/<feature>/ into dest, dropping retired lines.
 
     Returns (created_count, skipped_count, merged_count, list_of_dest_files).
     """

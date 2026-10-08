@@ -20,6 +20,3 @@ markdown_extensions:
       permalink: true
 extra_css:
   - style.css
-nav:
-  - NEWS.md
-  - DOCKER.md

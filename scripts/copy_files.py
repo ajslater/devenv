@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Copy files from devenv root/<feature>/ directories to a target project.
+Copy files from devenv copy/<feature>/ directories to a target project.
 
 For each enabled DEVENV_<FEATURE>, recursively copies all files from
-root/<feature>/ into the target directory, preserving relative paths.
+copy/<feature>/ into the target directory, preserving relative paths.
 Skips backup files (*~) and files identical to the destination.
 """
 
@@ -26,7 +26,7 @@ def copy_files(
     root_dir: Path, dest: Path, features: list[str] | None = None
 ) -> tuple[int, int, list[Path]]:
     """
-    Copy files from root/<feature>/ to dest, preserving relative paths.
+    Copy files from copy/<feature>/ to dest, preserving relative paths.
 
     Returns (copied_count, skipped_count, list_of_dest_files).
     """
