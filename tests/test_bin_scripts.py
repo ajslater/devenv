@@ -629,6 +629,71 @@ def test_manage_trusts_an_explicit_settings_module(ambiguous_django: Project) ->
     assert "Found 2 django settings modules" not in result.stderr
 
 
+@pytest.mark.parametrize(
+    ("verdict", "message"),
+    [
+        ("no-app", "django.contrib.staticfiles is not installed. Nothing to collect."),
+        ("no-root", "settings.STATIC_ROOT is unset. Nothing to collect."),
+        (
+            "no-files",
+            "No static files found outside rest_framework. Nothing to collect.",
+        ),
+    ],
+)
+def test_collectstatic_skips_when_django_has_nothing_to_collect(
+    project: Project, verdict: str, message: str
+) -> None:
+    """Without staticfiles, collectstatic is not a command, so ask django first."""
+    project.install("django/collectstatic.sh", "django/pm")
+    project.fake("uv")
+
+    result = project.script("collectstatic.sh", FAKE_STDOUT=verdict)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == f"{message}\n"
+    (call,) = project.calls()
+    assert call["argv"][:5] == [
+        "run",
+        "python3",
+        "bin/manage.py",
+        "shell",
+        "--verbosity",
+    ]
+
+
+def test_collectstatic_collects_when_django_has_static_files(project: Project) -> None:
+    """Django reporting files to collect runs the real command."""
+    project.install("django/collectstatic.sh", "django/pm")
+    project.fake("uv")
+
+    result = project.script("collectstatic.sh", FAKE_STDOUT="collect")
+
+    assert result.returncode == 0, result.stderr
+    _ask, collect = project.argvs("uv")
+    assert collect == [
+        "run",
+        "python3",
+        "bin/manage.py",
+        "collectstatic",
+        "--clear",
+        "--no-input",
+        "--ignore",
+        "rest_framework",
+    ]
+
+
+def test_collectstatic_fails_on_an_answer_it_does_not_know(project: Project) -> None:
+    """An answer the script does not know is an error that quotes it, not a skip."""
+    project.install("django/collectstatic.sh", "django/pm")
+    project.fake("uv")
+
+    result = project.script("collectstatic.sh", FAKE_STDOUT="Traceback")
+
+    assert result.returncode == 1
+    assert "Traceback" in result.stderr
+    assert len(project.calls()) == 1
+
+
 # ---------------------------------------------------------------------------
 # docker helpers
 # ---------------------------------------------------------------------------

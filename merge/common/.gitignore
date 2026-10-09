@@ -2,7 +2,8 @@ __pycache__/
 __pypackages__/
 __snapshots__
 .*cache
-.claude
+.claude/settings.local.json
+.claude/worktrees/
 .coverage*
 .dmypy.json
 .docker-token

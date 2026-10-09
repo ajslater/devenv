@@ -39,6 +39,9 @@ exclude = [
 
 [tool.uv.build-backend]
 source-include = [
+  # bun replaced npm, and remove_dotfile_lines.txt retired it from the ignore
+  # files in 0.2.0; the pyproject entry was missed.
+  "package-lock.json",
   # CircleCI is no longer used (and this entry was misspelled anyway).
   ".circlci/**",
   # remark is no longer used; the ".*ignore" glob covered it anyway.
@@ -96,6 +99,8 @@ skip = [
   "./uv.lock",
   # Every path codespell walks starts with ".", so this matched nothing.
   "/uv.lock",
+  # bun replaced npm; see source-include above.
+  "./package-lock.json",
 ]
 
 [tool.basedpyright]
