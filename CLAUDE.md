@@ -78,18 +78,18 @@ each feature's requirements, whether new projects get it, and the canonical
 include order. Update and `add_features.py` refuse an unknown feature or an
 unmet requirement.
 
-| Feature     | Config             | Purpose                                        | Requires            |
-| ----------- | ------------------ | ---------------------------------------------- | ------------------- |
-| `common`    | `cfg/common.mk`    | lint/fix/clean/update-devenv targets, help     | `node_root`         |
-| `python`    | `cfg/python.mk`    | Python install/lint/test/build/publish targets |                     |
-| `node`      | `cfg/node.mk`      | Node install/update targets                    |                     |
-| `node_root` | `cfg/node_root.mk` | Root-level Node package.json and eslint base   |                     |
-| `docs`      | `cfg/docs.mk`      | MkDocs build/serve targets                     | `python`            |
-| `frontend`  | `cfg/frontend.mk`  | `frontend/` install/lint/test/build            |                     |
-| `django`    | `cfg/django.mk`    | djlint, collectstatic before the build         | `frontend` `python` |
-| `docker`    | `cfg/docker.mk`    | Dockerfile lint/fix                            |                     |
-| `ci`        | `cfg/ci.mk`        | Reusable GitHub Actions workflows and actions  | `python`            |
-| `gha_std`   | `cfg/gha_std.mk`   | The standard `ci.yml` composing them           | `ci`                |
+| Feature     | Config             | Purpose                                        | Requires    |
+| ----------- | ------------------ | ---------------------------------------------- | ----------- |
+| `common`    | `cfg/common.mk`    | lint/fix/clean/update-devenv targets, help     | `node_root` |
+| `python`    | `cfg/python.mk`    | Python install/lint/test/build/publish targets |             |
+| `node`      | `cfg/node.mk`      | Node install/update targets                    |             |
+| `node_root` | `cfg/node_root.mk` | Root-level Node package.json and eslint base   |             |
+| `docs`      | `cfg/docs.mk`      | MkDocs build/serve targets                     | `python`    |
+| `frontend`  | `cfg/frontend.mk`  | `frontend/` install/lint/test/build            |             |
+| `django`    | `cfg/django.mk`    | djlint, collectstatic before the build         | `python`    |
+| `docker`    | `cfg/docker.mk`    | Dockerfile lint/fix                            |             |
+| `ci`        | `cfg/ci.mk`        | Reusable GitHub Actions workflows and actions  | `python`    |
+| `gha_std`   | `cfg/gha_std.mk`   | The standard `ci.yml` composing them           | `ci`        |
 
 A child's `cfg/<project>.mk` that devenv does not ship (codex's `cfg/codex.mk`)
 is project-owned; put project-specific targets there, never in a feature `.mk`.

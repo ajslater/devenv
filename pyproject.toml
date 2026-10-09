@@ -7,7 +7,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
 name = "devenv"
-version = "0.2.1"
+version = "0.2.2"
 
 [[project.authors]]
 name = "AJ Slater"

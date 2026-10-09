@@ -27,6 +27,7 @@ FEATURE_SETS = {
     "python-only": ("python",),
     "defaults": ("common", "node", "node_root", "python"),
     "no-python": ("common", "docker", "node", "node_root"),
+    "django-no-frontend": ("django", "python"),
     "all": tuple(FEATURES),
 }
 # A project that already has its own values in every merged file.
