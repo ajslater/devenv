@@ -1,5 +1,22 @@
 # devenv News
 
+## v0.2.3
+
+- Fixes
+    - `bin/collectstatic.sh` asks django whether there is anything to collect
+      and skips, saying why, when `django.contrib.staticfiles` is not installed,
+      `STATIC_ROOT` is unset or no finder has files. It used to fail
+      `make build` with "Unknown command" in a project with no static files.
+    - The python pyproject template no longer ships one project's sdist globs
+      (`img/**`, `mock_comics/**`, `.picopt_treestamps.yaml`, `.env.platforms`).
+      The docs and frontend features now add their own (`docs/**`, `mkdocs.yml`,
+      `.readthedocs.yaml`; `frontend/**`). `package-lock.json` is retired from
+      `source-include` and the codespell skip list.
+    - `.claude` is retired from the ignore files. Only
+      `.claude/settings.local.json` and `.claude/worktrees/` are ignored now, so
+      a project's `.claude/rules/`, `settings.json`, commands and agents can be
+      committed, which is what Claude Code expects.
+
 ## v0.2.2
 
 - Fixes
