@@ -7,3 +7,6 @@
 
 # since 0.2.0
 package-lock.json
+
+# since 0.2.3
+.claude

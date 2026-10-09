@@ -1,0 +1,2 @@
+[tool.uv.build-backend]
+source-include = [".readthedocs.yaml", "docs/**", "mkdocs.yml"]

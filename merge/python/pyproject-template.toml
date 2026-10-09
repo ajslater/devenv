@@ -38,29 +38,12 @@ build-backend = "uv_build"
 [tool.uv.build-backend]
 module-root = ""
 source-include = [
-  ".env.platforms",
   ".*ignore",
-  ".picopt_treestamps.yaml",
-  ".readthedocs.yaml",
   ".shellcheckrc",
   "bin/**",
   "bun.lock",
   "compose.yaml",
-  "docs/DOCKER.md",
-  "docs/NEWS",
-  "docs/NEWS.md",
-  "docs/README.md",
-  "docs/requirements.txt",
-  "docs/style.css",
-  "docs/style.material.css",
-  "docs/style.mkdocs.css",
-  "docs/style.readthedocs.css",
-  "docs/WINDOWS.md",
   "eslint.config.js",
-  "frontend/**",
-  "img/**",
-  "mkdocs.yml",
-  "mock_comics/**",
   "package.json",
   "tests/**",
   "uv.lock",
@@ -68,7 +51,7 @@ source-include = [
   "Makefile",
   "NEWS.md"
 ]
-source-exclude = ["**/*\\~", "**/.DS_Store", "frontend/node_modules"]
+source-exclude = ["**/*\\~", "**/.DS_Store"]
 wheel-exclude = ["**/*\\~", "**/.DS_Store"]
 
 [tool.basedpyright]
