@@ -8,8 +8,8 @@ A child repo sheds these on its next update-devenv:
   dotfile.
 - merge_toml --remove-values drops the values in
   merge/python/pyproject-template.remove.toml from pyproject.toml's arrays and
-  comma-delimited strings, dropping any it empties, and drops each key that
-  holds a scalar it lists.
+  comma-delimited strings, dropping any it empties, drops each key that
+  holds a scalar it lists and drops each table it lists empty.
 - merge_package_json --remove-values drops the values in
   merge/node_root/package.remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
@@ -172,6 +172,47 @@ def test_remove_values_drops_keys_holding_a_retired_scalar() -> None:
 
     assert "a" not in doc["tool"]
     assert doc["tool"]["b"]["flag"] is False
+
+
+def test_remove_values_drops_tables_retired_empty() -> None:
+    """An empty retired table drops the table at its key path, whatever it holds."""
+    doc = tomlkit.parse("""\
+[tool.a]
+keep = true
+
+[tool.a.b]
+flag = true
+
+[tool.c.d]
+flag = true
+
+[tool.e]
+flag = true
+""")
+    retired = tomlkit.parse("[tool.a.b]\n\n[tool.c.d]\n\n[tool.missing]\n")
+
+    merge_toml.remove_values(doc, retired)
+
+    assert tomlkit.dumps(doc) == "[tool.a]\nkeep = true\n\n[tool.e]\nflag = true\n"
+
+
+def test_merge_toml_cli_retires_pytest_ini_options(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pytest refuses [tool.pytest.ini_options] beside the template's [tool.pytest]."""
+    project = tmp_path / "pyproject.toml"
+    project.write_text(
+        '[tool.pytest.ini_options]\naddopts = "-ra"\ntestpaths = ["tests"]\n'
+    )
+    argv = ["merge_toml.py", str(_PYPROJECT_TEMPLATE), str(project)]
+    argv += ["-o", str(project), "--remove-values", str(_PYPROJECT_REMOVE)]
+    monkeypatch.setattr(sys, "argv", argv)
+
+    merge_toml.main()
+
+    pytest_table = tomlkit.parse(project.read_text())["tool"]["pytest"]
+    assert "ini_options" not in pytest_table
+    assert "--strict-config" in pytest_table["addopts"]
 
 
 def test_merge_toml_cli_retires_codespell_hidden_skips(
