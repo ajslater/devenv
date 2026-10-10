@@ -7,8 +7,6 @@ PR lands. A fake ``gh`` on PATH logs every call and answers
 ``gh release view`` from a state file, so nothing reaches GitHub.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import shutil

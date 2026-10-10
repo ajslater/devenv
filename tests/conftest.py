@@ -1,7 +1,5 @@
 """Shared fixtures for the tests that run bin/ shell scripts."""
 
-from __future__ import annotations
-
 import os
 import shutil
 import subprocess

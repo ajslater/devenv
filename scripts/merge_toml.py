@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = [
 #   "packaging>=26.0",
-#   "tomlkit~=0.14",
+#   "tomlkit~=0.15",
 # ]
 # ///
 """
@@ -26,8 +26,6 @@ Where both files hold a key:
 
 Once requires-python is 3.11 or more, dependencies lose their [toml] extra.
 """
-
-from __future__ import annotations
 
 import argparse
 import copy
@@ -197,7 +195,7 @@ def parse_python_requirement(dep_string: str) -> tuple[str, SpecifierSet | None]
     except InvalidRequirement:
         # If parsing fails, try to extract just the package name
         # Handle simple cases like "package-name" without version
-        if match := re.match(r"^([a-zA-Z0-9._-]+)", dep_string.strip()):
+        if match := re.prefixmatch(r"^([a-zA-Z0-9._-]+)", dep_string.strip()):
             return match.group(1).lower(), None
         # If all else fails, return the string as-is
         return dep_string.strip().lower(), None

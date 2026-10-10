@@ -6,8 +6,6 @@ inline metadata, so an undeclared import only works while some other
 environment happens to provide it.
 """
 
-from __future__ import annotations
-
 import ast
 import re
 import sys
@@ -89,5 +87,11 @@ def test_imports_are_declared(name: str) -> None:
 
 @pytest.mark.parametrize("name", _ENTRY_POINTS)
 def test_requires_python(name: str) -> None:
-    """The mergers use 3.14 syntax, so every entry point says so."""
-    assert _metadata(_SCRIPTS / name)["requires-python"] == ">=3.14"
+    """
+    Every entry point says 3.15.
+
+    The scripts read and write text with no encoding argument, which 3.15's
+    UTF-8 default makes right everywhere, and carry no `__future__` import
+    for their annotations, which are deferred by default.
+    """
+    assert _metadata(_SCRIPTS / name)["requires-python"] == ">=3.15"

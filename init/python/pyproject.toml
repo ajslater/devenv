@@ -3,6 +3,7 @@ classifiers = []
 dependencies = []
 description = "."
 keywords = []
+requires-python = ">=3.15"
 license = "GPL-3.0-only"
 name = "x"
 version = "0.1.0"

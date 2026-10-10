@@ -1,7 +1,5 @@
 """copy/django/cfg/django.mk run by make, with and without frontend.mk."""
 
-from __future__ import annotations
-
 import shutil
 import subprocess
 from pathlib import Path
@@ -26,7 +24,7 @@ def test_collectstatic_builds_a_frontend_only_when_there_is_one(
     """Collectstatic needs no frontend, and builds one first when included."""
     assert _MAKE
     for feature in features:
-        shutil.copy(_COPY / feature / "cfg" / f"{feature}.mk", tmp_path)
+        (_COPY / feature / "cfg" / f"{feature}.mk").copy_into(tmp_path)
     (tmp_path / "Makefile").write_text(
         "".join(f"include {feature}.mk\n" for feature in features)
     )

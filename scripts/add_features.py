@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = [
 #   "mbake~=1.4.5",
 # ]
@@ -14,8 +14,6 @@ installs the starter files from init/<feature>/ without replacing any file the
 project already has. --convert also keeps an old Makefile and
 eslint.config.js as *.orig.* references before the starters take their place.
 """
-
-from __future__ import annotations
 
 import argparse
 from pathlib import Path

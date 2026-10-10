@@ -11,11 +11,8 @@ Every test runs once per bash the bash fixture finds, macOS's stock 3.2 among
 them, and runs scripts by their #!/usr/bin/env bash, as make does.
 """
 
-from __future__ import annotations
-
 import json
 import os
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -451,7 +448,7 @@ def _make_project(tmp_path: Path, bindir: Path) -> ShellProject:
         fake.chmod(0o755)
     bindir.mkdir(exist_ok=True)
     for name in _SCRIPT_NAMES:
-        shutil.copy2(_BIN / name, bindir / name)
+        (_BIN / name).copy(bindir / name, preserve_metadata=True)
     log = tmp_path / "tools.jsonl"
     env = _base_env()
     env["PATH"] = f"{fakebin}{os.pathsep}{env.get('PATH', '')}"

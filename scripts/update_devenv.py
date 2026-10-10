@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = [
 #   "mbake~=1.4.5",
 #   "packaging>=26.0",
 #   "ruamel.yaml~=0.19.1",
 #   "semver~=3.1",
-#   "tomlkit~=0.14",
+#   "tomlkit~=0.15",
 # ]
 # ///
 """
@@ -26,8 +26,6 @@ devenv's NEWS since that version is printed.
 Run it with `make update-devenv`, which sets the DEVENV_<FEATURE> flags from
 the cfg/*.mk files the project Makefile includes.
 """
-
-from __future__ import annotations
 
 import argparse
 import re
@@ -215,7 +213,7 @@ def print_news_since(devenv_src: Path, stamp: Version | None) -> None:
     newer = [
         section
         for section in re.split(r"(?m)^(?=## v)", news.read_text())
-        if (match := _NEWS_HEADING_RE.match(section))
+        if (match := _NEWS_HEADING_RE.prefixmatch(section))
         and parse_version(match["version"]) > stamp
     ]
     if newer:

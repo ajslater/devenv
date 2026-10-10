@@ -10,8 +10,6 @@ timeout on every job), then actionlint over a child repo assembled from copy/
 with each caller.
 """
 
-from __future__ import annotations
-
 import json
 import re
 import shutil
@@ -572,7 +570,7 @@ def test_every_job_has_a_timeout() -> None:
 def _child_repo(tmp_path: Path, caller: str) -> Path:
     """Lay out copy/ci and copy/python/bin the way update-devenv would."""
     repo = tmp_path / "child"
-    shutil.copytree(_CI, repo)
+    _CI.copy(repo, preserve_metadata=True)
     shutil.copytree(_ROOT / "copy" / "python" / "bin", repo / "bin", dirs_exist_ok=True)
     (repo / ".github" / "workflows" / "ci.yml").write_text(caller)
     subprocess.run([_GIT, "init", "-q"], cwd=repo, check=True)  # noqa: S603

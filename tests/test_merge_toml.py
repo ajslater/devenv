@@ -5,8 +5,6 @@ The project's own pyproject.toml is the base: its values, order, comments and
 layout stay, and each template only fills in what the project lacks.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -325,7 +323,7 @@ python-version = "{python}"
 
 
 @pytest.mark.parametrize(
-    ("project", "expected"), [("3.14", "3.14"), ("3.10", "3.11"), ("3.11", "3.11")]
+    ("project", "expected"), [("3.15", "3.15"), ("3.10", "3.11"), ("3.11", "3.11")]
 )
 def test_python_versions_take_the_highest(
     tmp_path: Path, project: str, expected: str
