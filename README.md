@@ -237,7 +237,8 @@ entry. `make update-devenv` then removes it from each project:
   `merge/<feature>/<stem><ext>` merges, in the same format and at the same key
   paths. A list there names the values to drop from the array, comma list, YAML
   list or `&&` script at that path; a table or object emptied this way is
-  removed. Examples: `merge/python/pyproject-template.remove.toml` and
+  removed. An empty TOML table drops the whole table at its key path. Examples:
+  `merge/python/pyproject-template.remove.toml` and
   `merge/node_root/package.remove.json`.
 
 In the three `.txt` lists, blank lines and `#` lines are skipped, and a

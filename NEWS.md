@@ -1,5 +1,12 @@
 # devenv News
 
+## v0.2.6
+
+- Fixes
+    - `[tool.pytest.ini_options]` is deleted from `pyproject.toml`. Move any
+      settings of your own from it (see `git diff pyproject.toml`) to
+      `[tool.pytest]` as native TOML values.
+
 ## v0.2.5
 
 - Fixes

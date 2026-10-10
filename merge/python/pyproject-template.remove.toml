@@ -1,5 +1,6 @@
 # Values retired from pyproject.toml. update-devenv drops each value listed
-# here from the array at the same key path in a project's pyproject.toml.
+# here from the array at the same key path in a project's pyproject.toml, and
+# each empty table here drops the whole table at its key path.
 
 [dependency-groups]
 dev = [
@@ -116,6 +117,10 @@ omit = [
   # this in its name.
   "*__pycache__*",
 ]
+
+[tool.pytest.ini_options]
+# The template ships native [tool.pytest] settings, and pytest refuses a
+# pyproject.toml that also has this INI-style table.
 
 [tool.radon]
 exclude = [

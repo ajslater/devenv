@@ -471,6 +471,18 @@ def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
         del doc[key]
 
 
+def _remove_table_values(doc: Any, key: str, retired: Any) -> None:
+    """
+    Remove retired's values from the table at doc[key].
+
+    Drops the table itself once nothing is left, or at once when retired is empty.
+    """
+    target = doc[key]
+    remove_values(target, retired)
+    if not (retired and target):
+        del doc[key]
+
+
 def remove_values(doc: Any, retired: Any) -> None:
     """
     Remove retired values from doc, in place.
@@ -478,7 +490,8 @@ def remove_values(doc: Any, retired: Any) -> None:
     retired mirrors doc's structure. An array in it lists values to drop from
     the array, or from the comma-delimited string, at the same key path in doc.
     An array, string or table emptied that way is removed, so a fully retired
-    key vanishes instead of lingering as `[]`, `""` or a bare `[tool.x]`. Any
+    key vanishes instead of lingering as `[]`, `""` or a bare `[tool.x]`. An
+    empty table drops the whole table at its key path, whatever it holds. Any
     other value drops the key itself when doc holds that same value. Missing
     keys are ignored, the rest of each array keeps its order and formatting,
     and the rest of each string keeps its order.
@@ -488,9 +501,7 @@ def remove_values(doc: Any, retired: Any) -> None:
             continue
         target = doc[key]
         if _is_table_like(value) and _is_table_like(target):
-            remove_values(target, value)
-            if not target:
-                del doc[key]
+            _remove_table_values(doc, key, value)
         elif isinstance(value, list | Array):
             _remove_items(doc, key, frozenset(str(item) for item in value))
         elif value == target:

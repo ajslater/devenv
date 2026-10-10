@@ -149,7 +149,8 @@ Merges only add, so retiring something devenv used to ship needs an entry.
   `merge/<feature>/<stem><ext>` merges, same format, same key path, such as
   `merge/python/pyproject-template.remove.toml` (`tool.codespell.skip`) and
   `merge/node_root/package.remove.json` (`prettier.plugins`). An emptied table
-  or object is removed.
+  or object is removed. An empty TOML table drops the whole table at its key
+  path (`tool.pytest.ini_options`).
 
 The three `.txt` lists skip blank and `#` lines, and `# since X.Y.Z` marks the
 entries below it. A child stamped with that version or later skips them. When
