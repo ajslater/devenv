@@ -1,7 +1,5 @@
 """Shared utilities for devenv scripts."""  # noqa: INP001
 
-from __future__ import annotations
-
 import os
 import re
 import shutil

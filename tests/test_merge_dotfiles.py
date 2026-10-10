@@ -10,8 +10,6 @@ The merged lines are sorted with "!" negations last, since the last matching
 line wins.
 """
 
-from __future__ import annotations
-
 import importlib
 import sys
 from pathlib import Path

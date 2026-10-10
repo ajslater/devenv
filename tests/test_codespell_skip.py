@@ -6,8 +6,6 @@ codespell fnmatches each skip pattern against every dir it walks ("." and
 skips hidden files and dirs itself, except the "." it walks from.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 from typing import TYPE_CHECKING
 

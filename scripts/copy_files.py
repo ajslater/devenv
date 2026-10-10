@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = []
 # ///
 """
@@ -14,11 +14,8 @@ like eslint.config.init.js is installed without its ".init", so a starter
 does not act as a config inside devenv itself.
 """
 
-from __future__ import annotations
-
 import argparse
 import filecmp
-import shutil
 from pathlib import Path
 
 from _devenv_common import (  # ty: ignore[unresolved-import]
@@ -77,7 +74,7 @@ def copy_files(
             ):
                 skipped += 1
             else:
-                shutil.copy2(src_file, dest_file)
+                src_file.copy(dest_file, preserve_metadata=True)
                 copied += 1
             dest_files.append(dest_file)
 

@@ -7,8 +7,6 @@ artifact listing from a JSON file and fakes ``gh run download``; git and jq
 are real.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import shutil

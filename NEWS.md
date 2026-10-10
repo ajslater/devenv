@@ -1,5 +1,13 @@
 # devenv News
 
+## v0.2.4
+
+- Features
+    - New projects start on Python 3.15.
+    - devenv's own scripts run on Python 3.15, which uv installs, and read TOML
+      1.1 pyproject files.
+    - ruff 0.17 is the lint floor.
+
 ## v0.2.3
 
 - Fixes

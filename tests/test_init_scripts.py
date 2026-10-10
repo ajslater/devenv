@@ -5,8 +5,6 @@ make is stubbed to record its arguments, so the first update-devenv the
 scripts end with does not install node packages. add_features runs for real.
 """
 
-from __future__ import annotations
-
 import os
 import shutil
 import stat
@@ -60,7 +58,7 @@ def test_init_sets_up_a_new_project(project: Path) -> None:
     assert "include cfg/docs.mk\n" in makefile
     assert "# include cfg/docs.mk" not in makefile
     assert (project / "eslint.config.js").is_file()
-    assert (project / "pyproject.toml").is_file()
+    assert 'requires-python = ">=3.15"' in (project / "pyproject.toml").read_text()
     assert (project.parent / "stubs" / "make.args").read_text() == (
         f"update-devenv DEVENV_SRC={_ROOT}\n"
     )

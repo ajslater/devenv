@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = []
 # ///
 """
@@ -13,8 +13,6 @@ remove_dotfile_lines.txt are retired: they are dropped from every merged file.
 An ignore file also drops each pattern that another of its patterns already
 covers, such as "dist/" beside "dist". Skips symlinks.
 """
-
-from __future__ import annotations
 
 import argparse
 from fnmatch import fnmatchcase

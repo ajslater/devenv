@@ -106,11 +106,17 @@ is project-owned; put project-specific targets there, never in a feature `.mk`.
 
 ### Scripts
 
-Each entry point carries PEP 723 inline metadata, so `uv run scripts/<name>.py`
-runs it in its own environment. `tests/test_script_metadata.py` requires every
-third-party import (including through sibling modules) to be declared. Sibling
-imports carry `# ty: ignore[unresolved-import]` because ty checks a PEP 723
-script without its directory on the path.
+Each entry point carries PEP 723 inline metadata with
+`requires-python = ">=3.15"`, so `uv run scripts/<name>.py` runs it in its own
+environment. The scripts lean on 3.15: text I/O has no `encoding=` argument
+(UTF-8 mode is the default), annotations need no `__future__` import, copies go
+through `Path.copy(..., preserve_metadata=True)` and anchored matches use
+`re.prefixmatch`. `lazy import`, PEP 798 unpacking and `frozendict` wait on
+complexipy and basedpyright; `tasks/python315.md` tracks them.
+`tests/test_script_metadata.py` requires every third-party import (including
+through sibling modules) to be declared. Sibling imports carry
+`# ty: ignore[unresolved-import]` because ty checks a PEP 723 script without its
+directory on the path.
 
 - `update_devenv.py` — `make update-devenv`: deletes retired files, merges
   dotfiles, copies feature files, runs the three config mergers in process

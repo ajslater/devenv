@@ -6,8 +6,6 @@ every file exactly as the first left it. bun, bunx and git are stubbed out:
 their effects are not under devenv's control, and the merges and copies are.
 """
 
-from __future__ import annotations
-
 import json
 import os
 import stat

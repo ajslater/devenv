@@ -7,8 +7,6 @@ after the patterns it overrides. update_devenv runs it after copying bin/, so
 a project's first update already sorts with the new script.
 """
 
-from __future__ import annotations
-
 import importlib
 import os
 import shutil
@@ -174,7 +172,9 @@ def test_update_devenv_sorts_with_the_copied_script(
     (src / "merge" / "common").mkdir(parents=True)
     (src / "merge" / "common" / ".gitignore").write_text("lib/\n")
     (src / "copy" / "common" / "bin").mkdir(parents=True)
-    shutil.copy2(_SORT_IGNORE, src / "copy" / "common" / "bin" / "sort-ignore.sh")
+    _SORT_IGNORE.copy(
+        src / "copy" / "common" / "bin" / "sort-ignore.sh", preserve_metadata=True
+    )
     project = tmp_path / "project"
     (project / "bin").mkdir(parents=True)
     old_script = project / "bin" / "sort-ignore.sh"

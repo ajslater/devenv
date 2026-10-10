@@ -17,8 +17,6 @@ A child repo sheds these on its next update-devenv:
   from every dependency section of package.json.
 """
 
-from __future__ import annotations
-
 import importlib
 import json
 import sys

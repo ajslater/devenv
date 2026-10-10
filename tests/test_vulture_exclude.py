@@ -6,8 +6,6 @@ each exclude pattern, so a pattern must match the whole absolute path of a file
 to exclude it, and must not match the dirs above the project root.
 """
 
-from __future__ import annotations
-
 from fnmatch import fnmatch
 from pathlib import Path
 
@@ -35,7 +33,7 @@ def _excluded(checkout: str, path: str) -> bool:
         # katex ships a .py file and arrives through @eslint/markdown.
         "node_modules/katex/src/fonts/generate_fonts.py",
         "web/node_modules/pkg/setup.py",
-        ".venv/lib/python3.14/site-packages/pkg/mod.py",
+        ".venv/lib/python3.15/site-packages/pkg/mod.py",
         "dist/pkg/mod.py",
         "frontend/pkg/mod.py",
         "site/pkg/mod.py",

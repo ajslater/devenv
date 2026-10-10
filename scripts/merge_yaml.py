@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = [
 #   "ruamel.yaml~=0.19.1",
 # ]
@@ -15,8 +15,6 @@ missing list items at the end of their list. A value the last file shares
 through an alias or a `<<` merge key is never changed in place: what gets
 added to it goes to a copy that its key then owns.
 """
-
-from __future__ import annotations
 
 import argparse
 from collections import Counter

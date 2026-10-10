@@ -1,7 +1,5 @@
 """Tests for merging package.json files."""
 
-from __future__ import annotations
-
 import json
 from pathlib import Path
 

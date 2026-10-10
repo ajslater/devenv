@@ -1,7 +1,5 @@
 """Edit and format a project's Makefile and cfg/*.mk."""  # noqa: INP001
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
@@ -21,7 +19,7 @@ def _find_includes(lines: list[str]) -> dict[str, tuple[int, bool]]:
     """Map each feature to (line index, commented) of its first include line."""
     found: dict[str, tuple[int, bool]] = {}
     for i, line in enumerate(lines):
-        if (match := _INCLUDE_RE.match(line)) and match["name"] in INCLUDE_ORDER:
+        if (match := _INCLUDE_RE.prefixmatch(line)) and match["name"] in INCLUDE_ORDER:
             found.setdefault(match["name"], (i, bool(match["comment"])))
     return found
 

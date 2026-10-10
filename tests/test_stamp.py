@@ -6,8 +6,6 @@ or earlier applied, so update-devenv skips those and leaves alone a file the
 project has since added under a retired name.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 

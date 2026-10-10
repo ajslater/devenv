@@ -8,13 +8,10 @@ system directories, so no real linter, uv or bun is ever run. The fakes log
 their argv, working directory and a few environment variables.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -90,7 +87,9 @@ class Project:
         """Copy feature/name scripts from copy/<feature>/bin into ./bin."""
         for script in scripts:
             feature, name = script.split("/")
-            shutil.copy2(_COPY / feature / "bin" / name, self.root / "bin" / name)
+            (_COPY / feature / "bin" / name).copy(
+                self.root / "bin" / name, preserve_metadata=True
+            )
 
     def fake(self, *tools: str) -> None:
         """Put fake tools on PATH."""

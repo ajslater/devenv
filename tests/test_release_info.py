@@ -5,8 +5,6 @@ The release job builds the GitHub Release from these. Golden tests against a
 project's real NEWS.md belong in that project.
 """
 
-from __future__ import annotations
-
 import importlib.util
 import sys
 from pathlib import Path

@@ -15,8 +15,9 @@ currently seem necessary.
 
 The scripts need [uv](https://docs.astral.sh/uv/) and, for the node features,
 [bun](https://bun.sh). Each devenv script declares its own Python dependencies
-inline (PEP 723), so `uv run` gives it its own environment and nothing has to be
-installed into the project first.
+inline (PEP 723) and needs Python 3.15, so `uv run` gives it its own
+environment, installing that Python if need be, and nothing has to be installed
+into the project first.
 
 ### Initializing a new project
 

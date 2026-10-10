@@ -5,8 +5,6 @@ The project's own pyproject.toml is the base: its values, order, comments and
 layout stay, and each template only fills in what the project lacks.
 """
 
-from __future__ import annotations
-
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING

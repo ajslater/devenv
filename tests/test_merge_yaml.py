@@ -6,8 +6,6 @@ comments, tags, anchors, scalar spellings and key order survive, and the
 templates only add what it lacks.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import pytest

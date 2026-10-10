@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # /// script
-# requires-python = ">=3.14"
+# requires-python = ">=3.15"
 # dependencies = [
 #   "semver~=3.1",
 # ]
@@ -12,8 +12,6 @@ Scalars from later files win, objects merge recursively, arrays are a union,
 script `&&` chains are an ordered union of commands, and dependency specs keep
 the higher version constraint. `main --help` details the policy.
 """
-
-from __future__ import annotations
 
 import argparse
 import json
@@ -188,7 +186,7 @@ def extract_version_from_range(version_str: str) -> str | None:
 def get_version_prefix(version_str: str) -> str:
     """Extract the npm range prefix from a version string."""
     # Order matters: >= and <= must come before > and
-    if match := re.match(r"^([\^~]|>=|<=|>|<|=)", version_str):
+    if match := re.prefixmatch(r"^([\^~]|>=|<=|>|<|=)", version_str):
         return match.group(1)
     return "="
 

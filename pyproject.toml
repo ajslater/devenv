@@ -7,7 +7,7 @@ readme = "README.md"
 requires-python = ">=3.15"
 license = "MIT"
 name = "devenv"
-version = "0.2.3"
+version = "0.2.4"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -36,8 +36,8 @@ lint = [
   "icecream~=2.1",
   "pathspec~=1.1.0",
   "radon~=6.0",
-  "ruff~=0.16",
-  "tomlkit~=0.14",
+  "ruff~=0.17",
+  "tomlkit~=0.15",
   "types-python-dateutil~=2.9",
   "ty~=0.0.17",
   "vulture~=2.3",
@@ -50,7 +50,7 @@ test = [
   "pyyaml~=6.0",
   "ruamel.yaml~=0.19.1",
   "semver~=3.1.0",
-  "tomlkit~=0.14",
+  "tomlkit~=0.15",
 ]
 docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
 ci = []
