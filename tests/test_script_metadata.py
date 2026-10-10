@@ -92,6 +92,6 @@ def test_requires_python(name: str) -> None:
 
     The scripts read and write text with no encoding argument, which 3.15's
     UTF-8 default makes right everywhere, and carry no `__future__` import
-    for their annotations, which 3.14 defers.
+    for their annotations, which are deferred by default.
     """
     assert _metadata(_SCRIPTS / name)["requires-python"] == ">=3.15"
