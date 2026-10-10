@@ -1,5 +1,11 @@
 # devenv News
 
+## v0.2.5
+
+- Fixes
+    - ESLint ignores build output, caches and venvs in subdirectories too, such
+      as `frontend/dist/`.
+
 ## v0.2.4
 
 - Features
