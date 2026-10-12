@@ -1,5 +1,11 @@
 # devenv News
 
+## v0.2.7
+
+- Fixes
+    - common no longer needs node_root; fix and lint skip missing `package.json`
+      scripts.
+
 ## v0.2.6
 
 - Fixes
