@@ -25,6 +25,7 @@ FEATURE_SETS = {
     "python-only": ("python",),
     "defaults": ("common", "node", "node_root", "python"),
     "no-python": ("common", "docker", "node", "node_root"),
+    "no-node-root": ("common", "node"),
     "django-no-frontend": ("django", "python"),
     "all": tuple(FEATURES),
 }
