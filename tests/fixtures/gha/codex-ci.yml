@@ -41,7 +41,7 @@ jobs:
       matrix:
         include:
           - arch: amd64
-            runner: ubuntu-24.04
+            runner: ubuntu-latest
           - arch: arm64
             runner: ubuntu-24.04-arm
     runs-on: ${{ matrix.runner }}
@@ -65,7 +65,7 @@ jobs:
     name: Deploy
     needs: [ci, build]
     if: ${{ !cancelled() && needs.build.result == 'success' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -95,7 +95,7 @@ jobs:
     name: Deploy Deprecated Docker Hub Image
     needs: [ci, deploy]
     if: ${{ !cancelled() && needs.deploy.result == 'success' && needs.ci.outputs.final == 'true' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
