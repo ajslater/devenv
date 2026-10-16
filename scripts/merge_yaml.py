@@ -255,21 +255,37 @@ def _remove_items(target: CommentedSeq, drop: CommentedSeq) -> None:
                 del target[index]
 
 
-def _retire(retired: Any, target: Any, shared: Mapping[int, Any]) -> None:
+def _retire(
+    retired: Any, target: Any, shared: Mapping[int, Any], defaults: Any
+) -> None:
     """Remove one key's retired values from data's target, in place."""
     match retired, target:
         case CommentedMap(), CommentedMap():
-            remove_values(target, retired, shared)
+            remove_values(target, retired, shared, defaults)
         case CommentedSeq(), CommentedSeq():
             _remove_items(target, retired)
         case _:
             pass
 
 
+def _default(defaults: Any, key: Any) -> Any:
+    """Return what defaults holds at key, or None."""
+    return defaults.get(key) if isinstance(defaults, CommentedMap) else None
+
+
+def _retire_scalar(data: CommentedMap, key: Any, defaults: Any) -> None:
+    """Give data[key] the value defaults holds there, or drop it."""
+    if isinstance(defaults, CommentedMap) and key in defaults:
+        data[key] = defaults[key]
+    else:
+        del data[key]
+
+
 def remove_values(
     data: CommentedMap,
     retired: CommentedMap,
     shared: Mapping[int, Any] | None = None,
+    defaults: CommentedMap | None = None,
 ) -> None:
     """
     Remove retired values from data, in place.
@@ -279,16 +295,25 @@ def remove_values(
     mapping by that name, so `minify` retires `minify: {...}` too; any other
     value drops only an equal item. A mapping or list emptied by retirement
     is removed, so a fully retired key vanishes instead of lingering as `{}`
-    or `[]`. Missing keys are ignored and everything else keeps its order.
-    Like a merge, retirement never changes a value data shares through an
-    alias or a `<<` merge key; the key gets its own copy instead.
+    or `[]`. A scalar retires an equal value: defaults' value at the same key
+    path takes its place, or without one the key goes. Missing keys are
+    ignored and everything else keeps its order. Like a merge, retirement
+    never changes a value data shares through an alias or a `<<` merge key;
+    the key gets its own copy instead.
     """
     shared = _shared(data) if shared is None else shared
     with _keeping_tail(data):
         for key, value in retired.items():
             if key not in data:
                 continue
-            _edit(data, key, partial(_retire, value, shared=shared), shared)
+            if not isinstance(value, CommentedMap | CommentedSeq):
+                if data[key] == value:
+                    _retire_scalar(data, key, defaults)
+                continue
+            retire = partial(
+                _retire, value, shared=shared, defaults=_default(defaults, key)
+            )
+            _edit(data, key, retire, shared)
             target = data[key]
             if isinstance(target, CommentedMap | CommentedSeq) and not target:
                 del data[key]
@@ -363,7 +388,8 @@ gets added to it goes to a copy that its key then owns.
 
 --remove-values takes a YAML file that mirrors the merged one. A list in it
 names values to drop from the list at the same key path, and a list or
-mapping emptied that way is removed.
+mapping emptied that way is removed. A scalar in it retires an equal value,
+which takes what the earlier files give at that key path, or goes.
         """,
     )
 
@@ -412,8 +438,10 @@ mapping emptied that way is removed.
             parser.error(reason)
 
     merged_data = merge_yaml_files(args.files, args.list_strategy)
+    # A retired scalar falls back to what the files before the last one give.
+    defaults = merge_yaml_files(args.files[:-1], args.list_strategy)
     for path in args.remove_values:
-        remove_values(merged_data, load_yaml_file(path))
+        remove_values(merged_data, load_yaml_file(path), defaults=defaults)
 
     yaml_output = dump_yaml(merged_data, args.indent)
     if args.output:

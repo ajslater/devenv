@@ -1,5 +1,12 @@
 # devenv News
 
+## v0.2.8
+
+- Features
+    - GitHub Actions jobs run on `ubuntu-latest`, and Read the Docs builds on
+      `ubuntu-lts-latest`. A `.readthedocs.yaml` still on `ubuntu-24.04` moves
+      to it; any other `build.os` is left alone.
+
 ## v0.2.7
 
 - Fixes
