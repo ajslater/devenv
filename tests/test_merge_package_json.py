@@ -393,31 +393,42 @@ def test_second_merge_is_a_fixed_point(tmp_path: Path, seed: str | None) -> None
     assert _update(project) == first
 
 
-def test_merge_keeps_a_drifted_project_s_own_choices(tmp_path: Path) -> None:
-    """The realistic project keeps its own steps, specs and overrides."""
+@pytest.fixture
+def drifted(tmp_path: Path) -> dict:
+    """Return the realistic project merged with the template."""
     project = tmp_path / "package.json"
     project.write_text(json.dumps(_PROJECT))
+    return json.loads(_update(project))
 
-    merged = json.loads(_update(project))
 
-    assert merged["scripts"] == {
+def test_merge_keeps_a_drifted_project_s_own_steps_and_specs(drifted: dict) -> None:
+    """The realistic project keeps its own steps and dependency specs."""
+    assert drifted["scripts"] == {
         "fix": "eslint_d --cache --fix . && prettier --write .",
         "lint": "tsc --noEmit && eslint_d --cache . && prettier --check .",
         "build": "vite build",
     }
-    assert merged["dependencies"] == {
+    assert drifted["dependencies"] == {
         "lib": "workspace:*",
         "svelte": "catalog:",
         "vite": "<7.0.0",
     }
-    dev = merged["devDependencies"]
+    assert drifted["bundledDependencies"] == ["lib"]
+
+
+def test_merge_resolves_a_drifted_project_s_dev_dependencies(drifted: dict) -> None:
+    """Its dev specs resolve against the template's and retired ones go."""
+    dev = drifted["devDependencies"]
     assert dev["eslint"] == "^10.9.0"
     assert dev["eslint-plugin-unicorn"] == ">=74.0.0"
     assert dev["local-config"] == "link:../config"
     assert "remark-gfm" not in dev
-    assert merged["bundledDependencies"] == ["lib"]
-    assert "remarkConfig" not in merged
-    files = [override["files"] for override in merged["prettier"]["overrides"]]
+
+
+def test_merge_keeps_a_drifted_project_s_own_overrides(drifted: dict) -> None:
+    """Its prettier overrides join the template's; remarkConfig is retired."""
+    assert "remarkConfig" not in drifted
+    files = [override["files"] for override in drifted["prettier"]["overrides"]]
     assert files == [
         ["**/*.md"],
         ["**/nginx/http.d/**/*.conf"],

@@ -7,6 +7,14 @@ from pathlib import Path
 
 import pytest
 
+from tests.bin_project import Project
+
+_SYSTEM_PATH = ("/usr/bin", "/bin")
+_STRIPPED_ENV_PREFIXES = ("BASH_FUNC_", "FAKE_")
+_STRIPPED_ENV_KEYS = frozenset(
+    ("BASH_ENV", "CDPATH", "ENV", "PYTHONDEVMODE", "PYTHONPATH", "DEBUG")
+)
+
 
 def _bash_params() -> list:
     """
@@ -50,3 +58,21 @@ def bash(
     (shim / "bash").symlink_to(request.param)
     monkeypatch.setenv("PATH", f"{shim}{os.pathsep}{os.environ.get('PATH', '')}")
     return str(shim / "bash")
+
+
+@pytest.fixture
+def project(tmp_path: Path, bash: str) -> Project:
+    """Build an empty project whose PATH holds no real tools."""
+    root = tmp_path / "project"
+    (root / "bin").mkdir(parents=True)
+    fakebin = tmp_path / "fakebin"
+    fakebin.mkdir()
+    env = {
+        key: value
+        for key, value in os.environ.items()
+        if not key.startswith(_STRIPPED_ENV_PREFIXES) and key not in _STRIPPED_ENV_KEYS
+    }
+    env["PATH"] = os.pathsep.join((str(fakebin), str(Path(bash).parent), *_SYSTEM_PATH))
+    log = tmp_path / "calls.jsonl"
+    env["FAKE_TOOL_LOG"] = str(log)
+    return Project(root.resolve(), fakebin, log, env)

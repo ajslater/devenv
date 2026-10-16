@@ -128,6 +128,16 @@ def _narrowed(path: Path, stamp: Version | None, tmp: Path) -> Path:
     return narrowed
 
 
+def _templates(devenv_src: Path, features: list[str], merge: ConfigMerge) -> list[Path]:
+    """Return merge's template from its own feature, then from the others."""
+    owners = [merge.feature, *(f for f in features if f != merge.feature)]
+    return [
+        path
+        for feature in owners
+        if (path := devenv_src / "merge" / feature / merge.template).is_file()
+    ]
+
+
 def merge_config(
     devenv_src: Path,
     pd: Path,
@@ -142,12 +152,7 @@ def merge_config(
     any other enabled feature (django adds djlint to pyproject.toml), then
     the project's own file, so its values win. Returns the output if merged.
     """
-    owners = [merge.feature, *(f for f in features if f != merge.feature)]
-    sources = [
-        path
-        for feature in owners
-        if (path := devenv_src / "merge" / feature / merge.template).is_file()
-    ]
+    sources = _templates(devenv_src, features, merge)
     if not sources:
         return None
     retirements = [
