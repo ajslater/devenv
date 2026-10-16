@@ -1,0 +1,8 @@
+# Values retired from .readthedocs.yaml. update-devenv drops each list value
+# here from the list at the same key path in a project's .readthedocs.yaml. A
+# scalar here gives way to the template's current value when the project
+# still holds it.
+
+build:
+  # Replaced by ubuntu-lts-latest, Read the Docs' name for the newest LTS.
+  os: ubuntu-24.04

@@ -15,6 +15,9 @@ A child repo sheds these on its next update-devenv:
   commands it lists from package.json's scripts.
 - merge_package_json --remove drops the packages in remove_node_packages.txt
   from every dependency section of package.json.
+- merge_yaml --remove-values gives each scalar in
+  merge/docs/.readthedocs.remove.yaml that .readthedocs.yaml still holds the
+  template's current value.
 """
 
 import importlib
@@ -23,16 +26,15 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import pytest
 import tomlkit
 import update_devenv
 from _devenv_common import read_lines
 
-from scripts import merge_package_json, merge_toml
+from scripts import merge_package_json, merge_toml, merge_yaml
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-
-    import pytest
 
 _ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"
@@ -40,6 +42,8 @@ _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
 _PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package.remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
+_READTHEDOCS_REMOVE = _ROOT / "merge" / "docs" / ".readthedocs.remove.yaml"
+_READTHEDOCS_TEMPLATE = _ROOT / "merge" / "docs" / ".readthedocs.yaml"
 _SH_PLUGIN = "prettier-plugin-sh"
 _SH_OVERRIDE = {"files": ["**/*Dockerfile"], "options": {"parser": "sh"}}
 _XSD_OVERRIDE = {"files": ["**/*.xsd"], "options": {"printWidth": 120}}
@@ -515,6 +519,38 @@ def test_package_template_ships_no_retired_value() -> None:
     merge_package_json.remove_values(template, json.loads(_PACKAGE_REMOVE.read_text()))
 
     assert json.dumps(template) == before
+
+
+# ---------------------------------------------------------------------------
+# .readthedocs.yaml
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("pin", "expected"),
+    [("ubuntu-24.04", "ubuntu-lts-latest"), ("ubuntu-22.04", "ubuntu-22.04")],
+)
+def test_readthedocs_os_moves_to_the_lts_alias(
+    tmp_path: Path, pin: str, expected: str
+) -> None:
+    """The old template pin gives way to ubuntu-lts-latest; a child's own stays."""
+    project = tmp_path / ".readthedocs.yaml"
+    project.write_text(f'version: 2\nbuild:\n  os: {pin}\n  tools:\n    python: "3"\n')
+    argv = [str(_READTHEDOCS_TEMPLATE), str(project), "-o", str(project)]
+
+    merge_yaml.main([*argv, "--remove-values", str(_READTHEDOCS_REMOVE)])
+
+    assert project.read_text().startswith(f"version: 2\nbuild:\n  os: {expected}\n")
+
+
+def test_readthedocs_template_ships_no_retired_value() -> None:
+    """The template must not reintroduce what .readthedocs.remove.yaml retires."""
+    template = merge_yaml.load_yaml_file(_READTHEDOCS_TEMPLATE)
+    before = merge_yaml.dump_yaml(template)
+
+    merge_yaml.remove_values(template, merge_yaml.load_yaml_file(_READTHEDOCS_REMOVE))
+
+    assert merge_yaml.dump_yaml(template) == before
 
 
 # ---------------------------------------------------------------------------

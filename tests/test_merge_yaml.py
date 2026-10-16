@@ -443,3 +443,51 @@ def test_remove_values_keeps_the_gap_after_a_shortened_list() -> None:
     merge_yaml.remove_values(data, retired)
 
     assert merge_yaml.dump_yaml(data) == "plugins:\n  - search\n\nnav:\n  - a.md\n"
+
+
+def test_remove_values_gives_a_retired_scalar_the_default_in_place() -> None:
+    """A retired scalar takes the default's value and keeps its place and comment."""
+    data = merge_yaml.load_yaml_text(
+        "build:\n  os: old  # pinned\n  tools:\n    python: '3'\n"
+    )
+    retired = merge_yaml.load_yaml_text("build:\n  os: old\n")
+    defaults = merge_yaml.load_yaml_text("build:\n  os: new\n")
+
+    merge_yaml.remove_values(data, retired, defaults=defaults)
+
+    assert merge_yaml.dump_yaml(data) == (
+        "build:\n  os: new  # pinned\n  tools:\n    python: '3'\n"
+    )
+
+
+def test_remove_values_drops_a_retired_scalar_without_a_default() -> None:
+    """With no default the key goes, and an unequal value is the project's own."""
+    data = merge_yaml.load_yaml_text("a: old\nb: ours\nc: 1\n\n# tail\n")
+    retired = merge_yaml.load_yaml_text("a: old\nb: old\n")
+
+    merge_yaml.remove_values(data, retired)
+
+    assert merge_yaml.dump_yaml(data) == "b: ours\nc: 1\n\n# tail\n"
+
+
+def test_remove_values_cli_retires_a_scalar_to_the_template_value(
+    tmp_path: Path,
+) -> None:
+    """--remove-values swaps the project's stale scalar for the template's."""
+    remove = tmp_path / "remove.yaml"
+    remove.write_text("build:\n  os: old\n")
+    template = "build:\n  os: new\n  tools:\n    python: '3'\n"
+
+    stale = _merge(
+        tmp_path,
+        template,
+        "build:\n  os: old\n  jobs: {}\n",
+        "--remove-values",
+        str(remove),
+    )
+    chosen = _merge(
+        tmp_path, template, "build:\n  os: other\n", "--remove-values", str(remove)
+    )
+
+    assert stale == "build:\n  os: new\n  jobs: {}\n  tools:\n    python: '3'\n"
+    assert chosen == "build:\n  os: other\n  tools:\n    python: '3'\n"
