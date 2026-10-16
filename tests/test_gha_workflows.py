@@ -128,11 +128,11 @@ def test_native_mode() -> None:
     """container: false skips the image and runs the check on inputs.runner."""
     inputs = _CALL["inputs"]
     assert inputs["container"]["default"] is True
-    assert inputs["runner"]["default"] == "ubuntu-24.04"
+    assert inputs["runner"]["default"] == "ubuntu-latest"
     assert _JOBS["image"]["if"].startswith("inputs.container && ")
     assert _JOBS["check"]["runs-on"] == "${{ inputs.runner }}"
     for job_id in ("gate", "image", "prune", "result"):
-        assert _JOBS[job_id]["runs-on"] == "ubuntu-24.04", job_id
+        assert _JOBS[job_id]["runs-on"] == "ubuntu-latest", job_id
 
 
 def test_native_mode_installs_and_runs_make_on_the_runner() -> None:
