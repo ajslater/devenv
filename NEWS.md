@@ -1,5 +1,14 @@
 # devenv News
 
+## v0.2.11
+
+- Features
+    - With frontend, the root lint leaves `frontend/` to its own lint.
+    - CI uploads the coverage HTML report.
+- Fixes
+    - `__snapshots__` is no longer gitignored, so snapshot baselines can be
+      committed.
+
 ## v0.2.10
 
 - Fixes

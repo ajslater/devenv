@@ -151,7 +151,11 @@ Merges only add, so retiring something devenv used to ship needs an entry.
   `merge/node_root/package.remove.json` (`prettier.plugins`). An emptied table
   or object is removed. An empty TOML table drops the whole table at its key
   path (`tool.pytest.ini_options`). A YAML scalar swaps the child's equal value
-  for the template's (`build.os` in `.readthedocs.yaml`).
+  for the template's (`build.os` in `.readthedocs.yaml`). An object under a
+  `package.json` script swaps each command it names for its value in place,
+  keeping only the first copy of the new command
+  (`merge/frontend/package.remove.json`). These files are not stamped: they
+  apply on every update.
 
 The three `.txt` lists skip blank and `#` lines, and `# since X.Y.Z` marks the
 entries below it. A child stamped with that version or later skips them. When

@@ -1,0 +1,10 @@
+{
+  "scripts": {
+    "fix": {
+      "eslint_d --cache --fix .": "eslint_d --cache --ignore-pattern frontend/ --fix ."
+    },
+    "lint": {
+      "eslint_d --cache .": "eslint_d --cache --ignore-pattern frontend/ ."
+    }
+  }
+}

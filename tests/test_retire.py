@@ -42,6 +42,9 @@ _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
 _PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package.remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
+_FRONTEND_PACKAGE_TEMPLATE = _ROOT / "merge" / "frontend" / "package.json"
+_FRONTEND_PACKAGE_REMOVE = _ROOT / "merge" / "frontend" / "package.remove.json"
+_FRONTEND_ESLINT = "eslint_d --cache --ignore-pattern frontend/"
 _READTHEDOCS_REMOVE = _ROOT / "merge" / "docs" / ".readthedocs.remove.yaml"
 _READTHEDOCS_TEMPLATE = _ROOT / "merge" / "docs" / ".readthedocs.yaml"
 _SH_PLUGIN = "prettier-plugin-sh"
@@ -86,6 +89,12 @@ def test_retired_dotfile_lines_are_dropped(tmp_path: Path) -> None:
 def test_devenv_retires_circleci() -> None:
     """remove_dotfile_lines.txt retires the CircleCI directory."""
     assert ".circleci" in merge_dotfiles.read_retired_lines(_ROOT)
+
+
+def test_devenv_stops_ignoring_snapshots() -> None:
+    """A child from before 0.2.11 drops __snapshots__ once, then may re-add it."""
+    assert "__snapshots__" in merge_dotfiles.read_retired_lines(_ROOT, (0, 2, 10))
+    assert "__snapshots__" not in merge_dotfiles.read_retired_lines(_ROOT, (0, 2, 11))
 
 
 def test_no_template_ships_a_retired_line() -> None:
@@ -380,6 +389,16 @@ def test_package_remove_values_retires_script_step() -> None:
     assert data == {"scripts": {"lint": "a && c", "fix": "a && c"}}
 
 
+def test_package_remove_values_swaps_script_step_in_place() -> None:
+    """A swapped command keeps its place; the merge's appended copy goes."""
+    data = {"scripts": {"lint": "b && a && c && b && new", "fix": "new && b"}}
+    retired = {"scripts": {"lint": {"a": "new"}, "fix": {"a": "new"}}}
+
+    merge_package_json.remove_values(data, retired)
+
+    assert data == {"scripts": {"lint": "b && new && c && b", "fix": "new && b"}}
+
+
 def test_package_remove_values_prunes_emptied_containers() -> None:
     """
     A config key emptied by retirement goes; one with a survivor stays.
@@ -511,12 +530,58 @@ def test_merge_package_json_cli_retires_a_script_step_the_project_moved(
     assert scripts["lint"] == "tsc --noEmit && eslint_d --cache . && prettier --check ."
 
 
-def test_package_template_ships_no_retired_value() -> None:
-    """The template must not reintroduce what package.remove.json retires."""
-    template = json.loads(_PACKAGE_TEMPLATE.read_text())
+@pytest.mark.parametrize(
+    ("project_scripts", "expected"),
+    [
+        (
+            None,
+            {
+                "fix": f"{_FRONTEND_ESLINT} --fix . && prettier --write .",
+                "lint": f"{_FRONTEND_ESLINT} . && prettier --check .",
+            },
+        ),
+        (
+            {
+                "fix": "eslint_d --cache --fix . && prettier --write . && nginx.sh",
+                "lint": "eslint_d --cache . && prettier --check .",
+            },
+            {
+                "fix": f"{_FRONTEND_ESLINT} --fix . && prettier --write . && nginx.sh",
+                "lint": f"{_FRONTEND_ESLINT} . && prettier --check .",
+            },
+        ),
+    ],
+    ids=["new", "existing"],
+)
+def test_frontend_root_lint_leaves_frontend_to_its_own_run(
+    tmp_path: Path, project_scripts: dict[str, str] | None, expected: dict[str, str]
+) -> None:
+    """With frontend, the root eslint skips frontend/ and still runs first."""
+    project = tmp_path / "package.json"
+    argv = [str(_PACKAGE_TEMPLATE), str(_FRONTEND_PACKAGE_TEMPLATE)]
+    if project_scripts:
+        project.write_text(json.dumps({"scripts": project_scripts}))
+        argv.append(str(project))
+    argv += ["-o", str(project)]
+    argv += ["--remove-values", str(_PACKAGE_REMOVE)]
+    argv += ["--remove-values", str(_FRONTEND_PACKAGE_REMOVE)]
+
+    merge_package_json.main(argv)
+
+    assert json.loads(project.read_text())["scripts"] == expected
+
+
+@pytest.mark.parametrize(
+    "remove",
+    sorted((_ROOT / "merge").glob("*/package.remove.json")),
+    ids=lambda path: path.parent.name,
+)
+def test_package_template_ships_no_retired_value(remove: Path) -> None:
+    """A template must not reintroduce what its package.remove.json retires."""
+    template = json.loads(remove.with_name("package.json").read_text())
     before = json.dumps(template)
 
-    merge_package_json.remove_values(template, json.loads(_PACKAGE_REMOVE.read_text()))
+    merge_package_json.remove_values(template, json.loads(remove.read_text()))
 
     assert json.dumps(template) == before
 
