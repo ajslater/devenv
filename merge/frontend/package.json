@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "fix": "eslint_d --cache --ignore-pattern frontend/ --fix . && prettier --write .",
+    "lint": "eslint_d --cache --ignore-pattern frontend/ . && prettier --check ."
+  }
+}

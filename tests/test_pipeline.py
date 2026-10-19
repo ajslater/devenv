@@ -132,7 +132,10 @@ def test_first_run_keeps_the_projects_own_values(
         "--cov",
     ]
     lint = json.loads((child / "package.json").read_text())["scripts"]["lint"]
-    assert lint.startswith("tsc --noEmit && eslint_d --cache .")
+    assert lint == (
+        "tsc --noEmit && eslint_d --cache --ignore-pattern frontend/ ."
+        " && prettier --check ."
+    )
     assert (child / "mkdocs.yml").read_text().startswith("# The demo's docs.\n")
 
 

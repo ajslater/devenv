@@ -7,9 +7,10 @@ required-check aggregator honest, and the release workflow.
 
 import json
 import re
+import tomllib
 from typing import TYPE_CHECKING, Any
 
-from tests.gha import ACTIONS, CI, WORKFLOWS, load, trigger
+from tests.gha import ACTIONS, CI, ROOT, WORKFLOWS, load, trigger
 
 if TYPE_CHECKING:
     from collections.abc import Iterator
@@ -217,6 +218,25 @@ def test_python_dist_has_two_guarded_producers() -> None:
     assert producers == {
         "gate": "steps.reuse.outputs.dist_found == 'true'",
         "check": "matrix.dist",
+    }
+
+
+def test_test_combo_uploads_its_coverage() -> None:
+    """The coverage HTML uploads beside the junit results, when there is any."""
+    steps = _steps("check")
+    names = [step.get("name") for step in steps]
+    results = names.index("Upload Test Results")
+    upload_results, upload_coverage = steps[results : results + 2]
+    template = ROOT / "merge" / "python" / "pyproject-template.toml"
+    html_dir = tomllib.loads(template.read_text())["tool"]["coverage"]["html"]
+    assert upload_coverage["name"] == "Upload Coverage"
+    assert upload_coverage["if"] == upload_results["if"]
+    assert upload_coverage["uses"] == upload_results["uses"]
+    assert upload_coverage["with"] == {
+        "name": "coverage-${{ strategy.job-index }}",
+        "path": f"**/{html_dir['directory']}/",
+        "retention-days": "${{ inputs.retention-days }}",
+        "if-no-files-found": "ignore",
     }
 
 

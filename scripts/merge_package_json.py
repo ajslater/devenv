@@ -83,7 +83,8 @@ Retirement, applied to the merged result:
   --remove FILE         drops each package it lists (one per line; blank and
                         # lines skipped) from every dependency section.
   --remove-values FILE  drops the array values and script commands it lists
-                        at the same key path.
+                        at the same key path; an object under a script swaps
+                        each command it names for its value, in place.
   An object or array that either option empties is dropped too.
 
 Examples:
@@ -107,6 +108,22 @@ def _parse_script_commands(script_value: str) -> list[str]:
 def _remove_script_commands(script_value: str, retired: list[str]) -> str:
     """Drop retired commands from a script value's '&&' chain."""
     kept = [cmd for cmd in _parse_script_commands(script_value) if cmd not in retired]
+    return SCRIPT_COMMAND_SEPARATOR.join(kept)
+
+
+def _swap_script_commands(script_value: str, swaps: dict[str, str]) -> str:
+    """
+    Swap retired commands for their successors where they stand.
+
+    The merge appends a template's new command to a chain that lacks it, so
+    a successor that is now in the chain twice keeps only its first place.
+    Other repeats stay.
+    """
+    successors = set(swaps.values())
+    kept: list[str] = []
+    for cmd in (swaps.get(c, c) for c in _parse_script_commands(script_value)):
+        if cmd not in successors or cmd not in kept:
+            kept.append(cmd)
     return SCRIPT_COMMAND_SEPARATOR.join(kept)
 
 
@@ -416,7 +433,8 @@ def remove_values(data: Any, retired: Any) -> None:
 
     retired mirrors data's structure. A list under an array key names values
     to drop from that array; a list under a script key names commands to drop
-    from its `&&` chain. A value matches only when it is equal as a whole, so
+    from its `&&` chain, and an object there swaps each command it names for
+    its value, in place. A value matches only when it is equal as a whole, so
     an object is dropped only if every field matches. A dict or array emptied
     by retirement is removed, so a fully retired config key vanishes instead
     of lingering as `{}` or `[]`. Missing keys are ignored and everything else
@@ -431,6 +449,9 @@ def remove_values(data: Any, retired: Any) -> None:
                 target[:] = [item for item in target if item not in value]
             case list(), str():
                 data[key] = _remove_script_commands(target, value)
+                continue
+            case dict(), str():
+                data[key] = _swap_script_commands(target, value)
                 continue
             case _:
                 continue
