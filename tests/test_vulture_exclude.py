@@ -10,7 +10,7 @@ from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
-import tomlkit
+lazy import tomlkit
 
 _ROOT = Path(__file__).resolve().parent.parent
 _TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"

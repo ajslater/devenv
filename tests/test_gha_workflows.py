@@ -8,12 +8,10 @@ required-check aggregator honest, and the release workflow.
 import json
 import re
 import tomllib
-from typing import TYPE_CHECKING, Any
+from typing import Any
+lazy from collections.abc import Iterator
 
 from tests.gha import ACTIONS, CI, ROOT, WORKFLOWS, load, trigger
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
 
 _REUSE_SCRIPT = CI / "bin" / "ci-reuse-dist.sh"
 _MANAGED = "# Managed by devenv (copy/ci)."

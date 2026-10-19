@@ -18,7 +18,8 @@ import argparse
 from fnmatch import fnmatchcase
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, NamedTuple
+from typing import NamedTuple
+lazy from collections.abc import Callable, Generator, Iterable
 
 from _devenv_common import (  # ty: ignore[unresolved-import]
     get_devenv_src,
@@ -27,11 +28,7 @@ from _devenv_common import (  # ty: ignore[unresolved-import]
     read_lines,
     report_counts,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Iterable
-
-    from _devenv_common import Version  # ty: ignore[unresolved-import]
+lazy from _devenv_common import Version  # ty: ignore[unresolved-import]
 
 RETIRED_LINES_FILE = "remove_dotfile_lines.txt"
 NO_RETIRED_LINES: frozenset[str] = frozenset()

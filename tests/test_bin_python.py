@@ -2,15 +2,11 @@
 
 import os
 import sys
-from typing import TYPE_CHECKING
 
 import pytest
 
 from tests.bin_project import FAIL_EXIT, USAGE_EXIT, make_tree
-
-if TYPE_CHECKING:
-    from tests.bin_project import Project
-
+lazy from tests.bin_project import Project
 
 # ---------------------------------------------------------------------------
 # python

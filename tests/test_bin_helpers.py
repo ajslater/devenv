@@ -3,17 +3,12 @@
 import importlib.util
 import re
 import sys
-from typing import TYPE_CHECKING
+lazy from types import ModuleType
 
 import pytest
 
 from tests.bin_project import COPY, make_tree, write_fake
-
-if TYPE_CHECKING:
-    from types import ModuleType
-
-    from tests.bin_project import Project
-
+lazy from tests.bin_project import Project
 
 # ---------------------------------------------------------------------------
 # docker helpers

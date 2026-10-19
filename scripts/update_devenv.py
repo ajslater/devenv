@@ -34,7 +34,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Final
+from typing import Final
+lazy from collections.abc import Callable, Sequence
 
 import merge_package_json  # ty: ignore[unresolved-import]
 import merge_toml  # ty: ignore[unresolved-import]
@@ -59,11 +60,7 @@ from merge_dotfiles import (  # ty: ignore[unresolved-import]
     merge_dotfiles,
     read_retired_lines,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
-
-    from _devenv_common import Version  # ty: ignore[unresolved-import]
+lazy from _devenv_common import Version  # ty: ignore[unresolved-import]
 
 NO_FEATURES = (
     "devenv: no DEVENV_<FEATURE> flags are set. Run `make update-devenv`, "

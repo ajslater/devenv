@@ -10,14 +10,11 @@ import json
 import os
 import stat
 import tomllib
-from typing import TYPE_CHECKING
+lazy from pathlib import Path
 
 import pytest
 import update_devenv
 from _devenv_common import FEATURES
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 _STUB = "#!/bin/sh\nexit 0\n"
 FEATURE_SETS = {
