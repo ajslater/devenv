@@ -13,7 +13,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from packaging.requirements import Requirement
+lazy from packaging.requirements import Requirement
 
 _SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 _METADATA_RE = re.compile(

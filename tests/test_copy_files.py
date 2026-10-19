@@ -1,11 +1,8 @@
 """copy_files installs feature files into a project."""
 
-from typing import TYPE_CHECKING
+lazy from pathlib import Path
 
 import copy_files
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 
 def test_copied_script_keeps_its_mode(tmp_path: Path) -> None:

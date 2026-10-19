@@ -23,15 +23,13 @@ from copy import deepcopy
 from functools import partial, reduce
 from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
+lazy from collections.abc import Callable, Generator, Mapping, Sequence
 
-from ruamel.yaml import YAML
-from ruamel.yaml.comments import CommentedMap, CommentedSeq
-from ruamel.yaml.error import CommentMark
-from ruamel.yaml.tokens import CommentToken
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Generator, Mapping, Sequence
+lazy from ruamel.yaml import YAML
+lazy from ruamel.yaml.comments import CommentedMap, CommentedSeq
+lazy from ruamel.yaml.error import CommentMark
+lazy from ruamel.yaml.tokens import CommentToken
 
 # Wider than any line, so long scalars stay on one line, as prettier keeps them.
 _WIDTH: Final = 4096

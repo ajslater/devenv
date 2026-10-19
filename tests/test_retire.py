@@ -24,17 +24,14 @@ import importlib
 import json
 import sys
 from pathlib import Path
-from typing import TYPE_CHECKING
+lazy from collections.abc import Sequence
 
 import pytest
-import tomlkit
 import update_devenv
 from _devenv_common import read_lines
+lazy import tomlkit
 
 from scripts import merge_package_json, merge_toml, merge_yaml
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
 
 _ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"

@@ -31,19 +31,16 @@ import argparse
 import copy
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
+lazy from collections.abc import Iterable, Sequence
 
-import tomlkit
-from packaging.requirements import InvalidRequirement, Requirement
-from packaging.version import InvalidVersion, Version
-from tomlkit import TOMLDocument
-from tomlkit.container import Container
-from tomlkit.items import AbstractTable, AoT, Array, InlineTable, String, Table
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable, Sequence
-
-    from packaging.specifiers import SpecifierSet
+lazy import tomlkit
+lazy from packaging.requirements import InvalidRequirement, Requirement
+lazy from packaging.specifiers import SpecifierSet
+lazy from packaging.version import InvalidVersion, Version
+lazy from tomlkit import TOMLDocument
+lazy from tomlkit.container import Container
+lazy from tomlkit.items import AbstractTable, AoT, Array, InlineTable, String, Table
 
 PYTHON_DEP_KEY_PATH_LEN = 2
 DEP_KEY_PATHS = frozenset({("project", "dependencies"), ("build-system", "requires")})
@@ -74,7 +71,7 @@ LIST_STRATEGIES: Final = ("merge", "replace")
 
 REQUIRES_PYTHON_PREFIX = ">="
 RUFF_TARGET_PREFIX = "py"
-MIN_PYTHON_VERSION_FOR_BUILTIN_TOML = Version("3.11")
+MIN_PYTHON_VERSION_FOR_BUILTIN_TOML = "3.11"
 TOML_EXTRA = "toml"
 
 
@@ -581,7 +578,7 @@ def _strip_toml_extras_if_needed(
         return
 
     version = _parse_version_from_requires_python(str(requires_python))
-    if not version or version < MIN_PYTHON_VERSION_FOR_BUILTIN_TOML:
+    if not version or version < Version(MIN_PYTHON_VERSION_FOR_BUILTIN_TOML):
         return
 
     # project.dependencies

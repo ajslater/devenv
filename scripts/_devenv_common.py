@@ -9,10 +9,8 @@ import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final
-
-if TYPE_CHECKING:
-    from collections.abc import Collection, Iterable, Iterator, Sequence
+from typing import Any, Final
+lazy from collections.abc import Collection, Iterable, Iterator, Sequence
 
 
 @dataclass(frozen=True, slots=True)

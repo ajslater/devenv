@@ -2,12 +2,11 @@
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import Final
+lazy from collections.abc import Collection
 
 from _devenv_common import FEATURES
-
-if TYPE_CHECKING:
-    from collections.abc import Collection
+lazy from mbake import Config, MakefileFormatter
 
 # help.mk ships with common and must come last: it reads every makefile
 # included before it.
@@ -70,8 +69,6 @@ def include_features(text: str, features: Collection[str]) -> str:
 
 def format_makefiles() -> None:
     """Format the project Makefile and cfg/*.mk with mbake."""
-    from mbake import Config, MakefileFormatter
-
     files = []
     pd = Path.cwd()
     root_makefile = pd / "Makefile"

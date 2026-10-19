@@ -9,15 +9,13 @@ CI.
 import re
 import shutil
 import subprocess
-from typing import TYPE_CHECKING, Any
+from typing import Any
+lazy from collections.abc import Iterator
+lazy from pathlib import Path
 
 import pytest
 
 from tests.gha import CALLERS, CI, ROOT, STD_CALLER, load
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
-    from pathlib import Path
 
 _DEVENV_CI = ROOT / ".github" / "workflows" / "ci.yml"
 # Every .github devenv ships or runs; the fixtures model other repos.

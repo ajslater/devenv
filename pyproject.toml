@@ -32,7 +32,7 @@ build = []
 lint = [
   "basedpyright~=1.38",
   "codespell~=2.4",
-  "complexipy~=8.0.1",
+  "complexipy~=8.1.0",
   "icecream~=2.1",
   "pathspec~=1.1.0",
   "radon~=6.0",
@@ -268,6 +268,10 @@ task-tags = ["FIXME", "HACK", "TODO", "XXX", "http"]
 
 [tool.ruff.lint.flake8-self]
 ignore-names = ["_meta"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# A run loads only the mergers its features need.
+require-lazy = ["mbake", "packaging", "ruamel", "semver", "tomlkit"]
 
 [tool.ruff.lint.flake8-unused-arguments]
 ignore-variadic-names = true

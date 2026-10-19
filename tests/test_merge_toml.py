@@ -7,16 +7,13 @@ layout stay, and each template only fills in what the project lacks.
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING
+lazy from collections.abc import Iterator
 
 import pytest
-import tomlkit
-from tomlkit.items import AoT
+lazy import tomlkit
+lazy from tomlkit.items import AoT
 
 from scripts import merge_toml
-
-if TYPE_CHECKING:
-    from collections.abc import Iterator
 
 _ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"

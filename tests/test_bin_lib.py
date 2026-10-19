@@ -1,21 +1,17 @@
 """_lib.sh, find-files.sh and the lint and fix scripts built on them."""
 
 import sys
-from typing import TYPE_CHECKING
+lazy import subprocess
+lazy from collections.abc import Callable
+lazy from pathlib import Path
 
 import pytest
 
 from tests.bin_project import FAIL_EXIT, USAGE_EXIT, make_tree
+lazy from tests.bin_project import Project
 
-if TYPE_CHECKING:
-    import subprocess
-    from collections.abc import Callable
-    from pathlib import Path
-
-    from tests.bin_project import Project
-
-    # Runs a bash snippet with _lib.sh sourced; keywords add to the environment.
-    Lib = Callable[..., subprocess.CompletedProcess[str]]
+# Runs a bash snippet with _lib.sh sourced; keywords add to the environment.
+type Lib = Callable[..., subprocess.CompletedProcess[str]]
 
 # Every merged .shellignore starts from these.
 _SHELLIGNORE = ".*\nnode_modules\n"

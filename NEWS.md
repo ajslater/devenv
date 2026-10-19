@@ -3,6 +3,8 @@
 ## v0.2.11
 
 - Features
+    - complexipy 8.1, which parses Python 3.15. `make fix` applies its refactors
+      to functions over the complexity limit.
     - With frontend, the root lint leaves `frontend/` to its own lint.
     - CI uploads the coverage HTML report.
 - Fixes

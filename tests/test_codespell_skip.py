@@ -7,13 +7,10 @@ skips hidden files and dirs itself, except the "." it walks from.
 """
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+lazy from collections.abc import Iterable
 
 import pytest
-import tomlkit
-
-if TYPE_CHECKING:
-    from collections.abc import Iterable
+lazy import tomlkit
 
 codespell_lib = pytest.importorskip("codespell_lib")
 

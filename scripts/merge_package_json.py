@@ -17,13 +17,11 @@ import argparse
 import json
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
+lazy from collections.abc import Callable, Sequence
 
-import semver
 from _devenv_common import read_lines  # ty: ignore[unresolved-import]
-
-if TYPE_CHECKING:
-    from collections.abc import Callable, Sequence
+lazy import semver
 
 SCRIPT_COMMAND_SEPARATOR = " && "
 NO_VERSION_SPECS = frozenset({"*", "latest", "", "next"})
