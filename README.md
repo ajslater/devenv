@@ -140,7 +140,9 @@ shebang, such as `bin/pm`. Every script in `bin/` runs under macOS's stock bash
 
 A lint or fix tool that is not installed is skipped with
 `skipped: <tool> not installed (brew install <tool>)` on stderr, so a missing
-tool is visible rather than a silent pass.
+tool is visible rather than a silent pass. In CI (`CI` set, as GitHub Actions
+sets it) a missing tool fails instead, so a green run means every tool ran; see
+[GitHub Actions](#github-actions) for installing them there.
 
 To skip some scripts, list patterns in a `.shellignore` file at the project
 root, one per line:
@@ -269,8 +271,28 @@ twice on scratch projects and requires the second run to change nothing.
 
 The `ci` feature copies these CI building blocks into a project. They are
 overwritten on every update, so edit them here, not in the project. It needs the
-`python` feature, a Dockerfile whose CI stage has `WORKDIR /app` (see
-`merge/ci/compose.yaml`), and `jq`, `gh` and `actionlint` on the runner.
+`python` feature, `jq` and `gh` on the runner, and a Dockerfile whose CI stage
+has `WORKDIR /app` (see `merge/ci/compose.yaml`) and the lint tools that the
+`bin/` scripts run: shellcheck, shellharden and shfmt (common), hadolint and
+dockerfmt (docker), and actionlint (ci). `compose.yaml` passes the runner's `CI`
+into the container, so a missing tool fails `make lint`. This copies the latest
+of each into the CI stage, as the dev machines run brew's latest:
+
+```dockerfile
+# Lint tools devenv's bin/ scripts run, unpinned on purpose.
+COPY --from=koalaman/shellcheck:stable /bin/shellcheck /usr/local/bin/
+COPY --from=mvdan/shfmt:latest /bin/shfmt /usr/local/bin/
+COPY --from=hadolint/hadolint:latest /bin/hadolint /usr/local/bin/
+COPY --from=rhysd/actionlint:latest /usr/local/bin/actionlint /usr/local/bin/
+COPY --from=ghcr.io/reteps/dockerfmt:latest /ko-app/dockerfmt /usr/local/bin/
+ADD https://github.com/anordal/shellharden/releases/latest/download/shellharden-x86_64-unknown-linux-musl.tar.gz /tmp/shellharden.tar.gz
+RUN tar -xzf /tmp/shellharden.tar.gz -C /usr/local/bin shellharden && rm /tmp/shellharden.tar.gz
+```
+
+The binaries are static, so any base image takes them. The shellharden asset is
+x86_64, as `ubuntu-latest` is; a CI stage built for arm64 picks the `aarch64`
+asset instead. If apt installs shellcheck in the CI stage, drop it for the copy,
+whose version matches the dev machines.
 
 - `.github/workflows/devenv-check.yml`: a reusable workflow with these jobs:
     - A gate. It runs `bin/release-tag.sh preflight`. On a main push it reuses
@@ -291,7 +313,8 @@ overwritten on every update, so edit them here, not in the project. It needs the
 
     Projects that cannot run in a Linux container (wpls needs macOS) pass
     `container: false` and `runner: macos-latest`. Then no image is built, and
-    each combo runs `make install` and its targets directly on that runner.
+    each combo runs `make install` and its targets directly on that runner. A
+    combo that runs lint first installs the lint tools with brew.
 
     A pull request into develop runs the checks only from `pre-release` or from
     a version branch, `v` and a digit such as `v1.2.3`. Any other pull request
@@ -305,6 +328,10 @@ overwritten on every update, so edit them here, not in the project. It needs the
   release, creates the GitHub Release from NEWS.md and merges main into develop.
 - `.github/actions/devenv-ci-container`: pulls the CI image by digest and starts
   the CI container.
+- `.github/actions/devenv-lint-tools`: installs the latest lint tools with
+  Homebrew and puts them on `PATH`, on ubuntu runners (where Homebrew is
+  installed but not on `PATH`) and on macOS. Its `tools` input defaults to all
+  six; a project that owns its `ci.yml` and lints on the runner passes fewer.
 - `.github/actions/devenv-pypi`: publishes `python-dist` to PyPI. Given a
   `token`, it uploads with that API token. Without one, it uses PyPI trusted
   publishing: GitHub Actions gives the job a short-lived identity token, and
