@@ -60,6 +60,18 @@ def test_need_names_a_missing_tool_and_how_to_install_it(lib: Lib) -> None:
     )
 
 
+def test_need_fails_a_missing_tool_in_ci(lib: Lib) -> None:
+    """In CI a missing tool fails the script instead of being skipped."""
+    result = lib('need no-such-tool || echo "status $?"', CI="true")
+
+    assert result.returncode == 1
+    assert result.stdout == ""
+    assert result.stderr == (
+        "ERROR: no-such-tool not installed. CI must install it: brew install"
+        " no-such-tool, or add it to the Dockerfile's CI stage\n"
+    )
+
+
 def test_load_files_reads_nul_delimited_names(lib: Lib) -> None:
     """Spaces, newlines and leading dashes survive."""
     snippet = """load_files printf '%s\\0' 'a b' "$(printf 'c\\nd')" -e

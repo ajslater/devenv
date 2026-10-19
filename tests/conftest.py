@@ -11,8 +11,18 @@ from tests.bin_project import Project
 
 _SYSTEM_PATH = ("/usr/bin", "/bin")
 _STRIPPED_ENV_PREFIXES = ("BASH_FUNC_", "FAKE_")
+# CI turns need's skip into an error; the tests set it where they mean to.
 _STRIPPED_ENV_KEYS = frozenset(
-    ("BASH_ENV", "CDPATH", "ENV", "PYTHONDEVMODE", "PYTHONPATH", "DEBUG")
+    (
+        "BASH_ENV",
+        "CDPATH",
+        "ENV",
+        "PYTHONDEVMODE",
+        "PYTHONPATH",
+        "DEBUG",
+        "CI",
+        "GITHUB_ACTIONS",
+    )
 )
 
 

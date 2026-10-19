@@ -29,8 +29,11 @@ _SCRIPT_NAMES = ("_lib.sh", "find-files.sh", "find-sh.sh", "sh-tools.sh")
 _FINDER_EXIT = 3
 _USAGE_EXIT = 2
 _STRIPPED_ENV_PREFIXES = ("BASH_FUNC_", "FAKE_")
-# A startup file named by these could reset PATH and hide the fake tools.
-_STRIPPED_ENV_KEYS = frozenset(("BASH_ENV", "CDPATH", "ENV", "LC_ALL"))
+# A startup file named by these could reset PATH and hide the fake tools, and
+# CI turns a missing tool's skip into an error.
+_STRIPPED_ENV_KEYS = frozenset(
+    ("BASH_ENV", "CDPATH", "ENV", "LC_ALL", "CI", "GITHUB_ACTIONS")
+)
 
 _FAKE_TOOL = """#!{python}
 import json, os, sys
