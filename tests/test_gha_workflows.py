@@ -43,7 +43,7 @@ def _all_steps() -> Iterator[tuple[str, dict[str, Any]]]:
 def test_every_managed_file_says_so() -> None:
     """A child repo's copy tells you to edit it in devenv instead."""
     managed = [*WORKFLOWS.glob("devenv-*.yml"), *ACTIONS.glob("devenv-*/action.yml")]
-    assert len(managed) == 4  # noqa: PLR2004
+    assert len(managed) == 5  # noqa: PLR2004
     for path in managed:
         assert path.read_text().startswith(_MANAGED), path
 
@@ -146,6 +146,43 @@ def test_native_mode_installs_and_runs_make_on_the_runner() -> None:
     assert work["env"]["IN_CONTAINER"] == "${{ inputs.container }}"
     assert 'docker exec "$CI_CONTAINER" make "${targets[@]}"' in work["run"]
     assert '\n  make "${targets[@]}"\n' in work["run"]
+
+
+def test_native_lint_combos_install_the_lint_tools() -> None:
+    """
+    A native combo that lints installs the lint tools before the project.
+
+    The CI image has them in container mode, and test and build combos do not
+    run them, so neither pays for the install.
+    """
+    ((job_id, step),) = _uses("./.github/actions/devenv-lint-tools")
+    assert job_id == "check"
+    assert step["name"] == "Install lint tools"
+    assert step["if"] == "${{ !inputs.container && contains(matrix.make, 'lint') }}"
+    assert "with" not in step
+    names = [step.get("name") for step in _steps("check")]
+    assert names.index("Install lint tools") < names.index("Install")
+
+
+def test_lint_tools_action_installs_the_latest_with_brew() -> None:
+    """Every tool need gates, unpinned, from linuxbrew or macOS's brew."""
+    action = load(ACTIONS / "devenv-lint-tools" / "action.yml")
+    assert action["inputs"]["tools"]["default"].split() == [
+        "shellcheck",
+        "shellharden",
+        "shfmt",
+        "hadolint",
+        "dockerfmt",
+        "actionlint",
+    ]
+    (step,) = action["runs"]["steps"]
+    assert step["env"]["TOOLS"] == "${{ inputs.tools }}"
+    for name in ("AUTO_UPDATE", "INSTALL_CLEANUP", "ANALYTICS"):
+        assert step["env"][f"HOMEBREW_NO_{name}"] == "1", name
+    run = step["run"]
+    assert 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' in run
+    assert 'brew install "${formulae[@]}"' in run
+    assert 'echo "$(brew --prefix)/bin" >>"$GITHUB_PATH"' in run
 
 
 def test_prune_keeps_recent_untagged_images() -> None:

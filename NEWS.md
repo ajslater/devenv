@@ -1,5 +1,14 @@
 # devenv News
 
+## v0.2.9
+
+- Features
+    - CI lints shell scripts, Dockerfiles and workflows: a missing lint tool
+      fails instead of being skipped. Add shellcheck, shellharden, shfmt,
+      hadolint, dockerfmt and actionlint to your Dockerfile's CI stage (recipe
+      under GitHub Actions in devenv's README); native mode installs them with
+      brew.
+
 ## v0.2.8
 
 - Features

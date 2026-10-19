@@ -7,4 +7,5 @@ services:
       - ./dist:/app/dist
     environment:
       - PYTHONUNBUFFERED=1
+      - CI
     entrypoint: [sleep, infinity]
