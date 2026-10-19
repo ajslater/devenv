@@ -1,5 +1,11 @@
 # devenv News
 
+## v0.2.10
+
+- Fixes
+    - Workflows are linted in the CI image too. Without `.git`, calls into local
+      reusable workflows are not checked.
+
 ## v0.2.9
 
 - Features

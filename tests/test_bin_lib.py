@@ -336,18 +336,39 @@ def test_django_scripts_without_templates_run_nothing(
 def ci(project: Project) -> Project:
     """Build a project with workflows and lint-ci.sh."""
     project.install("common/_lib.sh", "ci/lint-ci.sh")
-    (project.root / ".github" / "workflows").mkdir(parents=True)
+    workflows = project.root / ".github" / "workflows"
+    workflows.mkdir(parents=True)
+    for name in ("ci.yml", "devenv-check.yml", "extra.yaml"):
+        (workflows / name).write_text("on: push\n")
     return project
 
 
-def test_lint_ci_runs_actionlint(ci: Project) -> None:
-    """Workflows are linted."""
+def test_lint_ci_runs_actionlint_on_the_named_workflows(ci: Project) -> None:
+    """The workflows are named, so actionlint needs no .git to find them."""
     ci.fake("actionlint")
 
     result = ci.script("lint-ci.sh")
 
     assert result.returncode == 0, result.stderr
-    assert ci.argvs("actionlint") == [[]]
+    assert ci.argvs("actionlint") == [
+        [
+            ".github/workflows/ci.yml",
+            ".github/workflows/devenv-check.yml",
+            ".github/workflows/extra.yaml",
+        ]
+    ]
+
+
+def test_lint_ci_with_an_empty_workflows_dir_needs_nothing(project: Project) -> None:
+    """An empty workflows directory is nothing to lint and nothing to report."""
+    project.install("common/_lib.sh", "ci/lint-ci.sh")
+    (project.root / ".github" / "workflows").mkdir(parents=True)
+
+    result = project.script("lint-ci.sh")
+
+    assert result.returncode == 0, result.stderr
+    assert "skipped" not in result.stderr
+    assert project.calls() == []
 
 
 def test_lint_ci_skips_a_missing_actionlint_out_loud(ci: Project) -> None:
