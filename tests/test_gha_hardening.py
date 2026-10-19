@@ -24,6 +24,8 @@ _DEVENV_CI = ROOT / ".github" / "workflows" / "ci.yml"
 _GITHUB_DIRS = (CI / ".github", STD_CALLER.parent.parent, _DEVENV_CI.parent.parent)
 _ACTIONLINT = shutil.which("actionlint") or ""
 _GIT = shutil.which("git") or ""
+# actionlint's exit status when no .git marks a project.
+_NO_PROJECT_EXIT = 3
 
 
 # ---------------------------------------------------------------------------
@@ -103,13 +105,14 @@ def test_every_job_has_a_timeout() -> None:
 # ---------------------------------------------------------------------------
 
 
-def _child_repo(tmp_path: Path, caller: str) -> Path:
+def _child_repo(tmp_path: Path, caller: str, *, git: bool = True) -> Path:
     """Lay out copy/ci and copy/python/bin the way update-devenv would."""
     repo = tmp_path / "child"
     CI.copy(repo, preserve_metadata=True)
     shutil.copytree(ROOT / "copy" / "python" / "bin", repo / "bin", dirs_exist_ok=True)
     (repo / ".github" / "workflows" / "ci.yml").write_text(caller)
-    subprocess.run([_GIT, "init", "-q"], cwd=repo, check=True)  # noqa: S603
+    if git:
+        subprocess.run([_GIT, "init", "-q"], cwd=repo, check=True)  # noqa: S603
     return repo
 
 
@@ -150,6 +153,17 @@ def test_actionlint_checks_the_call_contract(tmp_path: Path) -> None:
     assert result.returncode == 1
     assert 'input "bogus" is not defined' in result.stdout
     assert 'property "deploy_it" is not defined' in result.stdout
+
+
+@pytest.mark.skipif(not _ACTIONLINT, reason="needs actionlint")
+def test_actionlint_lints_named_files_without_git(tmp_path: Path) -> None:
+    """lint-ci.sh names the files: the CI image has no .git to find them by."""
+    repo = _child_repo(tmp_path, STD_CALLER.read_text(), git=False)
+    workflows = repo / ".github" / "workflows"
+    files = sorted(path.relative_to(repo) for path in workflows.glob("*.yml"))
+
+    assert _actionlint(repo, *files).returncode == 0
+    assert _actionlint(repo).returncode == _NO_PROJECT_EXIT
 
 
 @pytest.mark.skipif(not _ACTIONLINT, reason="needs actionlint")
