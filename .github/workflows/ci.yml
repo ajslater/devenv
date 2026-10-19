@@ -39,30 +39,13 @@ jobs:
           uv sync --locked --all-groups
           bun install --frozen-lockfile
 
-      # Release binaries, pinned by version and sha256. make lint, make
-      # update-devenv and the tests run each one from PATH.
-      - name: Install shell tools
-        run: |
-          bin="$RUNNER_TEMP/shell-tools"
-          mkdir -p "$bin"
-          while read -r name sha256 url; do
-            file="$RUNNER_TEMP/${url##*/}"
-            curl --fail --silent --show-error --location --retry 3 --output "$file" "$url"
-            echo "$sha256  $file" | sha256sum -c -
-            if [[ $file == *.tar.gz ]]; then
-              mkdir "$file.d"
-              tar -xzf "$file" -C "$file.d"
-              file=$(find "$file.d" -type f -name "$name")
-            fi
-            install "$file" "$bin/$name"
-            "$bin/$name" --version
-          done <<'EOF'
-          shellcheck b7af85e41cc99489dcc21d66c6d5f3685138f06d34651e6d34b42ec6d54fe6f6 https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.gz
-          shfmt 76e77641faa025814b77f153b29796b8e6fa2fca03e0c76a691608b86c7ea7bf https://github.com/mvdan/sh/releases/download/v3.14.1/shfmt_v3.14.1_linux_amd64
-          shellharden e81e97bc6bccff59b826d3b39328ab19b26721a236440f740ba71754531c7286 https://github.com/anordal/shellharden/releases/download/v4.3.2/shellharden-x86_64-unknown-linux-gnu.tar.gz
-          actionlint 8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz
-          EOF
-          echo "$bin" >>"$GITHUB_PATH"
+      # The ci feature's action, from its source: devenv has no ci feature, so
+      # no copy lands in .github/actions. make lint, make update-devenv and the
+      # tests run each tool from PATH; devenv has no docker feature.
+      - name: Install lint tools
+        uses: ./copy/ci/.github/actions/devenv-lint-tools
+        with:
+          tools: shellcheck shellharden shfmt actionlint
 
       - name: Lint
         run: make lint
