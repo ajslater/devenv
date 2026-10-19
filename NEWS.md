@@ -11,6 +11,8 @@
 - Fixes
     - `__snapshots__` is no longer gitignored, so snapshot baselines can be
       committed.
+    - `bin/release-tag.sh publish` no longer fails at random deciding whether a
+      release is the latest.
 
 ## v0.2.10
 
