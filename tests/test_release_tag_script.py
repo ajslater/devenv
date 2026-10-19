@@ -431,6 +431,30 @@ def test_alpha_is_a_prerelease(release: Release) -> None:
     _assert_create(create, "v1.2.4a0", flags, "Pre-release v1.2.4a0\n")
 
 
+# Holds back the tag listing until release_info.py has had time to exit.
+_SLOW_LS_REMOTE_GIT = """#!/usr/bin/env bash
+if [[ "$1" == ls-remote && "$*" == *--refs* ]]; then
+  sleep 0.5
+fi
+exec "$REAL_GIT" "$@"
+"""
+
+
+def test_tag_listing_outlived_by_its_reader(release: Release) -> None:
+    """is-latest exiting before git ls-remote writes does not fail publish."""
+    alpha = release.commit_on("main", {"pyproject.toml": _pyproject("1.2.4a0")}, "a0")
+    release.push_tag("v1.2.4a0", alpha)
+    wrapper = release.tmp / "fakebin" / "git"
+    wrapper.write_text(_SLOW_LS_REMOTE_GIT)
+    wrapper.chmod(0o755)
+
+    result = release.run("publish", sha=alpha, extra_env={"REAL_GIT": _GIT})
+
+    assert result.returncode == 0, result.stderr
+    (create,) = release.creates()
+    assert create["argv"][-2:] == ["--prerelease", "--latest=false"]
+
+
 def test_older_hotfix_is_not_latest(release: Release) -> None:
     """A final release older than the newest final tag is not latest."""
     release.push_tag("v2.0.0", release.base)
