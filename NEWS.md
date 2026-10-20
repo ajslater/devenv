@@ -13,6 +13,8 @@
       committed.
     - `bin/release-tag.sh publish` no longer fails at random deciding whether a
       release is the latest.
+    - `bin/manage.py` run directly imports the project from its own root, not
+      another installed copy.
 
 ## v0.2.10
 

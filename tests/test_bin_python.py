@@ -157,6 +157,51 @@ def test_manage_trusts_an_explicit_settings_module(ambiguous_django: Project) ->
     assert "Found 2 django settings modules" not in result.stderr
 
 
+# A stand-in django that reports which copy of the settings module it imported.
+_FAKE_DJANGO_MANAGEMENT = """\
+import importlib
+import os
+
+
+def execute_from_command_line(argv):
+    module = importlib.import_module(os.environ["DJANGO_SETTINGS_MODULE"])
+    print(module.__file__)
+"""
+
+
+def test_manage_imports_the_project_from_its_root(project: Project) -> None:
+    """The root's packages win over another copy elsewhere on the path."""
+    project.install("django/manage.py")
+    # A decoy copy of the project elsewhere, and a stand-in django at the
+    # root that is importable only if the root is on the path.
+    for module in (
+        "mysite/__init__.py",
+        "mysite/settings.py",
+        "elsewhere/mysite/__init__.py",
+        "elsewhere/mysite/settings.py",
+        "django/__init__.py",
+        "django/core/__init__.py",
+        "django/core/management/__init__.py",
+    ):
+        path = project.root / module
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("")
+    (project.root / "django/core/management/__init__.py").write_text(
+        _FAKE_DJANGO_MANAGEMENT
+    )
+
+    result = project.run(
+        sys.executable,
+        "bin/manage.py",
+        "check",
+        DJANGO_SETTINGS_MODULE="mysite.settings",
+        PYTHONPATH=str(project.root / "elsewhere"),
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == f"{project.root / 'mysite' / 'settings.py'}\n"
+
+
 @pytest.mark.parametrize(
     ("verdict", "message"),
     [
