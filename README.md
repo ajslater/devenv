@@ -186,6 +186,12 @@ These are copied but run by hand:
   to run them in their first lines.
 - `bin/cleanup-pypi-alpha.sh` (python) deletes PyPI pre-releases.
 - `make uml` (python) writes class diagrams to `test-results/uml/`.
+- `make prune-branches` (common) deletes local git branches but `main`,
+  `master`, `develop`, `pre-release` and any checked out in a worktree (`*` and
+  `+` in `git branch`). To keep others, list them in a `.keep-branches` file at
+  the project root, one per line. Blank lines and `#` comments are ignored, and
+  globs work: `release/*`. Unmerged branches are kept unless
+  `PRUNE_BRANCHES_FLAGS=-f`; `-n` only lists.
 
 ## Customization
 

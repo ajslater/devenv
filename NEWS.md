@@ -6,6 +6,8 @@
     - complexipy 8.1, which parses Python 3.15. `make fix` applies its refactors
       to functions over the complexity limit; `make fix-complexity` applies only
       those.
+    - `make prune-branches` deletes local branches except `main`, `master`,
+      `develop`, `pre-release`, checked-out ones and those in `.keep-branches`.
     - With frontend, the root lint leaves `frontend/` to its own lint.
     - CI uploads the coverage HTML report.
 - Fixes
