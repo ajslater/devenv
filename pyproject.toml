@@ -38,7 +38,6 @@ lint = [
   "radon~=6.0",
   "ruff~=0.17",
   "tomlkit~=0.15",
-  "types-python-dateutil~=2.9",
   "ty~=0.0.17",
   "vulture~=2.3",
 ]
