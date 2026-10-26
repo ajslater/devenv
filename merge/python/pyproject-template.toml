@@ -11,7 +11,7 @@ dev = [
   "infer-types~=1.0.0",
   "neovim~=0.3",
   "toml-cli~=0.7",
-  "pypi-cleanup~=0.1.10",
+  "pypi-cleanup~=0.1.10"
 ]
 build = []
 lint = [
@@ -24,7 +24,7 @@ lint = [
   "ty~=0.0.17",
   "vulture~=2.3",
   # In lint for types
-  "icecream~=2.1",
+  "icecream~=2.1"
 ]
 test = ["coverage[toml]~=7.0", "pytest-asyncio~=1.0", "pytest-cov~=7.0"]
 docs = ["mkdocs~=1.6", "mkdocs-minify-plugin~=0.8"]
@@ -48,7 +48,7 @@ source-include = [
   "uv.lock",
   "vulture_ignorelist.py",
   "Makefile",
-  "NEWS.md",
+  "NEWS.md"
 ]
 source-exclude = ["**/*\\~", "**/.DS_Store"]
 wheel-exclude = ["**/*\\~", "**/.DS_Store"]
@@ -61,7 +61,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
+  "vulture_ignorelist.py"
 ]
 pythonVersion = "3.11"
 failOnWarnings = false
@@ -105,7 +105,7 @@ omit = [
   "site/*",
   "test-results/*",
   "typings/*",
-  "vulture_ignorelist.py",
+  "vulture_ignorelist.py"
 ]
 
 [tool.pytest]
@@ -118,7 +118,7 @@ addopts = [
   "--junit-xml=test-results/pytest/results.xml",
   "--strict-config",
   "--strict-markers",
-  "-ra",
+  "-ra"
 ]
 junit_family = "xunit2"
 strict = true
@@ -140,7 +140,7 @@ extend-exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
+  "vulture_ignorelist.py"
 ]
 show-fixes = true
 target-version = "py311"
@@ -161,7 +161,7 @@ extend-ignore = [
   "PERF203",  # try block in loop
   "PLC0415",  # import outside top level
   "S101",  # assert
-  "W191",  # formatted
+  "W191"  # formatted
 ]
 extend-select = [
   "AIR",
@@ -232,7 +232,7 @@ extend-select = [
   "UP",
   "FURB",
   "RUF",
-  "TRY",
+  "TRY"
 ]
 external = ["V101"]
 task-tags = ["TODO", "FIXME", "XXX", "http", "HACK"]
@@ -267,7 +267,7 @@ exclude = [
   "site",
   "test-results",
   "typings",
-  "vulture_ignorelist.py",
+  "vulture_ignorelist.py"
 ]
 
 [tool.vulture]
@@ -284,7 +284,7 @@ exclude = [
   "*/node_modules/*",
   "*/site/*",
   "*/test-results/*",
-  "*/typings/*",
+  "*/typings/*"
 ]
 min_confidence = 61
 sort_by_size = true
