@@ -17,6 +17,8 @@
       release is the latest.
     - `bin/manage.py` run directly imports the project from its own root, not
       another installed copy.
+    - `make update-devenv` formats Makefiles with mbake 1.5, as `make fix` does,
+      so the two no longer disagree about the final newline.
 
 ## v0.2.10
 

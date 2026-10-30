@@ -349,6 +349,7 @@ lint = [
 ]
 test = [
     { name = "coverage" },
+    { name = "mbake" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
     { name = "pyyaml" },
@@ -389,6 +390,7 @@ lint = [
 ]
 test = [
     { name = "coverage", specifier = "~=7.0" },
+    { name = "mbake", specifier = "~=1.5.0" },
     { name = "pytest-asyncio", specifier = "~=1.0" },
     { name = "pytest-cov", specifier = "~=7.0" },
     { name = "pyyaml", specifier = "~=6.0" },
@@ -677,6 +679,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/81/99/157e10966b033b363aeda5263e82596ee232a0b1d082fdbf90aa417ff083/markupsafe-3.0.4-cp315-cp315t-win32.whl", hash = "sha256:e49fb0d1ce92cfa0cb198cc5b1b11cdf9d0638658e2a2db2687e39db7c87fc78", size = 14300, upload-time = "2026-10-02T23:06:53.241Z" },
     { url = "https://files.pythonhosted.org/packages/33/05/55884815414c9706a23deca150b72c25a62109e65b0b6ce232077802c719/markupsafe-3.0.4-cp315-cp315t-win_amd64.whl", hash = "sha256:4f6e0852a0283b1b1fd776eeb7b766a5f440b3e2bd31ab51af3b400585f3965c", size = 14522, upload-time = "2026-10-02T23:06:54.729Z" },
     { url = "https://files.pythonhosted.org/packages/92/f9/ecbde7149e95b8a0f18e16d5d747f7dc06049d5da2e4f77f6f5e4a1f46a8/markupsafe-3.0.4-cp315-cp315t-win_arm64.whl", hash = "sha256:39dbacefc411633db5b4378b066a9aca70a3d7e2922c9e578d825f844026eeba", size = 14417, upload-time = "2026-10-02T23:06:56.246Z" },
+]
+
+[[package]]
+name = "mbake"
+version = "1.5.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "rich" },
+    { name = "typer" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/4f/fb/00188bf6e344262031c813667d0be270d80c5eda068454b160115ca4d8e5/mbake-1.5.0.tar.gz", hash = "sha256:fe8ee29e67d3c0688d0677f901d16d8660e79074ae2dec9dd436d558afb58698", size = 384815, upload-time = "2026-10-28T17:00:30.563Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a7/17/0c28c19adde1329bfc1c6d9251febe0a42872770a1a4cff709b2e2a4a517/mbake-1.5.0-py3-none-any.whl", hash = "sha256:077b3a8a7b3de8b60b06e8bdd3b759b666315a2024de4c13a97b6c34c45453a4", size = 186802, upload-time = "2026-10-28T17:00:28.958Z" },
 ]
 
 [[package]]
