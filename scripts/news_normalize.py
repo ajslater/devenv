@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+# /// script
+# requires-python = ">=3.15"
+# dependencies = []
+# ///
 """
 Normalize NEWS.md sections to Keep a Changelog names under gitmoji headings.
 
@@ -6,12 +10,15 @@ Each version's legacy `- Features` style list labels become `### ✨ Added`
 style headings in a fixed order, with their items dedented to the left margin.
 Legacy labels that map to the same section merge in their original order.
 Already converted files pass through unchanged, so the script is idempotent.
+To file items that have no label, put a `### ✨ Added` style heading above
+them by hand first.
 
 Usage: news_normalize.py NEWS.md
 """
 
 import re
 import sys
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Final
 
@@ -38,9 +45,11 @@ LEGACY: Final = {
     "🚨 BREAKING CHANGES 🚨": "Breaking Changes",
     "Changed": "Changed",
     "**Warning**": "Breaking Changes",
+    "Alert!": "Breaking Changes",
     "Notice": "Breaking Changes",
     "Upgrading": "Breaking Changes",
     "Database Migration": "Breaking Changes",
+    "Migration note": "Breaking Changes",
     "Binary Dependencies": "Breaking Changes",
     "Features": "Added",
     "Feature": "Added",
@@ -48,15 +57,19 @@ LEGACY: Final = {
     "Performance": "Changed",
     "Performance Improvements": "Changed",
     "Change": "Changed",
+    "Deprecate": "Deprecated",
     "License": "Changed",
+    "Docs": "Added",
     "Removed": "Removed",
     "Drop Support": "Removed",
     "Fixes": "Fixed",
     "Fix": "Fixed",
     "Fixed": "Fixed",
+    "Deprecated": "Deprecated",
     "Special Thanks": "Fixed",
     "Dependencies": "Developer",
     "Depends": "Developer",
+    "Dep": "Developer",
     "Deps": "Developer",
     "Dev": "Developer",
     "Dev Notes": "Developer",
@@ -127,53 +140,77 @@ def _drop_subgroup_colons(lines: list[str]) -> list[str]:
         match = SUBGROUP_RE.match(line)
         following = lines[index + 1] if index + 1 < len(lines) else ""
         if match and following.startswith(match["indent"] + "    - "):
-            line = f"{match['indent']}- {match['label']}"
-        result.append(line)
+            result.append(f"{match['indent']}- {match['label']}")
+        else:
+            result.append(line)
     return result
+
+
+@dataclass(slots=True)
+class _Version:
+    """One version's header, its sections and where its next line goes."""
+
+    header: str
+    sections: dict[str, list[str]] = field(
+        default_factory=lambda: {name: [] for name, _ in SECTIONS}
+    )
+    target: list[str] | None = None
+    dedent: int = 0
+    thanks: bool = False
+
+    def add(self, line: str) -> None:
+        """File one body line."""
+        if line.startswith("### "):
+            self._switch(_heading_name(line))
+        elif line.startswith(" ") or (self.dedent == 0 and self.target is not None):
+            self._append(line)
+        else:
+            self._label(line)
+
+    def _switch(self, name: str, dedent: int = 0, *, thanks: bool = False) -> None:
+        self.target, self.dedent, self.thanks = self.sections[name], dedent, thanks
+
+    def _append(self, line: str) -> None:
+        if self.target is None:
+            reason = f"{self.header}: line outside a section: {line!r}"
+            raise NewsError(reason)
+        item = line[self.dedent :]
+        if self.thanks and item.startswith("- To "):
+            item = "- Thanks to " + item.removeprefix("- To ")
+        self.target.append(item)
+
+    def _label(self, line: str) -> None:
+        text = line.removeprefix("- ")
+        if (name := LEGACY.get(text.removesuffix(":"))) is not None:
+            self._switch(name, LEGACY_INDENT, thanks=text == "Special Thanks")
+        elif (subtitle := STATUS.get(text)) is not None:
+            if " - " in self.header:
+                reason = f"{self.header}: already has a subtitle"
+                raise NewsError(reason)
+            self.header, self.target = f"{self.header} - {subtitle}", None
+        elif (name := UNSECTIONED.get(text)) is not None:
+            self._switch(name)
+            self.sections[name].append(f"- {text}")
+        else:
+            reason = f"{self.header}: unknown label or item: {line!r}"
+            raise NewsError(reason)
+
+    def lines(self) -> list[str]:
+        """Return the converted header and sections."""
+        out = [self.header, ""]
+        for name, emoji in SECTIONS:
+            if lines := self.sections[name]:
+                out += [f"### {emoji} {name}", "", *_drop_subgroup_colons(lines), ""]
+        return out
 
 
 def convert_version(header: str, body: list[str]) -> list[str]:
     """Convert one version's header and body lines."""
-    header = HEADER_FIXES.get(header, header)
-    sections: dict[str, list[str]] = {name: [] for name, _ in SECTIONS}
-    target: list[str] | None = None
-    dedent = 0
-    thanks = False
+    version = _Version(HEADER_FIXES.get(header, header))
     for line in body:
-        if not line.strip():
-            continue
-        if line.startswith("### "):
-            target, dedent, thanks = sections[_heading_name(line)], 0, False
-        elif line.startswith(" ") or (dedent == 0 and target is not None):
-            if target is None:
-                reason = f"{header}: line outside a section: {line!r}"
-                raise NewsError(reason)
-            line = line[dedent:]
-            if thanks and line.startswith("- To "):
-                line = "- Thanks to " + line.removeprefix("- To ")
-            target.append(line)
-        else:
-            text = line.removeprefix("- ")
-            if (name := LEGACY.get(text.removesuffix(":"))) is not None:
-                target, dedent = sections[name], LEGACY_INDENT
-                thanks = text == "Special Thanks"
-            elif (subtitle := STATUS.get(text)) is not None:
-                if " - " in header:
-                    reason = f"{header}: already has a subtitle"
-                    raise NewsError(reason)
-                header, target = f"{header} - {subtitle}", None
-            elif (name := UNSECTIONED.get(text)) is not None:
-                target, dedent, thanks = sections[name], 0, False
-                target.append(f"- {text}")
-            else:
-                reason = f"{header}: unknown label or item: {line!r}"
-                raise NewsError(reason)
-
-    out = [header, ""]
-    for name, emoji in SECTIONS:
-        if lines := sections[name]:
-            out += [f"### {emoji} {name}", "", *_drop_subgroup_colons(lines), ""]
-    return out
+        if line.strip():
+            version.add(line)
+    return version.lines()
 
 
 def convert(news: str) -> str:
@@ -191,7 +228,7 @@ def convert(news: str) -> str:
 def main() -> None:
     """Rewrite the NEWS.md given on the command line in place."""
     path = Path(sys.argv[1])
-    path.write_text(convert(path.read_text(encoding="utf-8")), encoding="utf-8")
+    path.write_text(convert(path.read_text()))
 
 
 if __name__ == "__main__":
