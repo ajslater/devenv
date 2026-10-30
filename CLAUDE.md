@@ -178,8 +178,8 @@ Broadening a dotfile pattern therefore needs no retirement entry. A file with a
   target; recipes run in include order
 - `OVERRIDE_BUILD` / `OVERRIDE_PUBLISH` (any non-empty value) are read when
   `python.mk` is parsed, so they must be set above the includes
-- mbake strips the final newline of every `.mk`; `help.mk` reads them with
-  `awk 1` for that reason
+- mbake 1.5 ends every `.mk` with a newline where 1.4 stripped it; `help.mk`
+  reads them with `awk 1`, which copes with either
 - `mbake validate` runs each `.mk` with `make -n`, so a file whose first target
   would recurse or need files has a dummy `all:: ;` first
 - Convert keeps the old Makefile and eslint.config.js as `Makefile.orig.mk` and

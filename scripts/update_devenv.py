@@ -2,7 +2,7 @@
 # /// script
 # requires-python = ">=3.15"
 # dependencies = [
-#   "mbake~=1.4.5",
+#   "mbake~=1.5.0",
 #   "packaging>=26.0",
 #   "ruamel.yaml~=0.19.1",
 #   "semver~=3.1",
