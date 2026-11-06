@@ -410,6 +410,62 @@ def test_remove_values_prunes_emptied_parents() -> None:
 
 
 # ---------------------------------------------------------------------------
+# zensical.toml
+# ---------------------------------------------------------------------------
+
+_ZENSICAL_TEMPLATE = _ROOT / "merge" / "docs" / "zensical.toml"
+# A docs project's own zensical.toml: its site, a nav of pages and titled
+# pages, its logo and an API plugin.
+_ZENSICAL_PROJECT = """\
+[project]
+site_name = "Demo"
+nav = ["NEWS.md", { "API" = "api.md" }]
+
+[project.theme]
+logo = "img/logo.svg"
+
+[project.plugins.api-autonav]
+modules = ["demo"]
+"""
+
+
+def test_zensical_template_fills_in_a_projects_own_config(tmp_path: Path) -> None:
+    """The project's nav, logo and plugins stay; the template adds the rest."""
+    path = tmp_path / "zensical.toml"
+    path.write_text(_ZENSICAL_PROJECT)
+    argv = [str(_ZENSICAL_TEMPLATE), str(path), "-o", str(path)]
+
+    merge_toml.main(argv)
+    merged = path.read_text()
+
+    project = tomlkit.parse(merged).unwrap()["project"]
+    assert project["site_name"] == "Demo"
+    assert project["nav"] == ["NEWS.md", {"API": "api.md"}]
+    assert project["docs_dir"] == "docs"
+    assert project["theme"] == {
+        "logo": "img/logo.svg",
+        "variant": "modern",
+        "features": ["content.code.copy", "navigation.footer", "search.highlight"],
+        "palette": {"scheme": "slate"},
+    }
+    assert project["markdown_extensions"] == {
+        "smarty": {},
+        "toc": {"permalink": True},
+    }
+    assert project["plugins"] == {
+        "api-autonav": {"modules": ["demo"]},
+        "minify": {
+            "minify_html": True,
+            "minify_inline_js": True,
+            "minify_inline_css": True,
+        },
+    }
+    assert re.search(r"^smarty = \{\}$", merged, re.MULTILINE)
+    merge_toml.main(argv)
+    assert path.read_text() == merged
+
+
+# ---------------------------------------------------------------------------
 # Idempotency
 # ---------------------------------------------------------------------------
 

@@ -21,14 +21,14 @@ from types import MappingProxyType
 from typing import NamedTuple
 lazy from collections.abc import Callable, Generator, Iterable
 
-from _devenv_common import (  # ty: ignore[unresolved-import]
+from _devenv_common import (
     get_devenv_src,
     git_status,
     iter_feature_dirs,
     read_lines,
     report_counts,
 )
-lazy from _devenv_common import Version  # ty: ignore[unresolved-import]
+lazy from _devenv_common import Version
 
 RETIRED_LINES_FILE = "remove_dotfile_lines.txt"
 NO_RETIRED_LINES: frozenset[str] = frozenset()

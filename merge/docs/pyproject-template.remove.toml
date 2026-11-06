@@ -1,0 +1,10 @@
+# Values retired from what pyproject-template.toml merges.
+[tool.uv.build-backend]
+source-include = [
+  "mkdocs.yml",
+  "docs/requirements.txt",
+  "docs/style.css",
+  "docs/style.material.css",
+  "docs/style.mkdocs.css",
+  "docs/style.readthedocs.css",
+]

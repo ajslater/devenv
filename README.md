@@ -69,7 +69,7 @@ it: `add_features.py` and `update-devenv` stop with a one-line message.
 | `python`    | uv install, lint, typecheck, test, build and publish    |          |
 | `node`      | bun install and update, eslint_d                        |          |
 | `node_root` | the root `package.json` and the base eslint config      |          |
-| `docs`      | mkdocs build and serve                                  | `python` |
+| `docs`      | Zensical build and serve                                | `python` |
 | `frontend`  | install, lint, test and build in `frontend/`            |          |
 | `django`    | djlint, `bin/pm`, collectstatic before the python build | `python` |
 | `docker`    | hadolint and dockerfmt over every Dockerfile            |          |
@@ -221,9 +221,9 @@ The sources are:
   `bin/` scripts and `cfg/*.mk`. A project's copies are replaced on every
   update, so edit them here.
 - `merge/<feature>/` Configs merged into projects: ignore and rc dotfiles,
-  `package.json`, `pyproject-template.toml`, `mkdocs.yml`, `.readthedocs.yaml`
-  and `compose.yaml`. Any enabled feature may add to a file another feature
-  owns; django adds djlint to `pyproject.toml`.
+  `package.json`, `pyproject-template.toml`, `zensical.toml`,
+  `.readthedocs.yaml` and `compose.yaml`. Any enabled feature may add to a file
+  another feature owns; django adds djlint to `pyproject.toml`.
 - `init/<feature>/` Starter files copied once into new projects. A file named
   like `eslint.config.init.js` is installed as `eslint.config.js`.
 - `scripts/` The update, init and merge machinery.
@@ -246,9 +246,10 @@ entry. `make update-devenv` then removes it from each project:
   paths. A list there names the values to drop from the array, comma list, YAML
   list or `&&` script at that path; a table or object emptied this way is
   removed. An empty TOML table drops the whole table at its key path. A YAML
-  scalar swaps a project's equal value for the template's current one, and an
-  object under a `package.json` script swaps each command it names for its value
-  in place. Examples: `merge/python/pyproject-template.remove.toml`,
+  scalar swaps a project's equal value for the template's current one, or drops
+  it when the template has none, and an object under a `package.json` script
+  swaps each command it names for its value in place. Examples:
+  `merge/python/pyproject-template.remove.toml`,
   `merge/node_root/package.remove.json`, `merge/frontend/package.remove.json`
   and `merge/docs/.readthedocs.remove.yaml`.
 

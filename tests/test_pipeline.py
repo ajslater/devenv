@@ -49,7 +49,9 @@ addopts = ["-ra", "--strict-markers", "--cov"]
         indent=2,
     )
     + "\n",
-    "mkdocs.yml": "# The demo's docs.\nsite_name: Demo\nnav:\n  - index.md\n",
+    "zensical.toml": (
+        '# The demo\'s docs.\n[project]\nsite_name = "Demo"\nnav = ["index.md"]\n'
+    ),
 }
 
 
@@ -133,7 +135,24 @@ def test_first_run_keeps_the_projects_own_values(
         "tsc --noEmit && eslint_d --cache --ignore-pattern frontend/ ."
         " && prettier --check ."
     )
-    assert (child / "mkdocs.yml").read_text().startswith("# The demo's docs.\n")
+    assert (child / "zensical.toml").read_text().startswith("# The demo's docs.\n")
+
+
+def test_project_zensical_toml_survives_two_runs(
+    child: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The docs merge keeps the project's comment, site_name and nav."""
+    (child / "zensical.toml").write_text(_EXISTING_PROJECT["zensical.toml"])
+
+    for _ in range(2):
+        _run_update(child, ("docs", "python"), monkeypatch)
+
+    text = (child / "zensical.toml").read_text()
+    assert text.startswith("# The demo's docs.\n[project]\n")
+    project = tomllib.loads(text)["project"]
+    assert project["site_name"] == "Demo"
+    assert project["nav"] == ["index.md"]
+    assert project["docs_dir"] == "docs"
 
 
 def test_no_features_fails_before_touching_the_project(

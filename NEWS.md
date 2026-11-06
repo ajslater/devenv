@@ -1,5 +1,25 @@
 # devenv News
 
+## v0.3.0
+
+### ✨ Added
+
+- The docs feature builds with Zensical instead of MkDocs. `zensical.toml`
+  replaces `mkdocs.yml`, which update-devenv deletes: move `site_name`,
+  `site_description`, `site_author` and `nav` from `git diff mkdocs.yml` into
+  `[project]` of the new `zensical.toml`, and add
+  `site_url = "https://<slug>.readthedocs.io/"`. API pages: replace mkapi with
+  `mkdocstrings-python` in the docs group, then add
+  `[project.plugins.mkdocstrings]` and `[project.plugins.api-autonav]` with
+  `modules = ["<package>"]`. Read the Docs installs the docs group with uv, so
+  `docs/requirements.txt` goes; `docs/style.css` goes too, the theme is
+  Zensical's own.
+
+### 🐛 Fixed
+
+- `make docs` builds into `site/`, now ignored. It never worked: mkdocs refused
+  `docs/site` inside `docs_dir`.
+
 ## v0.2.11
 
 ### ✨ Added

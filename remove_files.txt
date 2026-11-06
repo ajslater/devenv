@@ -39,3 +39,8 @@ bin/fix-sh.sh
 bin/lint-darwin.sh
 bin/lint-sh.sh
 bin/type-python.sh
+
+# since 0.3.0
+mkdocs.yml
+docs/requirements.txt
+docs/style.css

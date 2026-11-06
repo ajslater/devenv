@@ -7,7 +7,7 @@ readme = "README.md"
 requires-python = ">=3.15"
 license = "MIT"
 name = "devenv"
-version = "0.2.11"
+version = "0.3.0"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -51,7 +51,7 @@ test = [
   "semver~=3.1.0",
   "tomlkit~=0.15",
 ]
-docs = ["mkdocs-minify-plugin~=0.8", "mkdocs~=1.6"]
+docs = ["zensical~=0.1"]
 ci = []
 
 [build-system]
@@ -76,15 +76,9 @@ source-include = [
   "docs/NEWS.md",
   "docs/README.md",
   "docs/WINDOWS.md",
-  "docs/requirements.txt",
-  "docs/style.css",
-  "docs/style.material.css",
-  "docs/style.mkdocs.css",
-  "docs/style.readthedocs.css",
   "eslint.config.js",
   "frontend/**",
   "img/**",
-  "mkdocs.yml",
   "mock_comics/**",
   "package.json",
   "tests/**",

@@ -1,0 +1,9 @@
+[project]
+site_name = ""
+# site_url = "https://<slug>.readthedocs.io/"
+site_author = "AJ"
+site_description = ""
+nav = ["NEWS.md"]
+
+[project.theme]
+logo = "img/logo.svg"
