@@ -118,9 +118,7 @@ packaging, ruamel, semver and tomlkit to it, and module-level code must not
 touch a lazy name. `copy/*/bin/*.py` run in children on 3.11 and keep
 `TYPE_CHECKING`. PEP 798 unpacking and `frozendict` wait on basedpyright;
 `tasks/python315.md` tracks them. `tests/test_script_metadata.py` requires every
-third-party import (including through sibling modules) to be declared. Sibling
-imports carry `# ty: ignore[unresolved-import]` because ty checks a PEP 723
-script without its directory on the path.
+third-party import (including through sibling modules) to be declared.
 
 - `update_devenv.py` — `make update-devenv`: deletes retired files, merges
   dotfiles, copies feature files, runs the three config mergers in process

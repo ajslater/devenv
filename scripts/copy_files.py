@@ -18,7 +18,7 @@ import argparse
 import filecmp
 from pathlib import Path
 
-from _devenv_common import (  # ty: ignore[unresolved-import]
+from _devenv_common import (
     get_devenv_src,
     git_status,
     iter_feature_dirs,

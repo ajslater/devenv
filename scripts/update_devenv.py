@@ -37,10 +37,10 @@ from tempfile import TemporaryDirectory
 from typing import Final
 lazy from collections.abc import Callable, Sequence
 
-import merge_package_json  # ty: ignore[unresolved-import]
-import merge_toml  # ty: ignore[unresolved-import]
-import merge_yaml  # ty: ignore[unresolved-import]
-from _devenv_common import (  # ty: ignore[unresolved-import]
+import merge_package_json
+import merge_toml
+import merge_yaml
+from _devenv_common import (
     STAMP_FILE,
     devenv_version,
     exit_on_unmet_requirements,
@@ -54,13 +54,13 @@ from _devenv_common import (  # ty: ignore[unresolved-import]
     report_counts,
     run,
 )
-from _makefiles import format_makefiles  # ty: ignore[unresolved-import]
-from copy_files import copy_files  # ty: ignore[unresolved-import]
-from merge_dotfiles import (  # ty: ignore[unresolved-import]
+from _makefiles import format_makefiles
+from copy_files import copy_files
+from merge_dotfiles import (
     merge_dotfiles,
     read_retired_lines,
 )
-lazy from _devenv_common import Version  # ty: ignore[unresolved-import]
+lazy from _devenv_common import Version
 
 NO_FEATURES = (
     "devenv: no DEVENV_<FEATURE> flags are set. Run `make update-devenv`, "

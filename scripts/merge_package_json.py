@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any, Final
 lazy from collections.abc import Callable, Sequence
 
-from _devenv_common import read_lines  # ty: ignore[unresolved-import]
+from _devenv_common import read_lines
 lazy import semver
 
 SCRIPT_COMMAND_SEPARATOR = " && "

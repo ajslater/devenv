@@ -18,19 +18,19 @@ eslint.config.js as *.orig.* references before the starters take their place.
 import argparse
 from pathlib import Path
 
-from _devenv_common import (  # ty: ignore[unresolved-import]
+from _devenv_common import (
     DEFAULT_FEATURES,
     FEATURES,
     exit_on_unmet_requirements,
     get_devenv_src,
     report_counts,
 )
-from _makefiles import (  # ty: ignore[unresolved-import]
+from _makefiles import (
     format_makefiles,
     include_features,
     included_features,
 )
-from copy_files import copy_files  # ty: ignore[unresolved-import]
+from copy_files import copy_files
 
 # Old files convert keeps for reference, and the names it keeps them under.
 CONVERT_RENAMES = (
