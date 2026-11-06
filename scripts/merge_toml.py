@@ -41,7 +41,15 @@ lazy from packaging.specifiers import SpecifierSet
 lazy from packaging.version import InvalidVersion, Version
 lazy from tomlkit import TOMLDocument
 lazy from tomlkit.container import Container
-lazy from tomlkit.items import AbstractTable, AoT, Array, InlineTable, String, Table
+lazy from tomlkit.items import (
+    AbstractTable,
+    AoT,
+    Array,
+    InlineTable,
+    Key,
+    String,
+    Table,
+)
 
 PYTHON_DEP_KEY_PATH_LEN = 2
 DEP_KEY_PATHS = frozenset({("project", "dependencies"), ("build-system", "requires")})
@@ -344,16 +352,28 @@ def _item(table: Any, key: str) -> Any:
     return table[key]
 
 
+def _is_header(key: Any, item: Any) -> bool:
+    """
+    Check if a table entry is written under a [header] of its own.
+
+    A dotted key such as `toc.permalink = true` holds a table but is written
+    as a plain `key = value` line.
+    """
+    return isinstance(item, Table | AoT) and not (
+        isinstance(key, Key) and key.is_dotted()
+    )
+
+
 def _neighbour_position(
-    container: Container, key: str, keys: list[str], *, is_table: bool
+    container: Container, key: str, keys: list[str], *, is_header: bool
 ) -> int | None:
     """
     Return where key goes in container, beside its nearest neighbour in keys.
 
     That is just after the nearest key before it, or just before the nearest
     key after it, that container holds. A neighbour must be of the same kind,
-    a table or a plain value, because a value placed after a [header] would
-    belong to that table.
+    a [header] table or a plain line, because a line placed after a [header]
+    would belong to that table.
     """
     index = keys.index(key)
     neighbours = [(name, 1) for name in reversed(keys[:index])]
@@ -364,28 +384,54 @@ def _neighbour_position(
             for spot, (body_key, item) in enumerate(container.body)
             if body_key is not None
             and body_key.key == name
-            and isinstance(item, Table | AoT) == is_table
+            and _is_header(body_key, item) == is_header
         ]
         if spots:
             return max(spots) + 1 if after else min(spots)
     return None
 
 
-def _insert(updates: Any, key: str, value: Any, keys: list[str]) -> None:
+def _entries(table: Any, key: str) -> list[tuple[Any, Any]]:
     """
-    Add key to updates beside its neighbours in keys, the base's key order.
+    Return copies of table's entries for key, keys and all, as its file has them.
 
-    Without a neighbour, tomlkit appends it: a plain value after the other
-    plain values and a table after the other tables.
+    A dotted key written on several lines, such as `pymdownx.details = {}` and
+    `pymdownx.superfences = {}`, is an entry per line. Each keeps its dotted
+    key, so it is written back as a dotted line, not as a [pymdownx] header.
+    """
+    container = table.value if isinstance(table, AbstractTable) else table
+    entries = (
+        [
+            copy.deepcopy((entry_key, item))
+            for entry_key, item in container.body
+            if entry_key is not None and entry_key.key == key
+        ]
+        if isinstance(container, Container)
+        else []
+    )
+    return entries or [(key, copy.deepcopy(_item(table, key)))]
+
+
+def _insert(updates: Any, key: str, base: Any, keys: list[str]) -> None:
+    """
+    Add base's key to updates beside its neighbours in keys, the base's key order.
+
+    Without a neighbour, tomlkit appends it: a plain line after the other
+    plain lines and a table after the other tables.
     """
     container = updates.value if isinstance(updates, Table) else updates
-    if isinstance(container, Container):
-        is_table = isinstance(value, Table | AoT)
-        position = _neighbour_position(container, key, keys, is_table=is_table)
-        if position is not None and position < len(container.body):
-            container._insert_at(position, key, value)  # noqa: SLF001
-            return
-    updates[key] = value
+    if not isinstance(container, Container):
+        updates[key] = copy.deepcopy(_item(base, key))
+        return
+    entries = _entries(base, key)
+    position = _neighbour_position(
+        container, key, keys, is_header=_is_header(*entries[0])
+    )
+    for offset, (entry_key, item) in enumerate(entries):
+        if position is not None and position + offset < len(container.body):
+            container._insert_at(position + offset, entry_key, item)  # noqa: SLF001
+        else:
+            updates.append(entry_key, item)
 
 
 def deep_merge_tomlkit(
@@ -415,10 +461,10 @@ def deep_merge_tomlkit(
 
     keys = list(base.keys())
     for key in keys:
-        base_value = _item(base, key)
         if key not in updates:
-            _insert(updates, key, copy.deepcopy(base_value), keys)
+            _insert(updates, key, base, keys)
             continue
+        base_value = _item(base, key)
         update_value = updates[key]
         merged = _merge_value_pair(
             base_value, update_value, list_strategy, (*key_path, key)
@@ -469,19 +515,32 @@ def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
         del doc[key]
 
 
-def _remove_table_values(doc: Any, key: str, retired: Any) -> None:
+def _remove_table_values(doc: Any, key: str, retired: Any, defaults: Any) -> None:
     """
     Remove retired's values from the table at doc[key].
 
     Drops the table itself once nothing is left, or at once when retired is empty.
     """
     target = doc[key]
-    remove_values(target, retired)
+    remove_values(target, retired, defaults)
     if not (retired and target):
         del doc[key]
 
 
-def remove_values(doc: Any, retired: Any) -> None:
+def _default(defaults: Any, key: str) -> Any:
+    """Return what defaults holds at key, or None."""
+    return defaults.get(key) if _is_table_like(defaults) else None
+
+
+def _retire_scalar(doc: Any, key: str, defaults: Any) -> None:
+    """Give doc[key] the value defaults holds there, in place, or drop it."""
+    if _is_table_like(defaults) and key in defaults:
+        doc[key] = copy.deepcopy(_item(defaults, key))
+    else:
+        del doc[key]
+
+
+def remove_values(doc: Any, retired: Any, defaults: Any = None) -> None:
     """
     Remove retired values from doc, in place.
 
@@ -490,20 +549,21 @@ def remove_values(doc: Any, retired: Any) -> None:
     An array, string or table emptied that way is removed, so a fully retired
     key vanishes instead of lingering as `[]`, `""` or a bare `[tool.x]`. An
     empty table drops the whole table at its key path, whatever it holds. Any
-    other value drops the key itself when doc holds that same value. Missing
-    keys are ignored, the rest of each array keeps its order and formatting,
-    and the rest of each string keeps its order.
+    other value retires an equal value in doc: defaults' value at the same key
+    path takes its place, or without one the key goes. Missing keys are
+    ignored, the rest of each array keeps its order and formatting, and the
+    rest of each string keeps its order.
     """
     for key, value in retired.items():
         if key not in doc:
             continue
         target = doc[key]
         if _is_table_like(value) and _is_table_like(target):
-            _remove_table_values(doc, key, value)
+            _remove_table_values(doc, key, value, _default(defaults, key))
         elif isinstance(value, list | Array):
             _remove_items(doc, key, frozenset(str(item) for item in value))
         elif value == target:
-            del doc[key]
+            _retire_scalar(doc, key, defaults)
 
 
 def load_toml_file(filepath: Path) -> TOMLDocument:
@@ -719,7 +779,11 @@ Comma-Delimited Strings:
         type=Path,
         action="append",
         default=[],
-        help="TOML file of retired values to drop from the merged result; may repeat",
+        help=(
+            "TOML file of retired values to drop from the merged result; may"
+            " repeat. A retired scalar takes what the earlier files give at"
+            " its key path, or goes."
+        ),
     )
 
     args = parser.parse_args(argv)
@@ -734,8 +798,10 @@ Comma-Delimited Strings:
             parser.error(reason)
 
     merged_doc = merge_toml_files(args.files, args.list_strategy)
+    # A retired scalar falls back to what the files before the last one give.
+    defaults = merge_toml_files(args.files[:-1], args.list_strategy)
     for path in args.remove_values:
-        remove_values(merged_doc, load_toml_file(path))
+        remove_values(merged_doc, load_toml_file(path), defaults)
 
     toml_output = tomlkit.dumps(merged_doc)
     if args.output:

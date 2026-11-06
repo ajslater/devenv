@@ -132,6 +132,31 @@ addopts = ["-ra"]
     ]
 
 
+_DOTTED = """\
+[ext]
+plain = {}
+toc.permalink = true
+added = {}
+pymdownx.details = {}
+pymdownx.quotes.callouts = true
+"""
+
+
+@pytest.mark.parametrize(
+    "tail", ["\n[other]\nkey = 1\n", ""], ids=["before-a-table", "at-the-end"]
+)
+def test_dotted_keys_arrive_as_dotted_lines(tmp_path: Path, tail: str) -> None:
+    """
+    A dotted key the project lacks arrives as the template wrote it, in its place.
+
+    Written as an [ext.pymdownx] header instead, it would take the project's
+    lines after it into that table.
+    """
+    project = "[ext]\nplain = {}\ntoc.permalink = true\n" + tail
+
+    assert _merge(tmp_path, _DOTTED, project) == _DOTTED + tail
+
+
 def test_template_keys_keep_their_comments(tmp_path: Path) -> None:
     """A table the project lacks arrives with the template's comments."""
     merged = _merge(tmp_path, _PYPROJECT_TEMPLATE.read_text(), "")
@@ -457,11 +482,14 @@ def test_zensical_template_fills_in_a_projects_own_config(tmp_path: Path) -> Non
         "logo": "img/logo.svg",
         "variant": "modern",
         "features": ["content.code.copy", "navigation.footer", "search.highlight"],
-        "palette": {"scheme": "slate"},
+        "font": {"text": "Inter", "code": "JetBrains Mono"},
+        "palette": {"scheme": "slate", "primary": "indigo", "accent": "orange"},
     }
     assert project["markdown_extensions"] == {
         "smarty": {},
         "toc": {"permalink": True},
+        "admonition": {},
+        "pymdownx": {"details": {}, "superfences": {}, "quotes": {"callouts": True}},
     }
     assert project["plugins"] == {
         "api-autonav": {"modules": ["demo"]},
@@ -472,8 +500,33 @@ def test_zensical_template_fills_in_a_projects_own_config(tmp_path: Path) -> Non
         },
     }
     assert re.search(r"^smarty = \{\}$", merged, re.MULTILINE)
+    assert re.search(r"^pymdownx\.quotes\.callouts = true$", merged, re.MULTILINE)
     merge_toml.main(argv)
     assert path.read_text() == merged
+
+
+# The markdown_extensions table that devenv 0.3.0 and 0.3.1 merged.
+_EXTENSIONS_0_3_1 = """\
+[project.markdown_extensions]
+smarty = {}
+toc.permalink = true
+"""
+
+
+def test_a_0_3_1_config_gains_the_extensions_in_place(tmp_path: Path) -> None:
+    """The extensions added since 0.3.1 arrive as the template writes them."""
+    extensions = re.search(
+        r"^\[project\.markdown_extensions\]\n(?:.+\n)+",
+        _ZENSICAL_TEMPLATE.read_text(),
+        re.MULTILINE,
+    )
+    assert extensions
+    path = tmp_path / "zensical.toml"
+    path.write_text('[project]\nsite_name = "Demo"\n\n' + _EXTENSIONS_0_3_1)
+
+    merge_toml.main([str(_ZENSICAL_TEMPLATE), str(path), "-o", str(path)])
+
+    assert extensions[0] in path.read_text()
 
 
 # ---------------------------------------------------------------------------

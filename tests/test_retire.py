@@ -8,8 +8,10 @@ A child repo sheds these on its next update-devenv:
   dotfile.
 - merge_toml --remove-values drops the values in each enabled feature's
   merge/<feature>/pyproject-template.remove.toml from pyproject.toml's arrays
-  and comma-delimited strings, dropping any it empties, drops each key that
-  holds a scalar it lists and drops each table it lists empty.
+  and comma-delimited strings, dropping any it empties, gives each key that
+  holds a scalar it lists the template's current value, or drops it where the
+  template has none, and drops each table it lists empty. The docs feature's
+  merge/docs/zensical.remove.toml does the same for zensical.toml.
 - merge_package_json --remove-values drops the values in
   merge/node_root/package.remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
@@ -37,8 +39,12 @@ from scripts import merge_package_json, merge_toml, merge_yaml
 _ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
-_PYPROJECT_TEMPLATES = sorted((_ROOT / "merge").glob("*/pyproject-template.toml"))
-_PYPROJECT_REMOVES = sorted((_ROOT / "merge").glob("*/pyproject-template.remove.toml"))
+_TOML_TEMPLATES = sorted(
+    path
+    for path in (_ROOT / "merge").glob("*/*.toml")
+    if ".remove" not in path.suffixes
+)
+_ZENSICAL_TEMPLATE = _ROOT / "merge" / "docs" / "zensical.toml"
 _PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package.remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
@@ -185,6 +191,21 @@ def test_remove_values_drops_keys_holding_a_retired_scalar() -> None:
 
     assert "a" not in doc["tool"]
     assert doc["tool"]["b"]["flag"] is False
+
+
+def test_remove_values_gives_a_retired_scalar_the_default() -> None:
+    """
+    A retired scalar takes defaults' value in place, comment and all.
+
+    Without a value in defaults, its key goes.
+    """
+    doc = tomlkit.parse('[tool.a]\nx = "old"  # mine\ny = "old"\nz = "old"\n')
+    retired = tomlkit.parse('[tool.a]\nx = "old"\ny = "old"\n')
+    defaults = tomlkit.parse('[tool.a]\nx = "new"\n')
+
+    merge_toml.remove_values(doc, retired, defaults)
+
+    assert tomlkit.dumps(doc) == '[tool.a]\nx = "new"  # mine\nz = "old"\n'
 
 
 def test_remove_values_drops_tables_retired_empty() -> None:
@@ -361,17 +382,58 @@ def test_docs_retires_mkdocs_from_pyproject(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    "template", _PYPROJECT_TEMPLATES, ids=lambda path: path.parent.name
+    "template",
+    _TOML_TEMPLATES,
+    ids=lambda path: f"{path.parent.name}/{path.name}",
 )
 def test_template_ships_no_retired_value(template: Path) -> None:
-    """No template may reintroduce what any pyproject-template.remove.toml retires."""
+    """
+    No template may reintroduce what a remove file for the same output retires.
+
+    pyproject-template.toml faces every feature's pyproject-template.remove.toml,
+    since all of them merge into one pyproject.toml.
+    """
     doc = tomlkit.parse(template.read_text())
     before = tomlkit.dumps(doc)
+    removes = sorted((_ROOT / "merge").glob(f"*/{template.stem}.remove.toml"))
+    if template.parent.name == "docs":
+        assert removes
 
-    for remove in _PYPROJECT_REMOVES:
+    for remove in removes:
         merge_toml.remove_values(doc, tomlkit.parse(remove.read_text()))
 
     assert tomlkit.dumps(doc) == before
+
+
+# ---------------------------------------------------------------------------
+# zensical.toml
+# ---------------------------------------------------------------------------
+
+
+def _zensical_merge() -> update_devenv.ConfigMerge:
+    return next(m for m in update_devenv.CONFIG_MERGES if m.output == "zensical.toml")
+
+
+@pytest.mark.parametrize(
+    ("primary", "expected"), [("deep purple", "indigo"), ("teal", "teal")]
+)
+def test_zensical_primary_moves_to_indigo(
+    tmp_path: Path, primary: str, expected: str
+) -> None:
+    """
+    The 0.3.1 template's primary gives way to zensical.org's; a child's own stays.
+
+    The swap keeps the line in place and settles in one update.
+    """
+    palette = (
+        '[project.theme.palette]\nscheme = "slate"\nprimary = "{}"\naccent = "orange"\n'
+    )
+    project = tmp_path / "zensical.toml"
+    project.write_text('[project]\nsite_name = "Demo"\n\n' + palette.format(primary))
+
+    for _ in range(2):
+        update_devenv.merge_config(_ROOT, tmp_path, ["docs"], _zensical_merge())
+        assert palette.format(expected) in project.read_text()
 
 
 # ---------------------------------------------------------------------------

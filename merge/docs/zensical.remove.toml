@@ -1,0 +1,4 @@
+# Values retired from what zensical.toml merges.
+[project.theme.palette]
+# zensical.org's primary; update-devenv swaps a child's "deep purple" for it.
+primary = "deep purple"

@@ -1,5 +1,24 @@
 # devenv News
 
+## v0.3.2
+
+### ✨ Added
+
+- The docs theme matches zensical.org's: primary `indigo`, accent `orange` and
+  the dark `slate` scheme. `make update-devenv` moves a child's `deep purple`
+  primary to `indigo` and keeps any other it chose.
+- Admonitions (`!!! note`, and `??? note` to collapse) and GitHub-style callouts
+  (`> [!NOTE]`, which GitHub renders too) are enabled in `zensical.toml`.
+- A scalar in a `.remove.toml` swaps a child's equal value for the template's
+  current one in the same update, as one in a `.remove.yaml` does. It used to
+  drop the key, and the template's value came back only on the next update.
+
+### 🐛 Fixed
+
+- A dotted key a template adds to a table the child already has, such as
+  `pymdownx.details = {}`, stays a dotted line. It was written as a `[header]`
+  table, which took the child's own lines after it into that table.
+
 ## v0.3.1
 
 ### 🐛 Fixed
