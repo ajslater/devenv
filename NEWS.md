@@ -1,5 +1,16 @@
 # devenv News
 
+## v0.3.1
+
+### 🐛 Fixed
+
+- update-devenv also reads the enabled features from the Makefile includes, so a
+  child whose old `cfg/<feature>.mk` lacks the `DEVENV_<FEATURE>` export is no
+  longer skipped. An old `cfg/docs.mk` without it lost its mkdocs files and got
+  no `zensical.toml`.
+- `site/`, the docs build output, is skipped by codespell and ESLint, so
+  `make lint` passes after `make docs`.
+
 ## v0.3.0
 
 ### ✨ Added

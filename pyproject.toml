@@ -7,7 +7,7 @@ readme = "README.md"
 requires-python = ">=3.15"
 license = "MIT"
 name = "devenv"
-version = "0.3.0"
+version = "0.3.1"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -122,7 +122,7 @@ extraPaths = ["scripts"]
 [tool.codespell]
 builtin = "clear,code,rare"
 ignore-words-list = "coverd,crate,deque,falsy,iff,ro,searchd,thead,versio,wan,warmup,ws"
-skip = "*.pdf,*.svg,*~,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,tasks,test-results,typings,uv.lock"
+skip = "*.pdf,*.svg,*~,__pycache__,bun.lock,dist,htmlcov,node_modules,package.json,site,tasks,test-results,typings,uv.lock"
 
 [tool.complexipy]
 failed = true
