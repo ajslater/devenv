@@ -169,6 +169,17 @@ def test_comma_lists_keep_the_project_items_first(tmp_path: Path) -> None:
     assert merged["builtin"] == "clear,rare"
 
 
+def test_project_codespell_skip_gains_the_docs_site(tmp_path: Path) -> None:
+    """A project's own codespell skip keeps its items and gains site."""
+    project = tmp_path / "pyproject.toml"
+    project.write_text('[tool.codespell]\nskip = "mine,uv.lock"\n')
+
+    skip = tomlkit.parse(_update(project))["tool"]["codespell"]["skip"].split(",")
+
+    assert skip[:2] == ["mine", "uv.lock"]
+    assert "site" in skip
+
+
 def test_full_comma_list_is_left_as_written(tmp_path: Path) -> None:
     """A comma list that holds every template item keeps its own layout."""
     project = '[tool.radon]\nexclude = """\n  mine/*,\n  dist/*\n  """\n'

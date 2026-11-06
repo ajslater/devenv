@@ -155,6 +155,37 @@ def test_project_zensical_toml_survives_two_runs(
     assert project["docs_dir"] == "docs"
 
 
+# A cfg/docs.mk from before the feature .mk files exported DEVENV_<FEATURE>.
+_FLAGLESS_DOCS_MK = """\
+.PHONY: docs
+## Build doc site
+## @category Docs
+docs:
+\tuv run --only-group docs --no-dev mkdocs build --strict --site-dir docs/site
+
+.PHONY: docs-server
+## Run the docs server
+## @category Docs
+docs-server:
+\tuv run --only-group docs --no-dev mkdocs serve --open --dirty
+"""
+
+
+def test_makefile_include_enables_a_feature_without_its_flag(
+    child: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An included cfg/docs.mk too old to export DEVENV_DOCS still gets docs."""
+    (child / "Makefile").write_text("include cfg/python.mk\ninclude cfg/docs.mk\n")
+    (child / "cfg").mkdir()
+    (child / "cfg" / "docs.mk").write_text(_FLAGLESS_DOCS_MK)
+
+    _run_update(child, ("python",), monkeypatch)
+
+    assert (child / "zensical.toml").is_file()
+    assert (child / "cfg" / "docs.mk").read_text().startswith("DEVENV_DOCS := 1\n")
+    assert "site/" in (child / ".gitignore").read_text().splitlines()
+
+
 def test_no_features_fails_before_touching_the_project(
     child: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

@@ -24,7 +24,9 @@ Retirements that the project's stamp says it already had are skipped, and
 devenv's NEWS since that version is printed.
 
 Run it with `make update-devenv`, which sets the DEVENV_<FEATURE> flags from
-the cfg/*.mk files the project Makefile includes.
+the cfg/*.mk files the project Makefile includes. Those includes count on
+their own too, so a cfg/<feature>.mk too old to export its flag still gets
+its feature updated.
 """
 
 import argparse
@@ -41,6 +43,7 @@ import merge_package_json
 import merge_toml
 import merge_yaml
 from _devenv_common import (
+    FEATURES,
     STAMP_FILE,
     devenv_version,
     exit_on_unmet_requirements,
@@ -54,7 +57,7 @@ from _devenv_common import (
     report_counts,
     run,
 )
-from _makefiles import format_makefiles
+from _makefiles import format_makefiles, included_features
 from copy_files import copy_files
 from merge_dotfiles import (
     merge_dotfiles,
@@ -68,6 +71,12 @@ NO_FEATURES = (
 )
 NODE_TOOLS = ("bun", "bunx")
 _NEWS_HEADING_RE = re.compile(r"## v(?P<version>\d+(?:\.\d+)*)")
+
+
+def enabled_features(pd: Path) -> list[str]:
+    """Return the features flagged in the environment or included by the Makefile."""
+    enabled = {*get_enabled_features(), *included_features(pd / "Makefile")}
+    return [feature for feature in FEATURES if feature in enabled]
 
 
 def delete_files(devenv_src: Path, stamp: Version | None = None) -> None:
@@ -227,7 +236,7 @@ def main(*, update_deps: bool = True) -> None:
     """Run the full devenv update pipeline."""
     devenv_src = get_devenv_src()
     pd = Path.cwd()
-    features = get_enabled_features()
+    features = enabled_features(pd)
     if not features:
         sys.exit(NO_FEATURES)
     exit_on_unmet_requirements(features)
