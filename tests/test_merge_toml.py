@@ -132,6 +132,31 @@ addopts = ["-ra"]
     ]
 
 
+_DOTTED = """\
+[ext]
+plain = {}
+toc.permalink = true
+added = {}
+pymdownx.details = {}
+pymdownx.quotes.callouts = true
+"""
+
+
+@pytest.mark.parametrize(
+    "tail", ["\n[other]\nkey = 1\n", ""], ids=["before-a-table", "at-the-end"]
+)
+def test_dotted_keys_arrive_as_dotted_lines(tmp_path: Path, tail: str) -> None:
+    """
+    A dotted key the project lacks arrives as the template wrote it, in its place.
+
+    Written as an [ext.pymdownx] header instead, it would take the project's
+    lines after it into that table.
+    """
+    project = "[ext]\nplain = {}\ntoc.permalink = true\n" + tail
+
+    assert _merge(tmp_path, _DOTTED, project) == _DOTTED + tail
+
+
 def test_template_keys_keep_their_comments(tmp_path: Path) -> None:
     """A table the project lacks arrives with the template's comments."""
     merged = _merge(tmp_path, _PYPROJECT_TEMPLATE.read_text(), "")
