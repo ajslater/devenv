@@ -12,7 +12,7 @@ code = "JetBrains Mono"
 [project.theme.palette]
 scheme = "slate"
 primary = "deep purple"
-accent = "deep orange"
+accent = "orange"
 
 [project.markdown_extensions]
 smarty = {}
