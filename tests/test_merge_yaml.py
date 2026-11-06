@@ -13,12 +13,38 @@ import pytest
 from scripts import merge_yaml
 
 _ROOT = Path(__file__).resolve().parent.parent
-_MKDOCS = _ROOT / "merge" / "docs" / "mkdocs.yml"
-_READTHEDOCS = _ROOT / "merge" / "docs" / ".readthedocs.yaml"
-_COMPOSE = _ROOT / "merge" / "ci" / "compose.yaml"
-# Realistic child files for each shipped template.
+# devenv ships no mkdocs.yml any more, but its shapes are what the list
+# matching and the tag round-trip are for: plugins named bare or as one-key
+# mappings, and the !!python/name and !ENV tags.
+_MKDOCS_TEMPLATE = """\
+theme:
+  name: mkdocs
+  color_mode: dark
+
+plugins:
+  - minify:
+      minify_html: true
+  - search
+
+markdown_extensions:
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - smarty
+  - toc:
+      permalink: true
+
+extra:
+  version: !ENV [DOCS_VERSION, dev]
+"""
+# The YAML templates by name: the mkdocs-style one and each shipped one.
+_TEMPLATES = {
+    "mkdocs.yml": _MKDOCS_TEMPLATE,
+    ".readthedocs.yaml": (_ROOT / "merge" / "docs" / ".readthedocs.yaml").read_text(),
+    "compose.yaml": (_ROOT / "merge" / "ci" / "compose.yaml").read_text(),
+}
+# A realistic child file for each template.
 _PROJECTS = {
-    _MKDOCS: """\
+    "mkdocs.yml": """\
 # The demo's docs.
 site_name: Démo — docs
 theme:
@@ -47,7 +73,7 @@ nav:
       - guide/install.md
       - guide/usage.md
 """,
-    _READTHEDOCS: """\
+    ".readthedocs.yaml": """\
 # Read the Docs configuration file
 version: 2
 
@@ -60,7 +86,7 @@ python:
   install:
     - requirements: requirements-docs.txt
 """,
-    _COMPOSE: """\
+    "compose.yaml": """\
 x-defaults: &defaults
   restart: no
   environment:
@@ -94,24 +120,24 @@ def _merge(tmp_path: Path, template: str, project: str, *args: str) -> str:
     return project_path.read_text()
 
 
-@pytest.mark.parametrize("template", _PROJECTS, ids=lambda path: path.name)
-def test_template_alone_is_written_as_is(tmp_path: Path, template: Path) -> None:
+@pytest.mark.parametrize("name", _TEMPLATES)
+def test_template_alone_is_written_as_is(tmp_path: Path, name: str) -> None:
     """A child without the file gets the template exactly as shipped."""
-    output = tmp_path / template.name
+    template = tmp_path / "template.yaml"
+    template.write_text(_TEMPLATES[name])
+    output = tmp_path / name
     merge_yaml.main([str(template), "-o", str(output)])
 
-    assert output.read_text() == template.read_text()
+    assert output.read_text() == _TEMPLATES[name]
 
 
-@pytest.mark.parametrize(
-    ("template", "project"), _PROJECTS.items(), ids=[path.name for path in _PROJECTS]
-)
-def test_second_merge_changes_nothing(
-    tmp_path: Path, template: Path, project: str
-) -> None:
+@pytest.mark.parametrize("name", _PROJECTS)
+def test_second_merge_changes_nothing(tmp_path: Path, name: str) -> None:
     """update-devenv runs again and again, so its output is a fixed point."""
-    path = tmp_path / template.name
-    path.write_text(project)
+    template = tmp_path / "template.yaml"
+    template.write_text(_TEMPLATES[name])
+    path = tmp_path / name
+    path.write_text(_PROJECTS[name])
     argv = [str(template), str(path), "-o", str(path)]
 
     merge_yaml.main(argv)
@@ -123,12 +149,13 @@ def test_second_merge_changes_nothing(
 
 def test_mkdocs_tags_survive(tmp_path: Path) -> None:
     """The python/name and !ENV tags mkdocs uses load and are written as is."""
-    project = _PROJECTS[_MKDOCS]
+    project = _PROJECTS["mkdocs.yml"]
 
-    merged = _merge(tmp_path, _MKDOCS.read_text(), project)
+    merged = _merge(tmp_path, _MKDOCS_TEMPLATE, project)
 
     assert "emoji_index: !!python/name:material.extensions.emoji.twemoji\n" in merged
     assert 'property: !ENV [GOOGLE_ANALYTICS_KEY, ""]\n' in merged
+    assert "version: !ENV [DOCS_VERSION, dev]\n" in merged
 
 
 def test_comments_survive(tmp_path: Path) -> None:
@@ -142,9 +169,9 @@ def test_comments_survive(tmp_path: Path) -> None:
 
 def test_anchors_and_aliases_survive(tmp_path: Path) -> None:
     """Anchors, aliases and merge keys are not expanded."""
-    project = _PROJECTS[_COMPOSE]
+    project = _PROJECTS["compose.yaml"]
 
-    merged = _merge(tmp_path, _COMPOSE.read_text(), project)
+    merged = _merge(tmp_path, _TEMPLATES["compose.yaml"], project)
 
     assert merged.startswith(project[: project.index("services:")])
     assert merged.count("<<: *defaults\n") == project.count("<<: *defaults\n")
@@ -373,9 +400,9 @@ def test_replace_list_strategy_keeps_the_project_list(tmp_path: Path) -> None:
 
 def test_empty_project_file_gets_the_template(tmp_path: Path) -> None:
     """An empty child file merges like a missing one."""
-    merged = _merge(tmp_path, _MKDOCS.read_text(), "")
+    merged = _merge(tmp_path, _MKDOCS_TEMPLATE, "")
 
-    assert merged == _MKDOCS.read_text()
+    assert merged == _MKDOCS_TEMPLATE
 
 
 def test_non_mapping_root_is_rejected(tmp_path: Path) -> None:

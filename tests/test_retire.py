@@ -6,18 +6,19 @@ A child repo sheds these on its next update-devenv:
 - update_devenv deletes the files listed in remove_files.txt.
 - merge_dotfiles drops the lines in remove_dotfile_lines.txt from every merged
   dotfile.
-- merge_toml --remove-values drops the values in
-  merge/python/pyproject-template.remove.toml from pyproject.toml's arrays and
-  comma-delimited strings, dropping any it empties, drops each key that
+- merge_toml --remove-values drops the values in each enabled feature's
+  merge/<feature>/pyproject-template.remove.toml from pyproject.toml's arrays
+  and comma-delimited strings, dropping any it empties, drops each key that
   holds a scalar it lists and drops each table it lists empty.
 - merge_package_json --remove-values drops the values in
   merge/node_root/package.remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
 - merge_package_json --remove drops the packages in remove_node_packages.txt
   from every dependency section of package.json.
-- merge_yaml --remove-values gives each scalar in
-  merge/docs/.readthedocs.remove.yaml that .readthedocs.yaml still holds the
-  template's current value.
+- merge_yaml --remove-values drops the list items in
+  merge/docs/.readthedocs.remove.yaml from .readthedocs.yaml, and the mappings
+  that empties, and gives each scalar it lists that .readthedocs.yaml still
+  holds the template's current value, or drops it where the template has none.
 """
 
 import importlib
@@ -28,7 +29,7 @@ lazy from collections.abc import Sequence
 
 import pytest
 import update_devenv
-from _devenv_common import read_lines
+from _devenv_common import parse_version, read_lines
 lazy import tomlkit
 
 from scripts import merge_package_json, merge_toml, merge_yaml
@@ -36,6 +37,8 @@ from scripts import merge_package_json, merge_toml, merge_yaml
 _ROOT = Path(__file__).resolve().parent.parent
 _PYPROJECT_REMOVE = _ROOT / "merge" / "python" / "pyproject-template.remove.toml"
 _PYPROJECT_TEMPLATE = _ROOT / "merge" / "python" / "pyproject-template.toml"
+_PYPROJECT_TEMPLATES = sorted((_ROOT / "merge").glob("*/pyproject-template.toml"))
+_PYPROJECT_REMOVES = sorted((_ROOT / "merge").glob("*/pyproject-template.remove.toml"))
 _PACKAGE_REMOVE = _ROOT / "merge" / "node_root" / "package.remove.json"
 _PACKAGE_TEMPLATE = _ROOT / "merge" / "node_root" / "package.json"
 _PACKAGE_INIT_TEMPLATE = _ROOT / "init" / "node_root" / "package.json"
@@ -316,15 +319,59 @@ def test_complexipy_exclude_is_retired(
         assert merged["paths"] == ["pkg", "tests"]
 
 
-def test_template_ships_no_retired_value() -> None:
-    """The template must not reintroduce what pyproject-template.remove.toml retires."""
-    retired = tomlkit.parse(_PYPROJECT_REMOVE.read_text())
-    template = tomlkit.parse(_PYPROJECT_TEMPLATE.read_text())
-    before = tomlkit.dumps(template)
+def _pyproject_merge() -> update_devenv.ConfigMerge:
+    return next(m for m in update_devenv.CONFIG_MERGES if m.output == "pyproject.toml")
 
-    merge_toml.remove_values(template, retired)
 
-    assert tomlkit.dumps(template) == before
+def test_docs_retires_mkdocs_from_pyproject(tmp_path: Path) -> None:
+    """
+    A docs project sheds the mkdocs specs and the mkdocs source-include entries.
+
+    The docs group keeps the project's own specs and gains Zensical.
+    """
+    retired = [
+        "mkdocs.yml",
+        "docs/requirements.txt",
+        "docs/style.css",
+        "docs/style.material.css",
+        "docs/style.mkdocs.css",
+        "docs/style.readthedocs.css",
+    ]
+    project = {
+        "dependency-groups": {
+            "docs": ["mkapi~=4.4", "mkdocs~=1.6", "mkdocs-minify-plugin~=0.8"]
+        },
+        "tool": {
+            "uv": {
+                "build-backend": {
+                    "source-include": [".readthedocs.yaml", "docs/**", *retired]
+                }
+            }
+        },
+    }
+    (tmp_path / "pyproject.toml").write_text(tomlkit.dumps(project))
+
+    update_devenv.merge_config(_ROOT, tmp_path, ["python", "docs"], _pyproject_merge())
+
+    merged = tomlkit.parse((tmp_path / "pyproject.toml").read_text())
+    assert merged["dependency-groups"]["docs"] == ["mkapi~=4.4", "zensical~=0.1"]
+    source_include = merged["tool"]["uv"]["build-backend"]["source-include"]
+    assert not set(retired) & set(source_include)
+    assert {".readthedocs.yaml", "docs/**", "zensical.toml"} <= set(source_include)
+
+
+@pytest.mark.parametrize(
+    "template", _PYPROJECT_TEMPLATES, ids=lambda path: path.parent.name
+)
+def test_template_ships_no_retired_value(template: Path) -> None:
+    """No template may reintroduce what any pyproject-template.remove.toml retires."""
+    doc = tomlkit.parse(template.read_text())
+    before = tomlkit.dumps(doc)
+
+    for remove in _PYPROJECT_REMOVES:
+        merge_toml.remove_values(doc, tomlkit.parse(remove.read_text()))
+
+    assert tomlkit.dumps(doc) == before
 
 
 # ---------------------------------------------------------------------------
@@ -605,6 +652,32 @@ def test_readthedocs_os_moves_to_the_lts_alias(
     assert project.read_text().startswith(f"version: 2\nbuild:\n  os: {expected}\n")
 
 
+def test_readthedocs_drops_the_mkdocs_build(tmp_path: Path) -> None:
+    """
+    The 0.2 template's mkdocs builder and requirements install both go.
+
+    Emptied by the retirement, `python:` goes too, which leaves the template.
+    """
+    project = tmp_path / ".readthedocs.yaml"
+    project.write_text("""\
+version: 2
+build:
+  os: ubuntu-lts-latest
+  tools:
+    python: "3"
+python:
+  install:
+    - requirements: docs/requirements.txt
+mkdocs:
+  configuration: mkdocs.yml
+""")
+    argv = [str(_READTHEDOCS_TEMPLATE), str(project), "-o", str(project)]
+
+    merge_yaml.main([*argv, "--remove-values", str(_READTHEDOCS_REMOVE)])
+
+    assert project.read_text() == _READTHEDOCS_TEMPLATE.read_text()
+
+
 def test_readthedocs_template_ships_no_retired_value() -> None:
     """The template must not reintroduce what .readthedocs.remove.yaml retires."""
     template = merge_yaml.load_yaml_file(_READTHEDOCS_TEMPLATE)
@@ -622,6 +695,15 @@ def test_readthedocs_template_ships_no_retired_value() -> None:
 
 def _removed_files() -> set[str]:
     return set(read_lines(_ROOT / "remove_files.txt"))
+
+
+def test_mkdocs_files_are_retired_since_0_3_0() -> None:
+    """Zensical replaced them; a project stamped 0.3.0 may have its own again."""
+    mkdocs = {"mkdocs.yml", "docs/requirements.txt", "docs/style.css"}
+    remove_files = _ROOT / "remove_files.txt"
+
+    assert mkdocs <= set(read_lines(remove_files, parse_version("0.2.11")))
+    assert not mkdocs & set(read_lines(remove_files, parse_version("0.3.0")))
 
 
 def test_old_gate_script_is_retired() -> None:

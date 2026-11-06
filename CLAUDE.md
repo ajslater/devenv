@@ -84,7 +84,7 @@ unmet requirement.
 | `python`    | `cfg/python.mk`    | Python install/lint/test/build/publish targets |          |
 | `node`      | `cfg/node.mk`      | Node install/update targets                    |          |
 | `node_root` | `cfg/node_root.mk` | Root-level Node package.json and eslint base   |          |
-| `docs`      | `cfg/docs.mk`      | MkDocs build/serve targets                     | `python` |
+| `docs`      | `cfg/docs.mk`      | Zensical build/serve targets                   | `python` |
 | `frontend`  | `cfg/frontend.mk`  | `frontend/` install/lint/test/build            |          |
 | `django`    | `cfg/django.mk`    | djlint, collectstatic before the build         | `python` |
 | `docker`    | `cfg/docker.mk`    | Dockerfile lint/fix                            |          |
@@ -131,9 +131,10 @@ third-party import (including through sibling modules) to be declared.
 - `merge_dotfiles.py` — merges ignore files and rc files based on active
   `DEVENV_*` flags
 - `merge_package_json.py` — deep-merges `package.json` with semver resolution
-- `merge_toml.py` — merges `pyproject.toml` into the project's own document
-- `merge_yaml.py` — round-trip (ruamel.yaml) merge of `mkdocs.yml`,
-  `.readthedocs.yaml` and `compose.yaml`
+- `merge_toml.py` — merges `pyproject.toml` and `zensical.toml` into the
+  project's own document
+- `merge_yaml.py` — round-trip (ruamel.yaml) merge of `.readthedocs.yaml` and
+  `compose.yaml`
 - `copy_files.py` — the copy step; `_makefiles.py` — include editing and mbake
 
 In every merger the project's file is passed last and its values win.
@@ -153,11 +154,11 @@ Merges only add, so retiring something devenv used to ship needs an entry.
   `merge/node_root/package.remove.json` (`prettier.plugins`). An emptied table
   or object is removed. An empty TOML table drops the whole table at its key
   path (`tool.pytest.ini_options`). A YAML scalar swaps the child's equal value
-  for the template's (`build.os` in `.readthedocs.yaml`). An object under a
-  `package.json` script swaps each command it names for its value in place,
-  keeping only the first copy of the new command
-  (`merge/frontend/package.remove.json`). These files are not stamped: they
-  apply on every update.
+  for the template's (`build.os` in `.readthedocs.yaml`), or drops it where the
+  template has none (`mkdocs.configuration`). An object under a `package.json`
+  script swaps each command it names for its value in place, keeping only the
+  first copy of the new command (`merge/frontend/package.remove.json`). These
+  files are not stamped: they apply on every update.
 
 The three `.txt` lists skip blank and `#` lines, and `# since X.Y.Z` marks the
 entries below it. A child stamped with that version or later skips them. When

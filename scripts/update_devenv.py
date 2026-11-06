@@ -110,7 +110,7 @@ CONFIG_MERGES: Final = (
         (("--remove", "remove_node_packages.txt"),),
     ),
     ConfigMerge("docs", merge_yaml.main, ".readthedocs.yaml", ".readthedocs.yaml"),
-    ConfigMerge("docs", merge_yaml.main, "mkdocs.yml", "mkdocs.yml"),
+    ConfigMerge("docs", merge_toml.main, "zensical.toml", "zensical.toml"),
     ConfigMerge("python", merge_toml.main, "pyproject-template.toml", "pyproject.toml"),
     ConfigMerge("ci", merge_yaml.main, "compose.yaml", "compose.yaml"),
 )

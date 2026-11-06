@@ -6,3 +6,12 @@
 build:
   # Replaced by ubuntu-lts-latest, Read the Docs' name for the newest LTS.
   os: ubuntu-24.04
+
+# Zensical has no Read the Docs builder; build.jobs runs it instead.
+mkdocs:
+  configuration: mkdocs.yml
+
+# The docs group in pyproject.toml is installed with uv instead.
+python:
+  install:
+    - requirements: docs/requirements.txt

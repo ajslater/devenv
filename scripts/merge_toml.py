@@ -9,10 +9,11 @@
 """
 Deep merge TOML files into the last one, keeping its layout.
 
-The last file, a project's own pyproject.toml, is the base: its values, key
-order, comments and formatting stay. Each earlier file, a devenv template,
-only fills in what the files after it lack, so a later file wins where both
-hold a value. A key the base lacks goes beside its neighbours in the template.
+The last file, a project's own config such as pyproject.toml or
+zensical.toml, is the base: its values, key order, comments and formatting
+stay. Each earlier file, a devenv template, only fills in what the files after
+it lack, so a later file wins where both hold a value. A key the base lacks
+goes beside its neighbours in the template.
 Where both files hold a key:
 
 - Tables merge recursively.

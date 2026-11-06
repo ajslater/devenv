@@ -1,2 +1,2 @@
 [tool.uv.build-backend]
-source-include = [".readthedocs.yaml", "docs/**", "mkdocs.yml"]
+source-include = [".readthedocs.yaml", "docs/**", "zensical.toml"]
