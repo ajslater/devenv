@@ -515,19 +515,32 @@ def _remove_items(doc: Any, key: str, drop: frozenset[str]) -> None:
         del doc[key]
 
 
-def _remove_table_values(doc: Any, key: str, retired: Any) -> None:
+def _remove_table_values(doc: Any, key: str, retired: Any, defaults: Any) -> None:
     """
     Remove retired's values from the table at doc[key].
 
     Drops the table itself once nothing is left, or at once when retired is empty.
     """
     target = doc[key]
-    remove_values(target, retired)
+    remove_values(target, retired, defaults)
     if not (retired and target):
         del doc[key]
 
 
-def remove_values(doc: Any, retired: Any) -> None:
+def _default(defaults: Any, key: str) -> Any:
+    """Return what defaults holds at key, or None."""
+    return defaults.get(key) if _is_table_like(defaults) else None
+
+
+def _retire_scalar(doc: Any, key: str, defaults: Any) -> None:
+    """Give doc[key] the value defaults holds there, in place, or drop it."""
+    if _is_table_like(defaults) and key in defaults:
+        doc[key] = copy.deepcopy(_item(defaults, key))
+    else:
+        del doc[key]
+
+
+def remove_values(doc: Any, retired: Any, defaults: Any = None) -> None:
     """
     Remove retired values from doc, in place.
 
@@ -536,20 +549,21 @@ def remove_values(doc: Any, retired: Any) -> None:
     An array, string or table emptied that way is removed, so a fully retired
     key vanishes instead of lingering as `[]`, `""` or a bare `[tool.x]`. An
     empty table drops the whole table at its key path, whatever it holds. Any
-    other value drops the key itself when doc holds that same value. Missing
-    keys are ignored, the rest of each array keeps its order and formatting,
-    and the rest of each string keeps its order.
+    other value retires an equal value in doc: defaults' value at the same key
+    path takes its place, or without one the key goes. Missing keys are
+    ignored, the rest of each array keeps its order and formatting, and the
+    rest of each string keeps its order.
     """
     for key, value in retired.items():
         if key not in doc:
             continue
         target = doc[key]
         if _is_table_like(value) and _is_table_like(target):
-            _remove_table_values(doc, key, value)
+            _remove_table_values(doc, key, value, _default(defaults, key))
         elif isinstance(value, list | Array):
             _remove_items(doc, key, frozenset(str(item) for item in value))
         elif value == target:
-            del doc[key]
+            _retire_scalar(doc, key, defaults)
 
 
 def load_toml_file(filepath: Path) -> TOMLDocument:
@@ -765,7 +779,11 @@ Comma-Delimited Strings:
         type=Path,
         action="append",
         default=[],
-        help="TOML file of retired values to drop from the merged result; may repeat",
+        help=(
+            "TOML file of retired values to drop from the merged result; may"
+            " repeat. A retired scalar takes what the earlier files give at"
+            " its key path, or goes."
+        ),
     )
 
     args = parser.parse_args(argv)
@@ -780,8 +798,10 @@ Comma-Delimited Strings:
             parser.error(reason)
 
     merged_doc = merge_toml_files(args.files, args.list_strategy)
+    # A retired scalar falls back to what the files before the last one give.
+    defaults = merge_toml_files(args.files[:-1], args.list_strategy)
     for path in args.remove_values:
-        remove_values(merged_doc, load_toml_file(path))
+        remove_values(merged_doc, load_toml_file(path), defaults)
 
     toml_output = tomlkit.dumps(merged_doc)
     if args.output:

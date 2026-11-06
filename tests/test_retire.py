@@ -8,8 +8,9 @@ A child repo sheds these on its next update-devenv:
   dotfile.
 - merge_toml --remove-values drops the values in each enabled feature's
   merge/<feature>/pyproject-template.remove.toml from pyproject.toml's arrays
-  and comma-delimited strings, dropping any it empties, drops each key that
-  holds a scalar it lists and drops each table it lists empty.
+  and comma-delimited strings, dropping any it empties, gives each key that
+  holds a scalar it lists the template's current value, or drops it where the
+  template has none, and drops each table it lists empty.
 - merge_package_json --remove-values drops the values in
   merge/node_root/package.remove.json from package.json's arrays and the
   commands it lists from package.json's scripts.
@@ -185,6 +186,21 @@ def test_remove_values_drops_keys_holding_a_retired_scalar() -> None:
 
     assert "a" not in doc["tool"]
     assert doc["tool"]["b"]["flag"] is False
+
+
+def test_remove_values_gives_a_retired_scalar_the_default() -> None:
+    """
+    A retired scalar takes defaults' value in place, comment and all.
+
+    Without a value in defaults, its key goes.
+    """
+    doc = tomlkit.parse('[tool.a]\nx = "old"  # mine\ny = "old"\nz = "old"\n')
+    retired = tomlkit.parse('[tool.a]\nx = "old"\ny = "old"\n')
+    defaults = tomlkit.parse('[tool.a]\nx = "new"\n')
+
+    merge_toml.remove_values(doc, retired, defaults)
+
+    assert tomlkit.dumps(doc) == '[tool.a]\nx = "new"  # mine\nz = "old"\n'
 
 
 def test_remove_values_drops_tables_retired_empty() -> None:
