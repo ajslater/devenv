@@ -201,6 +201,10 @@ that is also the site's index, should use only callouts.
 > that starts with a literal `[!TIP]`, and Zensical an admonition whose title is
 > the whole text.
 
+`NEWS.md` wraps each `💥 Breaking Changes` section's items in a `> [!WARNING]`
+and a yanked release's body in a `> [!CAUTION]`, both in that form, and devenv's
+`scripts/news_normalize.py` adds them to an existing `NEWS.md`.
+
 ### Other scripts
 
 These are copied but run by hand:

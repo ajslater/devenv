@@ -9,9 +9,16 @@ Normalize NEWS.md sections to Keep a Changelog names under gitmoji headings.
 Each version's legacy `- Features` style list labels become `### ✨ Added`
 style headings in a fixed order, with their items dedented to the left margin.
 Legacy labels that map to the same section merge in their original order.
-Already converted files pass through unchanged, so the script is idempotent.
 To file items that have no label, put a `### ✨ Added` style heading above
 them by hand first.
+
+It also adds the GitHub callouts: a `### 💥 Breaking Changes` section's items
+go inside a `> [!WARNING]`, and a version whose subtitle says it was yanked or
+broken gets a `> [!CAUTION]` body that repeats the subtitle, to reword by hand.
+
+The script is idempotent: converted headings, a section already in its
+callout and a version that already has a callout above its sections pass
+through unchanged, so a hand-written CAUTION survives a re-run.
 
 Usage: news_normalize.py NEWS.md
 """
@@ -34,6 +41,8 @@ SECTIONS: Final = (
     ("Developer", "🧑‍💻"),
 )
 SECTION_NAMES: Final = frozenset(name for name, _ in SECTIONS)
+# Sections whose items sit inside a callout, to its label.
+CALLOUTS: Final = {"Breaking Changes": "WARNING"}
 
 # Legacy list labels, trailing colon stripped, to standard sections.
 LEGACY: Final = {
@@ -118,6 +127,10 @@ HEADER_FIXES: Final = {"## v1.9.17 Broken build": "## v1.9.17 - Broken build"}
 LEGACY_INDENT: Final = 4
 HEADING_RE: Final = re.compile(r"^### (?:\S+ )?(?P<name>.+?)\s*$")
 SUBGROUP_RE: Final = re.compile(r"^(?P<indent> *)- (?P<label>.+):$")
+# A header subtitle that marks a version as one not to use.
+YANKED_RE: Final = re.compile(
+    r"\b(yanked|broken|bad release|mistaken release)\b", re.IGNORECASE
+)
 
 
 class NewsError(ValueError):
@@ -146,11 +159,29 @@ def _drop_subgroup_colons(lines: list[str]) -> list[str]:
     return result
 
 
+def _callout(label: str, lines: list[str]) -> list[str]:
+    """Quote lines under a GitHub callout marker, in the form Prettier keeps."""
+    return [f"> [!{label}]", ">", *(f"> {line}" for line in lines)]
+
+
+def _caution(header: str) -> list[str]:
+    """Return the CAUTION callout for a yanked version's header, else nothing."""
+    subtitle = header.partition(" - ")[2]
+    if not YANKED_RE.search(subtitle):
+        return []
+    sentence = subtitle[:1].upper() + subtitle[1:]
+    if not sentence.endswith((".", "!", "?")):
+        sentence += "."
+    return _callout("CAUTION", [sentence])
+
+
 @dataclass(slots=True)
 class _Version:
     """One version's header, its sections and where its next line goes."""
 
     header: str
+    # A callout above the sections, such as a yanked version's CAUTION.
+    preamble: list[str] = field(default_factory=list)
     sections: dict[str, list[str]] = field(
         default_factory=lambda: {name: [] for name, _ in SECTIONS}
     )
@@ -162,6 +193,8 @@ class _Version:
         """File one body line."""
         if line.startswith("### "):
             self._switch(_heading_name(line))
+        elif line.startswith(">") and self.target is None:
+            self.preamble.append(line)
         elif line.startswith(" ") or (self.dedent == 0 and self.target is not None):
             self._append(line)
         else:
@@ -196,11 +229,17 @@ class _Version:
             raise NewsError(reason)
 
     def lines(self) -> list[str]:
-        """Return the converted header and sections."""
+        """Return the converted header, its callout and sections."""
         out = [self.header, ""]
+        if preamble := self.preamble or _caution(self.header):
+            out += [*preamble, ""]
         for name, emoji in SECTIONS:
-            if lines := self.sections[name]:
-                out += [f"### {emoji} {name}", "", *_drop_subgroup_colons(lines), ""]
+            if not (lines := self.sections[name]):
+                continue
+            lines = _drop_subgroup_colons(lines)
+            if (label := CALLOUTS.get(name)) and not lines[0].startswith("> [!"):
+                lines = _callout(label, lines)
+            out += [f"### {emoji} {name}", "", *lines, ""]
         return out
 
 
