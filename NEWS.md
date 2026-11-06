@@ -1,5 +1,19 @@
 # devenv News
 
+## v0.3.3
+
+### ✨ Added
+
+- devenv's README documents the callout form that survives `make fix`: the
+  `> [!NOTE]` line, a bare `>` line, then the text. Without the bare line
+  `make fix` joins the text onto the marker, which breaks the callout on GitHub
+  and in Zensical.
+
+### 🐛 Fixed
+
+- Markdown lint accepts GitHub callouts (`> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`,
+  `[!WARNING]`, `[!CAUTION]`), so `make fix` and `make lint` pass on them.
+
 ## v0.3.2
 
 ### ✨ Added
