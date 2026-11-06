@@ -176,6 +176,31 @@ node_modules
 The docker and django scripts find Dockerfiles and templates with the same
 rules, through `bin/find-files.sh`.
 
+### Docs
+
+The docs feature builds `docs/` with [Zensical](https://zensical.org):
+`make docs` builds the site into `site/` with `--strict`, and `make docs-server`
+serves it. Its `zensical.toml` turns on admonitions (`!!! note`, and `??? note`
+to collapse one) and GitHub-style callouts (`> [!NOTE]`, `[!TIP]`,
+`[!IMPORTANT]`, `[!WARNING]` and `[!CAUTION]`), which Zensical renders as
+admonitions and GitHub as alerts. A page that GitHub shows too, such as a README
+that is also the site's index, should use only callouts.
+
+> [!NOTE]
+>
+> Leave a bare `>` line after a callout's marker:
+>
+> ```markdown
+> > [!TIP]
+> >
+> > The text of the tip.
+> ```
+>
+> Without it, `make fix` joins the text onto the marker line, because Prettier
+> wraps Markdown with `proseWrap: "always"`. GitHub then shows a plain quote
+> that starts with a literal `[!TIP]`, and Zensical an admonition whose title is
+> the whole text.
+
 ### Other scripts
 
 These are copied but run by hand:
