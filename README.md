@@ -250,8 +250,8 @@ entry. `make update-devenv` then removes it from each project:
   drops it when the template has none, and an object under a `package.json`
   script swaps each command it names for its value in place. Examples:
   `merge/python/pyproject-template.remove.toml`,
-  `merge/node_root/package.remove.json`, `merge/frontend/package.remove.json`
-  and `merge/docs/.readthedocs.remove.yaml`.
+  `merge/node_root/package.remove.json`, `merge/frontend/package.remove.json`,
+  `merge/docs/zensical.remove.toml` and `merge/docs/.readthedocs.remove.yaml`.
 
 In the three `.txt` lists, blank lines and `#` lines are skipped, and a
 `# since X.Y.Z` line marks the entries below it as retired in devenv X.Y.Z. A
