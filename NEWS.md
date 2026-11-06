@@ -176,14 +176,16 @@
 
 ### 💥 Breaking Changes
 
-- Features declare what they need and update-devenv refuses an incomplete set:
-  django needs frontend and python; gha_std needs ci; ci and docs need python;
-  common needs python and node_root.
-- `scripts/add_makefiles.py` is now `scripts/add_features.py`.
-- `make fix-sh` and `make lint-sh` run `bin/sh-tools.sh`; `fix-sh.sh`,
-  `lint-sh.sh`, `lint-darwin.sh` and `type-python.sh` are retired.
-- django's `prod-server` target moved to codex, the one project it ran.
-- Value retirement files are `<template>.remove<ext>` siblings.
+> [!WARNING]
+>
+> - Features declare what they need and update-devenv refuses an incomplete set:
+>   django needs frontend and python; gha_std needs ci; ci and docs need python;
+>   common needs python and node_root.
+> - `scripts/add_makefiles.py` is now `scripts/add_features.py`.
+> - `make fix-sh` and `make lint-sh` run `bin/sh-tools.sh`; `fix-sh.sh`,
+>   `lint-sh.sh`, `lint-darwin.sh` and `type-python.sh` are retired.
+> - django's `prod-server` target moved to codex, the one project it ran.
+> - Value retirement files are `<template>.remove<ext>` siblings.
 
 ### ✨ Added
 
