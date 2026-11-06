@@ -73,10 +73,11 @@ Run `make fix lint ty test` before committing. After editing `copy/` or
 ### Feature-Flag System
 
 Child project Makefiles include `cfg/<feature>.mk`, which sets and exports
-`DEVENV_<FEATURE>`. `scripts/_devenv_common.py` `FEATURES` is the one registry:
-each feature's requirements, whether new projects get it, and the canonical
-include order. Update and `add_features.py` refuse an unknown feature or an
-unmet requirement.
+`DEVENV_<FEATURE>`. Update also counts each uncommented include itself, so a
+`.mk` too old to export its flag is not skipped. `scripts/_devenv_common.py`
+`FEATURES` is the one registry: each feature's requirements, whether new
+projects get it, and the canonical include order. Update and `add_features.py`
+refuse an unknown feature or an unmet requirement.
 
 | Feature     | Config             | Purpose                                        | Requires |
 | ----------- | ------------------ | ---------------------------------------------- | -------- |
