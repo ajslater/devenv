@@ -1,5 +1,12 @@
 # devenv News
 
+## v0.3.4
+
+### 🐛 Fixed
+
+- `make update-devenv` stops a running eslint_d, so the next `make fix` and
+  `make lint` use the updated ESLint config.
+
 ## v0.3.3
 
 ### ✨ Added
