@@ -101,7 +101,8 @@ make update-devenv
 This deletes retired files, merges the dotfiles and config files, copies the
 feature files, formats what it merged and stamps the project with devenv's
 version in `.devenv-version`. Commit that file. On the next update devenv prints
-its news since that version.
+its news since that version. With the `node` feature it stops any running
+eslint_d, which would go on linting with the ESLint config it loaded before.
 
 It also runs `bun update`, which bumps every node dependency. To keep versions
 as they are:

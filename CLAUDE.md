@@ -122,8 +122,9 @@ touch a lazy name. `copy/*/bin/*.py` run in children on 3.11 and keep
 third-party import (including through sibling modules) to be declared.
 
 - `update_devenv.py` — `make update-devenv`: deletes retired files, merges
-  dotfiles, copies feature files, runs the three config mergers in process
-  through their CLI `main(argv)`, formats the merged files, writes
+  dotfiles, copies feature files, stops a running eslint_d with the
+  `bin/kill-eslint_d.sh` it just copied, runs the three config mergers in
+  process through their CLI `main(argv)`, formats the merged files, writes
   `.devenv-version` and prints NEWS since the previous stamp
 - `add_features.py` — copies feature files and adds the Makefile includes;
   `--init` and `--convert` also install `init/` starters
@@ -190,7 +191,7 @@ Broadening a dotfile pattern therefore needs no retirement entry. A file with a
 ### Tests
 
 - `tests/test_pipeline.py` runs the whole update twice on scratch children for
-  several feature sets with bun, bunx and git stubbed; the second run must
-  change nothing
+  several feature sets with bun, bunx, git and pkill stubbed; the second run
+  must change nothing
 - Shell script tests run under both the bash on PATH and `/bin/bash` 3.2
   (`tests/conftest.py`); every `copy/*/bin` script must work on bash 3.2

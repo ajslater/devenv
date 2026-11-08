@@ -2,8 +2,9 @@
 The whole update pipeline, run twice on a scratch child project.
 
 update-devenv is meant to be re-run at any time, so a second run must leave
-every file exactly as the first left it. bun, bunx and git are stubbed out:
-their effects are not under devenv's control, and the merges and copies are.
+every file exactly as the first left it. bun, bunx, git and pkill are stubbed
+out: their effects are not under devenv's control, and the merges and copies
+are. A real pkill would stop every eslint_d on the machine.
 """
 
 import json
@@ -57,7 +58,7 @@ addopts = ["-ra", "--strict-markers", "--cov"]
 
 def _stub_tools(bin_dir: Path) -> None:
     bin_dir.mkdir()
-    for tool in ("bun", "bunx", "git"):
+    for tool in ("bun", "bunx", "git", "pkill"):
         stub = bin_dir / tool
         stub.write_text(_STUB)
         stub.chmod(stub.stat().st_mode | stat.S_IXUSR)
@@ -82,7 +83,7 @@ def _run_update(project: Path, features: tuple[str, ...], mp: pytest.MonkeyPatch
 
 @pytest.fixture
 def child(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Return an empty child project dir with bun, bunx and git stubbed."""
+    """Return an empty child project dir with bun, bunx, git and pkill stubbed."""
     _stub_tools(tmp_path / "stubs")
     monkeypatch.setenv("PATH", f"{tmp_path / 'stubs'}{os.pathsep}{os.environ['PATH']}")
     monkeypatch.delenv("DEVENV_SRC", raising=False)
@@ -153,6 +154,27 @@ def test_project_zensical_toml_survives_two_runs(
     assert project["site_name"] == "Demo"
     assert project["nav"] == ["index.md"]
     assert project["docs_dir"] == "docs"
+
+
+@pytest.mark.parametrize(
+    ("features", "stopped"), [(("common", "node"), True), (("python",), False)]
+)
+def test_update_stops_eslint_d_with_the_node_feature(
+    child: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    features: tuple[str, ...],
+    *,
+    stopped: bool,
+) -> None:
+    """A running eslint_d would keep linting with the config it loaded."""
+    log = child.parent / "pkill.log"
+    (child.parent / "stubs" / "pkill").write_text(f'#!/bin/sh\necho "$@" >> "{log}"\n')
+    (child / ".eslintcache").write_text("{}")
+
+    _run_update(child, features, monkeypatch)
+
+    assert log.is_file() == stopped
+    assert (child / ".eslintcache").is_file() != stopped
 
 
 # A cfg/docs.mk from before the feature .mk files exported DEVENV_<FEATURE>.

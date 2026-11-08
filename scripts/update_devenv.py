@@ -15,7 +15,7 @@ Update a project by merging devenv templates and copying feature files.
 Main orchestrator that:
 1. Deletes obsolete files listed in remove_files.txt
 2. Merges dotfiles from merge/<feature>/
-3. Copies files from copy/<feature>/
+3. Copies files from copy/<feature>/ and stops a running eslint_d
 4. Merges config files (package.json, YAML, TOML)
 5. Runs formatters on merged files
 6. Stamps the project with devenv's version in .devenv-version
@@ -259,6 +259,11 @@ def main(*, update_deps: bool = True) -> None:
     # project's old one.
     if (pd / "bin" / "sort-ignore.sh").is_file():
         run(["bin/sort-ignore.sh"])
+    # A running eslint_d keeps the ESLint config it loaded, so the project's
+    # next `make fix` would lint with the old one. The node feature ships
+    # kill-eslint_d.sh; it copes with no node_modules and no daemon.
+    if (pd / "bin" / "kill-eslint_d.sh").is_file():
+        run(["bin/kill-eslint_d.sh"])
     format_makefiles()
 
     # Refresh node dependency versions before merging. `bun update` rewrites
