@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Set up devenv in the current directory: starter files, feature makefiles and
-# a first update. Arguments add features to the defaults; see
+# a first update. Arguments add features to the defaults; with --no-defaults
+# only the listed features are set up, common among them. See
 # scripts/add_features.py --help. Existing files are never replaced.
 set -euo pipefail
 DEVENV_SRC=${DEVENV_SRC:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}
