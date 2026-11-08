@@ -1,5 +1,16 @@
 # devenv News
 
+## v0.4.1
+
+### ✨ Added
+
+- Turning a feature off is a `Makefile` edit: `make update-devenv` deletes each
+  file the feature ships that is still identical to devenv's copy, such as
+  `cfg/node.mk`, `cfg/node_root.mk`, `cfg/eslint.config.base.js` and
+  `bin/kill-eslint_d.sh` for `node` and `node_root`, and prints each one. A file
+  the project changed stays, and so does one from an older devenv, so update
+  once with the feature still on before turning it off.
+
 ## v0.4.0
 
 ### 💥 Breaking Changes

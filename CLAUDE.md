@@ -122,10 +122,12 @@ touch a lazy name. `copy/*/bin/*.py` run in children on 3.11 and keep
 third-party import (including through sibling modules) to be declared.
 
 - `update_devenv.py` — `make update-devenv`: deletes retired files, merges
-  dotfiles, copies feature files, stops a running eslint_d with the
-  `bin/kill-eslint_d.sh` it just copied, runs the three config mergers in
-  process through their CLI `main(argv)`, formats the merged files, writes
-  `.devenv-version` and prints NEWS since the previous stamp
+  dotfiles, copies feature files, deletes the files of features the project does
+  not enable that still hold devenv's bytes (`delete_disabled_files` in
+  `copy_files.py`), stops a running eslint_d with the `bin/kill-eslint_d.sh` it
+  just copied, runs the three config mergers in process through their CLI
+  `main(argv)`, formats the merged files, writes `.devenv-version` and prints
+  NEWS since the previous stamp
 - `add_features.py` — copies feature files and adds the Makefile includes;
   `--init` and `--convert` also install `init/` starters
 - `init-project.sh`, `convert-project.sh` — thin wrappers around
@@ -144,7 +146,8 @@ In every merger the project's file is passed last and its values win.
 ### Retirement
 
 Merges only add, so retiring something devenv used to ship needs an entry.
-`update-devenv` then removes it from each child repo:
+`update-devenv` then removes it from each child repo. A feature the child turns
+off needs none: its unchanged `copy/` files go on their own.
 
 - `remove_files.txt` — files to delete
 - `remove_node_packages.txt` — node packages to drop from every dependency
