@@ -5,13 +5,12 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final
 lazy from collections.abc import Collection, Iterable, Iterator, Sequence
-
-import tomllib
 
 
 @dataclass(frozen=True, slots=True)

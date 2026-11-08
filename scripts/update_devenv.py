@@ -158,6 +158,10 @@ def merge_config(
     The owning feature's template goes first, then the same template from
     any other enabled feature (django adds djlint to pyproject.toml), then
     the project's own file, so its values win. Returns the output if merged.
+
+    A new file starts as a copy of the last template, so the mergers, which
+    keep a retired value that any file but the last still gives, see every
+    template.
     """
     sources = _templates(devenv_src, features, merge)
     if not sources:
@@ -169,8 +173,9 @@ def merge_config(
         for arg in ("--remove-values", str(sibling))
     ]
     output = pd / merge.output
-    if output.is_file():
-        sources.append(output)
+    if not output.is_file():
+        sources[-1].copy(output)
+    sources.append(output)
     with TemporaryDirectory() as tmp:
         options = [
             arg

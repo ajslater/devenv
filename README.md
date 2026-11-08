@@ -29,15 +29,17 @@ cd new_project
 
 This creates a git repo if there is none, installs starter files from `init/`,
 copies the feature files, makes the `Makefile` include each feature, and runs a
-first `make update-devenv`. It gets the default features
-(`python node node_root common`) plus any listed. With `--no-defaults` it gets
-only the features listed, which must include `common`:
+first `make update-devenv`. It gets `common`, the one default feature, plus the
+features listed, and a feature's requirements must be listed with it (`docs`
+needs `python`):
 
 ```sh
-../devenv/scripts/init-project.sh --no-defaults common docker
+../devenv/scripts/init-project.sh python node node_root
 ```
 
-sets up a shell or Docker project with no Python and no node toolchain.
+sets up a Python project with root-level Node linting. With no features listed
+it sets up a shell project with no Python and no node toolchain. With
+`--no-defaults` it gets only the features listed, which must include `common`.
 
 ### Converting a project that used my old boilerplate scripts
 
@@ -291,8 +293,10 @@ entry. `make update-devenv` then removes it from each project:
   removed. An empty TOML table drops the whole table at its key path. A TOML or
   YAML scalar swaps a project's equal value for the template's current one, or
   drops it when the template has none, and an object under a `package.json`
-  script swaps each command it names for its value in place. Examples:
-  `merge/python/pyproject-template.remove.toml`,
+  script swaps each command it names for its value in place. A retired TOML
+  array item stays where an enabled feature's template still ships it, so a
+  value that moved to another feature leaves only the projects without it.
+  Examples: `merge/python/pyproject-template.remove.toml`,
   `merge/node_root/package.remove.json`, `merge/frontend/package.remove.json`,
   `merge/docs/zensical.remove.toml` and `merge/docs/.readthedocs.remove.yaml`.
 

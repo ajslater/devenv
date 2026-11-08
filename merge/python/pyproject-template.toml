@@ -27,7 +27,6 @@ lint = [
   "icecream~=2.1"
 ]
 test = ["coverage[toml]~=7.0", "pytest-asyncio~=1.0", "pytest-cov~=7.0"]
-docs = ["zensical~=0.1"]
 ci = []
 
 [build-system]

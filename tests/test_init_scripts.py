@@ -50,7 +50,7 @@ def project(tmp_path: Path) -> Path:
 
 def test_init_sets_up_a_new_project(project: Path) -> None:
     """A new dir gets git, starters, feature makefiles and an update."""
-    result = _run("init-project.sh", project, "docs")
+    result = _run("init-project.sh", project, "python", "docs", "node", "node_root")
 
     assert result.returncode == 0, result.stderr
     assert (project / ".git").is_dir()
@@ -102,10 +102,13 @@ def test_convert_an_existing_python_project(project: Path) -> None:
     (project / "pyproject.toml").write_text('[project]\nname = "old"\n')
     (project / "README.md").write_text("# Old\n")
 
-    result = _run("convert-project.sh", project)
+    result = _run("convert-project.sh", project, "python")
 
     assert result.returncode == 0, result.stderr
     assert (project / "Makefile.orig.mk").read_text() == "old:\n\techo old\n"
-    assert "include cfg/common.mk" in (project / "Makefile").read_text()
+    makefile = (project / "Makefile").read_text()
+    assert "include cfg/common.mk\n" in makefile
+    assert "include cfg/python.mk\n" in makefile
+    assert "# include cfg/python.mk" not in makefile
     assert (project / "pyproject.toml").read_text() == '[project]\nname = "old"\n'
     assert (project / "README.md").read_text() == "# Old\n"

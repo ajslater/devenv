@@ -18,6 +18,9 @@ docs = [
   # Zensical replaced MkDocs and its minify plugin in 0.3.0.
   "mkdocs~=1.6",
   "mkdocs-minify-plugin~=0.8",
+  # Only the docs feature ships Zensical since 0.4.3: a project with docs
+  # keeps it, one without drops it.
+  "zensical~=0.1",
 ]
 
 [tool.complexipy]
