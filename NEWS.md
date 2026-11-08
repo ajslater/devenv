@@ -1,5 +1,28 @@
 # devenv News
 
+## v0.4.0
+
+### 💥 Breaking Changes
+
+> [!WARNING]
+>
+> - `common` no longer runs `bun run fix` and `bun run lint`; `node_root` runs
+>   them from its own `fix::` and `lint::`. A project with `common` and a
+>   `package.json` but without `node_root` has to run them itself.
+> - `node_root` requires `node`.
+
+### ✨ Added
+
+- A project needs bun only when it enables `node`. common's `make fix` and
+  `make lint` run without it, and `.prettierignore` comes from `node_root`.
+- `init-project.sh --no-defaults common [FEATURE ...]` sets up a project with
+  only the features listed, for a shell or Docker project with no Python and no
+  node. The starter `Makefile` has every feature include but common's commented
+  out, and `add_features.py` uncomments the chosen ones.
+- The `.gitignore` lines for Python, node and Docker come from those features,
+  so a project without them starts with a short one. A project that has the
+  lines keeps them.
+
 ## v0.3.4
 
 ### 🐛 Fixed
