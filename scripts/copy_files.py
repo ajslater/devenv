@@ -100,6 +100,35 @@ def _is_devenv_copy(src_file: Path, dest_file: Path) -> bool:
     )
 
 
+def _disabled_copies(
+    root_dir: Path, dest: Path, features: list[str]
+) -> Iterator[tuple[str, Path]]:
+    """
+    Yield (feature, path in dest) for each devenv copy of a disabled feature.
+
+    A path an enabled feature also ships is never yielded. Each path is
+    checked only when reached, so one that two disabled features ship and
+    the caller has already deleted is not yielded again.
+    """
+    enabled = {
+        dest_rel
+        for _feature, feature_dir in iter_feature_dirs(root_dir, features)
+        for _src, dest_rel in _shipped_files(feature_dir)
+    }
+    disabled = [feature for feature in FEATURES if feature not in features]
+    for feature, feature_dir in iter_feature_dirs(root_dir, disabled):
+        for src_file, dest_rel in _shipped_files(feature_dir):
+            if dest_rel not in enabled and _is_devenv_copy(src_file, dest / dest_rel):
+                yield feature, dest_rel
+
+
+def _remove_empty_dirs(dest: Path, rel_dirs: set[Path]) -> None:
+    """Remove each of rel_dirs under dest that is empty, deepest first."""
+    for rel_dir in sorted(rel_dirs, key=lambda path: len(path.parts), reverse=True):
+        if not any((dest / rel_dir).iterdir()):
+            (dest / rel_dir).rmdir()
+
+
 def delete_disabled_files(root_dir: Path, dest: Path, features: list[str]) -> None:
     """
     Delete what <root_dir>/<feature>/ ships for each feature dest does not enable.
@@ -108,23 +137,12 @@ def delete_disabled_files(root_dir: Path, dest: Path, features: list[str]) -> No
     stays, and so does a path an enabled feature also ships. Each deletion is
     printed. A directory goes only when these deletions leave it empty.
     """
-    enabled = {
-        dest_rel
-        for _feature, feature_dir in iter_feature_dirs(root_dir, features)
-        for _src, dest_rel in _shipped_files(feature_dir)
-    }
-    disabled = [feature for feature in FEATURES if feature not in features]
-    emptied: set[Path] = set()
-    for feature, feature_dir in iter_feature_dirs(root_dir, disabled):
-        for src_file, dest_rel in _shipped_files(feature_dir):
-            if dest_rel in enabled or not _is_devenv_copy(src_file, dest / dest_rel):
-                continue
-            (dest / dest_rel).unlink()
-            print(f"Deleted {dest_rel}: feature {feature} is off")  # noqa: T201
-            emptied.update(dest_rel.parents[:-1])
-    for rel_dir in sorted(emptied, key=lambda path: len(path.parts), reverse=True):
-        if not any((dest / rel_dir).iterdir()):
-            (dest / rel_dir).rmdir()
+    parents: set[Path] = set()
+    for feature, dest_rel in _disabled_copies(root_dir, dest, features):
+        (dest / dest_rel).unlink()
+        print(f"Deleted {dest_rel}: feature {feature} is off")  # noqa: T201
+        parents.update(dest_rel.parents[:-1])
+    _remove_empty_dirs(dest, parents)
 
 
 def main() -> None:
