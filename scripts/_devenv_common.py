@@ -5,12 +5,13 @@ import re
 import shutil
 import subprocess
 import sys
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Final
 lazy from collections.abc import Collection, Iterable, Iterator, Sequence
+
+import tomllib
 
 
 @dataclass(frozen=True, slots=True)
@@ -29,13 +30,13 @@ FEATURES: Final = MappingProxyType(
     {
         "django": Feature(requires=("python",)),
         "frontend": Feature(),
-        "python": Feature(default=True),
+        "python": Feature(),
         "ci": Feature(requires=("python",)),
         "gha_std": Feature(requires=("ci",)),
         "docker": Feature(),
         "docs": Feature(requires=("python",)),
-        "node": Feature(default=True),
-        "node_root": Feature(requires=("node",), default=True),
+        "node": Feature(),
+        "node_root": Feature(requires=("node",)),
         "common": Feature(default=True),
     }
 )
