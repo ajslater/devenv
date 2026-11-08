@@ -249,3 +249,25 @@ def test_missing_bun_fails_before_touching_the_project(
     with pytest.raises(SystemExit, match="bun"):
         _run_update(child, ("node", "node_root"), monkeypatch)
     assert not any(child.iterdir())
+
+
+@pytest.mark.parametrize("edited", [False, True], ids=["unchanged", "edited"])
+def test_dropping_node_deletes_the_files_it_shipped(
+    child: Path, monkeypatch: pytest.MonkeyPatch, *, edited: bool
+) -> None:
+    """Turning node and node_root off removes their files, not changed ones."""
+    _run_update(child, ("common", "node", "node_root"), monkeypatch)
+    node_mk = child / "cfg" / "node.mk"
+    if edited:
+        node_mk.write_text(f"{node_mk.read_text()}# The project's own line.\n")
+
+    _run_update(child, FEATURE_SETS["common-only"], monkeypatch)
+
+    for gone in (
+        "bin/kill-eslint_d.sh",
+        "cfg/eslint.config.base.js",
+        "cfg/node_root.mk",
+    ):
+        assert not (child / gone).exists()
+    assert node_mk.is_file() == edited
+    assert (child / "bin" / "fix.sh").is_file()

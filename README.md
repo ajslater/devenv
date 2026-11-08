@@ -111,6 +111,10 @@ version in `.devenv-version`. Commit that file. On the next update devenv prints
 its news since that version. With the `node` feature it stops any running
 eslint_d, which would go on linting with the ESLint config it loaded before.
 
+To turn a feature off, remove its include from the `Makefile` and update: devenv
+deletes each file that feature ships if it is still identical to devenv's copy,
+and keeps any the project changed.
+
 It also runs `bun update`, which bumps every node dependency. To keep versions
 as they are:
 

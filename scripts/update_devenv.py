@@ -15,7 +15,8 @@ Update a project by merging devenv templates and copying feature files.
 Main orchestrator that:
 1. Deletes obsolete files listed in remove_files.txt
 2. Merges dotfiles from merge/<feature>/
-3. Copies files from copy/<feature>/ and stops a running eslint_d
+3. Copies files from copy/<feature>/, deletes the unchanged files of
+   features the project does not enable, and stops a running eslint_d
 4. Merges config files (package.json, YAML, TOML)
 5. Runs formatters on merged files
 6. Stamps the project with devenv's version in .devenv-version
@@ -58,7 +59,7 @@ from _devenv_common import (
     run,
 )
 from _makefiles import format_makefiles, included_features
-from copy_files import copy_files
+from copy_files import copy_files, delete_disabled_files
 from merge_dotfiles import (
     merge_dotfiles,
     read_retired_lines,
@@ -254,6 +255,7 @@ def main(*, update_deps: bool = True) -> None:
 
     copied, file_skipped, _copied_paths = copy_files(devenv_src / "copy", pd, features)
     report_counts("Copied files", copied=copied, skipped=file_skipped)
+    delete_disabled_files(devenv_src / "copy", pd, features)
 
     # Sort ignore files with the sort-ignore.sh just copied, not the
     # project's old one.
