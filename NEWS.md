@@ -1,5 +1,15 @@
 # devenv News
 
+## v0.4.2
+
+### 🐛 Fixed
+
+- `make update-devenv` also retires the remark rules a child kept for itself:
+  `lint-no-duplicate-headings-in-section` with `lint-no-duplicate-headings` off,
+  and its package. `markdown/no-duplicate-headings` does their job. Left behind,
+  the `remarkConfig` turned on remark-language-server in editors, whose
+  formatting escaped GitHub alerts to `> \[!WARNING]`.
+
 ## v0.4.1
 
 ### ✨ Added

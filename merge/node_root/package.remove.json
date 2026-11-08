@@ -17,7 +17,9 @@
       "preset-lint-consistent",
       "preset-lint-markdown-style-guide",
       "preset-lint-recommended",
-      "preset-prettier"
+      "preset-prettier",
+      "lint-no-duplicate-headings-in-section",
+      ["lint-no-duplicate-headings", false]
     ]
   },
   "scripts": { "lint": ["bin/remark-for-claude.sh"] }
