@@ -529,14 +529,16 @@ def test_package_remove_values_prunes_emptied_containers() -> None:
 def test_package_remove_retires_remark() -> None:
     """@eslint/markdown replaced remark; retire its config, script and packages."""
     retired = json.loads(_PACKAGE_REMOVE.read_text())
-    assert set(retired["remarkConfig"]["plugins"]) == {
+    assert retired["remarkConfig"]["plugins"] == [
         "gfm",
         "lint",
         "preset-lint-consistent",
         "preset-lint-markdown-style-guide",
         "preset-lint-recommended",
         "preset-prettier",
-    }
+        "lint-no-duplicate-headings-in-section",
+        ["lint-no-duplicate-headings", False],
+    ]
     assert retired["scripts"]["lint"] == ["bin/remark-for-claude.sh"]
     removed_packages = set(_removed_node_packages())
     assert {
@@ -548,6 +550,32 @@ def test_package_remove_retires_remark() -> None:
         "remark-preset-lint-recommended",
         "remark-preset-prettier",
     } <= removed_packages
+
+
+def test_package_remove_retires_remark_leftovers() -> None:
+    """
+    A child's own remark rules go too; the whole remarkConfig vanishes.
+
+    markdown/no-duplicate-headings with checkSiblingsOnly does their job now.
+    Left behind, the config still turns on remark-language-server in editors,
+    and its formatting escapes the bracket of every GitHub alert marker.
+    """
+    data = {
+        "remarkConfig": {
+            "plugins": [
+                "lint-no-duplicate-headings-in-section",
+                ["lint-no-duplicate-headings", False],
+            ]
+        }
+    }
+    package = "remark-lint-no-duplicate-headings-in-section"
+    remove_packages = _ROOT / "remove_node_packages.txt"
+
+    merge_package_json.remove_values(data, json.loads(_PACKAGE_REMOVE.read_text()))
+
+    assert data == {}
+    assert package in read_lines(remove_packages, parse_version("0.4.1"))
+    assert package not in read_lines(remove_packages, parse_version("0.4.2"))
 
 
 def test_template_ships_no_removed_package() -> None:

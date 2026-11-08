@@ -17,3 +17,6 @@ eslint-import-resolver-alias
 
 # since 0.2.0
 eslint-plugin-package-json
+
+# since 0.4.2
+remark-lint-no-duplicate-headings-in-section
