@@ -164,8 +164,11 @@ off needs none: its unchanged `copy/` files go on their own.
   template has none (`mkdocs.configuration`, `tool.codespell.check-hidden`). An
   object under a `package.json` script swaps each command it names for its value
   in place, keeping only the first copy of the new command
-  (`merge/frontend/package.remove.json`). These files are not stamped: they
-  apply on every update.
+  (`merge/frontend/package.remove.json`). A retired TOML array item that an
+  enabled feature's template still ships stays, so python's remove file can
+  retire what moved to another feature: `zensical~=0.1` leaves the docs group of
+  projects without `docs`. These files are not stamped: they apply on every
+  update.
 
 The three `.txt` lists skip blank and `#` lines, and `# since X.Y.Z` marks the
 entries below it. A child stamped with that version or later skips them. When

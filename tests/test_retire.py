@@ -31,7 +31,7 @@ lazy from collections.abc import Sequence
 
 import pytest
 import update_devenv
-from _devenv_common import parse_version, read_lines
+from _devenv_common import FEATURES, parse_version, read_lines
 lazy import tomlkit
 
 from scripts import merge_package_json, merge_toml, merge_yaml
@@ -208,6 +208,17 @@ def test_remove_values_gives_a_retired_scalar_the_default() -> None:
     assert tomlkit.dumps(doc) == '[tool.a]\nx = "new"  # mine\nz = "old"\n'
 
 
+def test_remove_values_keeps_the_items_defaults_holds() -> None:
+    """A retired item that defaults holds stays, in an array or a comma list."""
+    doc = tomlkit.parse('[tool.a]\nx = ["old", "kept", "mine"]\ny = "old,kept"\n')
+    retired = tomlkit.parse('[tool.a]\nx = ["old", "kept"]\ny = ["old", "kept"]\n')
+    defaults = tomlkit.parse('[tool.a]\nx = ["kept"]\ny = "kept"\n')
+
+    merge_toml.remove_values(doc, retired, defaults)
+
+    assert tomlkit.dumps(doc) == '[tool.a]\nx = ["kept", "mine"]\ny = "kept"\n'
+
+
 def test_remove_values_drops_tables_retired_empty() -> None:
     """An empty retired table drops the table at its key path, whatever it holds."""
     doc = tomlkit.parse("""\
@@ -382,20 +393,68 @@ def test_docs_retires_mkdocs_from_pyproject(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
+    ("docs", "kept"),
+    [
+        # What devenv 0.3.0 through 0.4.2 merged into every python project.
+        (["zensical~=0.1"], None),
+        # What it merged before 0.3.0.
+        (["mkdocs~=1.6", "mkdocs-minify-plugin~=0.8"], None),
+        (["sphinx~=8.0", "zensical~=0.1"], ["sphinx~=8.0"]),
+    ],
+)
+def test_a_project_without_docs_drops_zensical(
+    tmp_path: Path, docs: list[str], kept: list[str] | None
+) -> None:
+    """Only the docs feature brings Zensical; the project's own specs stay."""
+    project = {"dependency-groups": {"test": ["mine~=1.0"], "docs": docs}}
+    (tmp_path / "pyproject.toml").write_text(tomlkit.dumps(project))
+
+    update_devenv.merge_config(_ROOT, tmp_path, ["python"], _pyproject_merge())
+
+    groups = tomlkit.parse((tmp_path / "pyproject.toml").read_text())
+    assert groups["dependency-groups"].get("docs") == kept
+
+
+def test_a_new_docs_project_gets_zensical(tmp_path: Path) -> None:
+    """Without a pyproject.toml, docs' template is the last file and still ships."""
+    features = ["python", "django", "frontend", "docs"]
+
+    update_devenv.merge_config(_ROOT, tmp_path, features, _pyproject_merge())
+
+    merged = tomlkit.parse((tmp_path / "pyproject.toml").read_text())
+    assert merged["dependency-groups"]["docs"] == ["zensical~=0.1"]
+
+
+def _implied(feature: str) -> set[str]:
+    """Return feature and every feature it requires, however indirectly."""
+    implied = {feature}
+    for required in FEATURES[feature].requires:
+        implied |= _implied(required)
+    return implied
+
+
+@pytest.mark.parametrize(
     "template",
     _TOML_TEMPLATES,
     ids=lambda path: f"{path.parent.name}/{path.name}",
 )
 def test_template_ships_no_retired_value(template: Path) -> None:
     """
-    No template may reintroduce what a remove file for the same output retires.
+    No remove file may retire what a template merged wherever it applies ships.
 
-    pyproject-template.toml faces every feature's pyproject-template.remove.toml,
-    since all of them merge into one pyproject.toml.
+    A feature's remove file applies wherever the feature does, and so do the
+    templates of the features it requires: docs' pyproject-template.remove.toml
+    faces both docs' and python's pyproject-template.toml. Retiring what one of
+    those ships would never take. python's may retire what only docs ships,
+    which a project keeps exactly when it enables docs.
     """
     doc = tomlkit.parse(template.read_text())
     before = tomlkit.dumps(doc)
-    removes = sorted((_ROOT / "merge").glob(f"*/{template.stem}.remove.toml"))
+    removes = sorted(
+        remove
+        for remove in (_ROOT / "merge").glob(f"*/{template.stem}.remove.toml")
+        if template.parent.name in _implied(remove.parent.name)
+    )
     if template.parent.name == "docs":
         assert removes
 

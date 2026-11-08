@@ -104,14 +104,17 @@ def test_unknown_feature_exits(project: Path) -> None:
 
 
 def test_init_adds_defaults_and_requested(project: Path) -> None:
-    """`init-project.sh docs ci` ends with both included, plus the defaults."""
-    features = add_features.add_features(["docs", "ci"], init=True, convert=False)
+    """`init-project.sh python docs ci` ends with them included, plus common."""
+    features = add_features.add_features(
+        ["python", "docs", "ci"], init=True, convert=False
+    )
 
-    assert features == ["python", "ci", "docs", "node", "node_root", "common"]
+    assert features == ["python", "ci", "docs", "common"]
     assert included_features(project / "Makefile") == features
     assert (project / "cfg" / "docs.mk").is_file()
-    assert (project / "eslint.config.js").is_file()
-    assert not (project / "eslint.config.init.js").exists()
+    assert (project / "pyproject.toml").is_file()
+    for name in ("package.json", "eslint.config.js", "eslint.config.init.js"):
+        assert not (project / name).exists(), name
 
 
 def test_init_without_defaults_sets_up_only_the_listed_features(
@@ -150,7 +153,7 @@ def test_init_keeps_existing_files(project: Path) -> None:
 
 def test_add_keeps_what_the_makefile_includes(project: Path) -> None:
     """Adding docker to a project keeps its existing features."""
-    add_features.add_features([], init=True, convert=False)
+    add_features.add_features(["python", "node", "node_root"], init=True, convert=False)
 
     features = add_features.add_features(["docker"], init=False, convert=False)
 

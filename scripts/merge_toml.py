@@ -532,6 +532,17 @@ def _default(defaults: Any, key: str) -> Any:
     return defaults.get(key) if _is_table_like(defaults) else None
 
 
+def _shipped(defaults: Any, key: str) -> frozenset[str]:
+    """Return the items of the array or comma-delimited string defaults holds at key."""
+    match _default(defaults, key):
+        case Array() | list() as array:
+            return frozenset(str(item) for item in array)
+        case String() | str() as text:
+            return frozenset(parse_comma_delimited(text))
+        case _:
+            return frozenset()
+
+
 def _retire_scalar(doc: Any, key: str, defaults: Any) -> None:
     """Give doc[key] the value defaults holds there, in place, or drop it."""
     if _is_table_like(defaults) and key in defaults:
@@ -545,14 +556,16 @@ def remove_values(doc: Any, retired: Any, defaults: Any = None) -> None:
     Remove retired values from doc, in place.
 
     retired mirrors doc's structure. An array in it lists values to drop from
-    the array, or from the comma-delimited string, at the same key path in doc.
-    An array, string or table emptied that way is removed, so a fully retired
-    key vanishes instead of lingering as `[]`, `""` or a bare `[tool.x]`. An
-    empty table drops the whole table at its key path, whatever it holds. Any
-    other value retires an equal value in doc: defaults' value at the same key
-    path takes its place, or without one the key goes. Missing keys are
-    ignored, the rest of each array keeps its order and formatting, and the
-    rest of each string keeps its order.
+    the array, or from the comma-delimited string, at the same key path in doc,
+    except those defaults still holds there: a value that one feature's
+    template ships and another feature's remove file retires leaves only the
+    projects without the first feature. An array, string or table emptied that
+    way is removed, so a fully retired key vanishes instead of lingering as
+    `[]`, `""` or a bare `[tool.x]`. An empty table drops the whole table at
+    its key path, whatever it holds. Any other value retires an equal value in
+    doc: defaults' value at the same key path takes its place, or without one
+    the key goes. Missing keys are ignored, the rest of each array keeps its
+    order and formatting, and the rest of each string keeps its order.
     """
     for key, value in retired.items():
         if key not in doc:
@@ -561,7 +574,8 @@ def remove_values(doc: Any, retired: Any, defaults: Any = None) -> None:
         if _is_table_like(value) and _is_table_like(target):
             _remove_table_values(doc, key, value, _default(defaults, key))
         elif isinstance(value, list | Array):
-            _remove_items(doc, key, frozenset(str(item) for item in value))
+            drop = frozenset(str(item) for item in value) - _shipped(defaults, key)
+            _remove_items(doc, key, drop)
         elif value == target:
             _retire_scalar(doc, key, defaults)
 
@@ -781,8 +795,9 @@ Comma-Delimited Strings:
         default=[],
         help=(
             "TOML file of retired values to drop from the merged result; may"
-            " repeat. A retired scalar takes what the earlier files give at"
-            " its key path, or goes."
+            " repeat. A retired array item the earlier files still give stays."
+            " A retired scalar takes what the earlier files give at its key"
+            " path, or goes."
         ),
     )
 

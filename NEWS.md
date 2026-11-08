@@ -1,5 +1,20 @@
 # devenv News
 
+## v0.4.3
+
+### 💥 Breaking Changes
+
+> [!WARNING]
+>
+> - `init-project.sh` and `convert-project.sh` set up only `common` and the
+>   features listed. List `python`, `node` and `node_root` for a project that
+>   needs them.
+
+### 🐛 Fixed
+
+- Projects without `docs` no longer get the `docs` dependency group or install
+  Zensical.
+
 ## v0.4.2
 
 ### 🐛 Fixed

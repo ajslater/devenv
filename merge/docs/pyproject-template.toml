@@ -1,2 +1,5 @@
+[dependency-groups]
+docs = ["zensical~=0.1"]
+
 [tool.uv.build-backend]
 source-include = [".readthedocs.yaml", "docs/**", "zensical.toml"]
