@@ -12,9 +12,13 @@ Legacy labels that map to the same section merge in their original order.
 To file items that have no label, put a `### ✨ Added` style heading above
 them by hand first.
 
+An item that raises the minimum Python or drops a Python version moves to its
+version's `### 💥 Breaking Changes`, from any section but Deprecated.
+
 It also adds the GitHub callouts: a `### 💥 Breaking Changes` section's items
-go inside a `> [!WARNING]`, and a version whose subtitle says it was yanked or
-broken gets a `> [!CAUTION]` body that repeats the subtitle, to reword by hand.
+go inside a `> [!WARNING]`, a `### 🗑️ Deprecated` section's inside a
+`> [!NOTE]`, and a version whose subtitle says it was yanked or broken gets a
+`> [!CAUTION]` body that repeats the subtitle, to reword by hand.
 
 The script is idempotent: converted headings, a section already in its
 callout and a version that already has a callout above its sections pass
@@ -42,7 +46,12 @@ SECTIONS: Final = (
 )
 SECTION_NAMES: Final = frozenset(name for name, _ in SECTIONS)
 # Sections whose items sit inside a callout, to its label.
-CALLOUTS: Final = {"Breaking Changes": "WARNING"}
+CALLOUTS: Final = {"Breaking Changes": "WARNING", "Deprecated": "NOTE"}
+# Sections a Python requirement item moves out of. A deprecated Python version
+# still works, so Deprecated keeps its items.
+REQUIREMENT_SOURCES: Final = tuple(
+    name for name, _ in SECTIONS if name not in {"Breaking Changes", "Deprecated"}
+)
 
 # Legacy list labels, trailing colon stripped, to standard sections.
 LEGACY: Final = {
@@ -127,6 +136,23 @@ HEADER_FIXES: Final = {"## v1.9.17 Broken build": "## v1.9.17 - Broken build"}
 LEGACY_INDENT: Final = 4
 HEADING_RE: Final = re.compile(r"^### (?:\S+ )?(?P<name>.+?)\s*$")
 SUBGROUP_RE: Final = re.compile(r"^(?P<indent> *)- (?P<label>.+):$")
+# An item that raises the minimum Python or drops a Python version. The verb
+# comes right before "Python" and a version follows it, so `Requires
+# typing-extensions only on Python 3.11`, `requires python-dateutil 3.0` and
+# `Support Python 3.14` do not match.
+PYTHON_REQUIREMENT_RE: Final = re.compile(
+    r"""
+    \b(?:
+        (?:requires?|minimum|drop(?:s|ped)?(?:\ support\ for)?|removed\ support\ for
+          |no\ longer\ supports?|stop(?:ped)?\ supporting
+          |(?:doesn|don)'t\ support|(?:does|do)\ not\ support)
+        \ python(?:\ version)?(?:\ is)?(?:\ now)?\ (?:>=\ ?)?v?\d
+      | python(?:\ version)?(?:\ is)?(?:\ now)?\ >=\ ?\d
+      | python\ v?\d[\d.]*\+?(?:\ or\ later)?\ is\ (?:now\ )?required
+    )
+    """,
+    re.IGNORECASE | re.VERBOSE,
+)
 # A header subtitle that marks a version as one not to use.
 YANKED_RE: Final = re.compile(
     r"\b(yanked|broken|bad release|mistaken release)\b", re.IGNORECASE
@@ -157,6 +183,23 @@ def _drop_subgroup_colons(lines: list[str]) -> list[str]:
         else:
             result.append(line)
     return result
+
+
+def _items(lines: list[str]) -> list[list[str]]:
+    """Split a section's lines into items, each with its indented lines."""
+    items: list[list[str]] = []
+    for line in lines:
+        if line.startswith(" ") and items:
+            items[-1].append(line)
+        else:
+            items.append([line])
+    return items
+
+
+def _is_python_requirement(item: list[str]) -> bool:
+    """Return whether a list item raises or drops a required Python version."""
+    text = " ".join(" ".join(item).split())
+    return text.startswith("- ") and bool(PYTHON_REQUIREMENT_RE.search(text))
 
 
 def _callout(label: str, lines: list[str]) -> list[str]:
@@ -228,6 +271,19 @@ class _Version:
             reason = f"{self.header}: unknown label or item: {line!r}"
             raise NewsError(reason)
 
+    def move_python_requirements(self) -> None:
+        """Move each Python requirement item to the end of Breaking Changes."""
+        breaking = self.sections["Breaking Changes"]
+        prefix = "> " if breaking and breaking[0].startswith("> [!") else ""
+        for name in REQUIREMENT_SOURCES:
+            kept = []
+            for item in _items(self.sections[name]):
+                if _is_python_requirement(item):
+                    breaking.extend(prefix + line for line in item)
+                else:
+                    kept += item
+            self.sections[name][:] = kept
+
     def lines(self) -> list[str]:
         """Return the converted header, its callout and sections."""
         out = [self.header, ""]
@@ -249,6 +305,7 @@ def convert_version(header: str, body: list[str]) -> list[str]:
     for line in body:
         if line.strip():
             version.add(line)
+    version.move_python_requirements()
     return version.lines()
 
 
