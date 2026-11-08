@@ -383,3 +383,59 @@ def test_lint_ci_without_workflows_needs_nothing(project: Project) -> None:
 
     assert result.returncode == 0, result.stderr
     assert "skipped" not in result.stderr
+
+
+# ---------------------------------------------------------------------------
+# common's lint.sh and fix.sh
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def common(project: Project) -> Project:
+    """Build a project with common's fix and lint scripts and no bun on PATH."""
+    project.install(
+        "common/_lib.sh",
+        "common/find-files.sh",
+        "common/find-sh.sh",
+        "common/fix.sh",
+        "common/lint.sh",
+        "common/sh-tools.sh",
+        "common/sort-ignore.sh",
+    )
+    project.fake("uv", "uvx", "shellcheck", "shellharden", "shfmt")
+    (project.root / "Makefile").write_text("all:\n")
+    (project.root / ".shellignore").write_text(_SHELLIGNORE)
+    # Scripts bun would run if common still asked it to; node_root runs them.
+    (project.root / "package.json").write_text(
+        '{"scripts": {"fix": "eslint_d --fix .", "lint": "eslint_d ."}}\n'
+    )
+    return project
+
+
+def test_lint_checks_make_and_shell_without_bun(common: Project) -> None:
+    """mbake, the shell tools and roman run; nothing node, so bun is not needed."""
+    result = common.script("lint.sh")
+
+    assert result.returncode == 0, result.stderr
+    assert [call["tool"] for call in common.calls()] == [
+        "uvx",
+        "shellcheck",
+        "shellharden",
+        "shfmt",
+        "uv",
+    ]
+    assert common.argvs("uvx")[0][:2] == ["mbake@latest", "validate"]
+    assert common.argvs("uv")[0][:2] == ["run", "bin/roman.py"]
+    # set -x traces every command the scripts run.
+    assert "bun" not in result.stderr
+
+
+def test_fix_formats_make_ignores_and_shell_without_bun(common: Project) -> None:
+    """mbake, sort-ignore and the shell tools run; nothing node."""
+    result = common.script("fix.sh")
+
+    assert result.returncode == 0, result.stderr
+    assert [call["tool"] for call in common.calls()] == ["uvx", "shellharden", "shfmt"]
+    assert common.argvs("uvx")[0][:2] == ["mbake@latest", "format"]
+    assert ".shellignore sorted" in result.stdout
+    assert "bun" not in result.stderr

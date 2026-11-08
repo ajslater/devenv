@@ -13,9 +13,12 @@ Makefile include cfg/<feature>.mk in the canonical order. With --init it first
 installs the starter files from init/<feature>/ without replacing any file the
 project already has. --convert also keeps an old Makefile and
 eslint.config.js as *.orig.* references before the starters take their place.
+A new project gets the default features too, unless --no-defaults limits it to
+the features listed; common must be among them.
 """
 
 import argparse
+import sys
 from pathlib import Path
 
 from _devenv_common import (
@@ -39,17 +42,22 @@ CONVERT_RENAMES = (
 )
 
 
-def resolve_features(requested: list[str], *, init: bool) -> list[str]:
+def resolve_features(
+    requested: list[str], *, init: bool, defaults: bool = True
+) -> list[str]:
     """
     Return the features the project ends up with, in canonical order.
 
     That is what the Makefile already includes plus the requested features,
     or the defaults when none are requested. A new project always gets the
-    defaults.
+    defaults, unless defaults is off: then it gets only the requested
+    features, which must include common, since common holds update-devenv.
     """
     current = [] if init else included_features(Path("Makefile"))
-    defaults = DEFAULT_FEATURES if init or not requested else ()
-    wanted = {*current, *defaults, *requested}
+    default_features = DEFAULT_FEATURES if defaults and (init or not requested) else ()
+    wanted = {*current, *default_features, *requested}
+    if not defaults and "common" not in wanted:
+        sys.exit("devenv: --no-defaults still needs common, which holds update-devenv")
     exit_on_unmet_requirements(wanted)
     return [name for name in FEATURES if name in wanted]
 
@@ -62,9 +70,11 @@ def _keep_old_files() -> None:
             print(f"Kept old {name} as {orig_name}")  # noqa: T201
 
 
-def add_features(requested: list[str], *, init: bool, convert: bool) -> list[str]:
+def add_features(
+    requested: list[str], *, init: bool, convert: bool, defaults: bool = True
+) -> list[str]:
     """Add the features to the project in the current directory."""
-    features = resolve_features(requested, init=init or convert)
+    features = resolve_features(requested, init=init or convert, defaults=defaults)
     devenv_src = get_devenv_src()
     pd = Path.cwd()
     print(f"Features: {' '.join(features)}")  # noqa: T201
@@ -116,8 +126,18 @@ def main() -> None:
             " as *.orig.* files"
         ),
     )
+    parser.add_argument(
+        "--no-defaults",
+        action="store_true",
+        help="Set up only the listed features, not the defaults; common is required",
+    )
     args = parser.parse_args()
-    add_features(args.features, init=args.init, convert=args.convert)
+    add_features(
+        args.features,
+        init=args.init,
+        convert=args.convert,
+        defaults=not args.no_defaults,
+    )
 
 
 if __name__ == "__main__":

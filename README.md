@@ -30,7 +30,14 @@ cd new_project
 This creates a git repo if there is none, installs starter files from `init/`,
 copies the feature files, makes the `Makefile` include each feature, and runs a
 first `make update-devenv`. It gets the default features
-(`python node node_root common`) plus any listed.
+(`python node node_root common`) plus any listed. With `--no-defaults` it gets
+only the features listed, which must include `common`:
+
+```sh
+../devenv/scripts/init-project.sh --no-defaults common docker
+```
+
+sets up a shell or Docker project with no Python and no node toolchain.
 
 ### Converting a project that used my old boilerplate scripts
 
@@ -63,18 +70,18 @@ Each feature is a `DEVENV_<FEATURE>` flag, set by including `cfg/<feature>.mk`
 in the project `Makefile`. A feature that needs another refuses to run without
 it: `add_features.py` and `update-devenv` stop with a one-line message.
 
-| Feature     | Adds                                                    | Requires |
-| ----------- | ------------------------------------------------------- | -------- |
-| `common`    | lint, fix, clean, `update-devenv`, help, ignore files   |          |
-| `python`    | uv install, lint, typecheck, test, build and publish    |          |
-| `node`      | bun install and update, eslint_d                        |          |
-| `node_root` | the root `package.json` and the base eslint config      |          |
-| `docs`      | Zensical build and serve                                | `python` |
-| `frontend`  | install, lint, test and build in `frontend/`            |          |
-| `django`    | djlint, `bin/pm`, collectstatic before the python build | `python` |
-| `docker`    | hadolint and dockerfmt over every Dockerfile            |          |
-| `ci`        | the GitHub Actions building blocks below                | `python` |
-| `gha_std`   | the standard `ci.yml` that uses them                    | `ci`     |
+| Feature     | Adds                                                                                          | Requires |
+| ----------- | --------------------------------------------------------------------------------------------- | -------- |
+| `common`    | lint, fix, clean, `update-devenv`, help, ignore files, Makefile and shell script lint and fix |          |
+| `python`    | uv install, lint, typecheck, test, build and publish                                          |          |
+| `node`      | bun install and update, eslint_d                                                              |          |
+| `node_root` | the root `package.json`, eslint and prettier over JS, JSON, Markdown, TOML and YAML           | `node`   |
+| `docs`      | Zensical build and serve                                                                      | `python` |
+| `frontend`  | install, lint, test and build in `frontend/`                                                  |          |
+| `django`    | djlint, `bin/pm`, collectstatic before the python build                                       | `python` |
+| `docker`    | hadolint and dockerfmt over every Dockerfile                                                  |          |
+| `ci`        | the GitHub Actions building blocks below                                                      | `python` |
+| `gha_std`   | the standard `ci.yml` that uses them                                                          | `ci`     |
 
 The order of the includes matters, and `add_features.py` keeps it: `OVERRIDE_*`
 is read when `python.mk` is parsed, and `::` recipes run in include order, so

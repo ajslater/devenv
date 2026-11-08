@@ -22,11 +22,16 @@ def test_include_uncomments_in_place() -> None:
         "include cfg/python.mk",
         "include cfg/ci.mk",
         "include cfg/docs.mk",
-        "include cfg/node.mk",
-        "include cfg/node_root.mk",
         "include cfg/common.mk",
         "include cfg/help.mk",
     ]
+
+
+def test_starter_makefile_includes_only_common() -> None:
+    """Every feature include but common's is commented out, so init can choose."""
+    assert _includes(_INIT_MAKEFILE) == ["include cfg/common.mk", "include cfg/help.mk"]
+    assert "# include cfg/python.mk" in _INIT_MAKEFILE
+    assert "# include cfg/node_root.mk" in _INIT_MAKEFILE
 
 
 def test_include_inserts_missing_lines_in_order() -> None:
@@ -62,9 +67,11 @@ def test_include_never_removes_or_reorders() -> None:
 def test_included_features_ignores_comments(tmp_path: Path) -> None:
     """Only live includes count as enabled."""
     makefile = tmp_path / "Makefile"
-    makefile.write_text(_INIT_MAKEFILE)
+    makefile.write_text(
+        _INIT_MAKEFILE.replace("# include cfg/docker.mk", "include cfg/docker.mk")
+    )
 
-    assert included_features(makefile) == ["python", "node", "node_root", "common"]
+    assert included_features(makefile) == ["docker", "common"]
 
 
 @pytest.fixture
@@ -79,6 +86,13 @@ def test_unmet_requirement_exits_before_copying(project: Path) -> None:
     """Django without python fails with one line naming the gap."""
     with pytest.raises(SystemExit, match="'django' requires 'python'"):
         add_features.add_features(["django"], init=False, convert=False)
+    assert not any(project.iterdir())
+
+
+def test_node_root_requires_node(project: Path) -> None:
+    """node_root's package.json is installed by node's bun install."""
+    with pytest.raises(SystemExit, match="'node_root' requires 'node'"):
+        add_features.add_features(["node_root"], init=False, convert=False)
     assert not any(project.iterdir())
 
 
@@ -98,6 +112,29 @@ def test_init_adds_defaults_and_requested(project: Path) -> None:
     assert (project / "cfg" / "docs.mk").is_file()
     assert (project / "eslint.config.js").is_file()
     assert not (project / "eslint.config.init.js").exists()
+
+
+def test_init_without_defaults_sets_up_only_the_listed_features(
+    project: Path,
+) -> None:
+    """`init-project.sh --no-defaults common docker` is a bash project."""
+    features = add_features.add_features(
+        ["docker", "common"], init=True, convert=False, defaults=False
+    )
+
+    assert features == ["docker", "common"]
+    assert included_features(project / "Makefile") == features
+    assert (project / "cfg" / "docker.mk").is_file()
+    assert (project / "bin" / "sh-tools.sh").is_file()
+    for name in ("pyproject.toml", "package.json", "eslint.config.js"):
+        assert not (project / name).exists(), name
+
+
+def test_init_without_defaults_needs_common(project: Path) -> None:
+    """Common holds update-devenv, so a project without it cannot update."""
+    with pytest.raises(SystemExit, match="needs common"):
+        add_features.add_features(["docker"], init=True, convert=False, defaults=False)
+    assert not any(project.iterdir())
 
 
 def test_init_keeps_existing_files(project: Path) -> None:

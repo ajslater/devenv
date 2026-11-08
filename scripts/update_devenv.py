@@ -240,7 +240,7 @@ def main(*, update_deps: bool = True) -> None:
     if not features:
         sys.exit(NO_FEATURES)
     exit_on_unmet_requirements(features)
-    uses_node = "node_root" in features or (pd / "package.json").is_file()
+    uses_node = "node" in features or (pd / "package.json").is_file()
     if uses_node and (missing := missing_tools(NODE_TOOLS)):
         sys.exit(f"devenv: install {' and '.join(missing)} first: brew install bun")
 

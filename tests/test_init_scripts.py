@@ -71,6 +71,20 @@ def test_init_without_node_does_not_fail(project: Path) -> None:
     assert result.returncode == 0, result.stderr
 
 
+def test_init_without_defaults_makes_a_bash_project(project: Path) -> None:
+    """--no-defaults common leaves python and node out of a shell project."""
+    result = _run("init-project.sh", project, "--no-defaults", "common")
+
+    assert result.returncode == 0, result.stderr
+    makefile = (project / "Makefile").read_text()
+    assert "include cfg/common.mk\n" in makefile
+    assert "# include cfg/python.mk\n" in makefile
+    assert "# include cfg/node_root.mk\n" in makefile
+    assert (project / "bin" / "sh-tools.sh").is_file()
+    for name in ("pyproject.toml", "package.json", "eslint.config.js"):
+        assert not (project / name).exists(), name
+
+
 def test_init_rejects_an_unmet_requirement_before_changing_files(
     project: Path,
 ) -> None:

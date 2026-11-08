@@ -35,7 +35,7 @@ FEATURES: Final = MappingProxyType(
         "docker": Feature(),
         "docs": Feature(requires=("python",)),
         "node": Feature(default=True),
-        "node_root": Feature(default=True),
+        "node_root": Feature(requires=("node",), default=True),
         "common": Feature(default=True),
     }
 )
