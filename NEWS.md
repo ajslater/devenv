@@ -23,6 +23,14 @@
   so a project without them starts with a short one. A project that has the
   lines keeps them.
 
+## v0.3.5
+
+### ✨ Added
+
+- `scripts/news_normalize.py` wraps `🗑️ Deprecated` items in a `> [!NOTE]` and
+  moves items that raise or drop the required Python version to
+  `💥 Breaking Changes`.
+
 ## v0.3.4
 
 ### 🐛 Fixed

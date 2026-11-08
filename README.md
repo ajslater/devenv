@@ -209,9 +209,11 @@ that is also the site's index, should use only callouts.
 > that starts with a literal `[!TIP]`, and Zensical an admonition whose title is
 > the whole text.
 
-`NEWS.md` wraps each `💥 Breaking Changes` section's items in a `> [!WARNING]`
-and a yanked release's body in a `> [!CAUTION]`, both in that form, and devenv's
-`scripts/news_normalize.py` adds them to an existing `NEWS.md`.
+`NEWS.md` wraps each `💥 Breaking Changes` section's items in a `> [!WARNING]`,
+each `🗑️ Deprecated` section's in a `> [!NOTE]` and a yanked release's body in a
+`> [!CAUTION]`, all in that form. A change to the required Python version is a
+breaking change. devenv's `scripts/news_normalize.py` adds the callouts to an
+existing `NEWS.md` and moves Python requirement items to Breaking Changes.
 
 ### Other scripts
 
