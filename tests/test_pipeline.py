@@ -24,6 +24,8 @@ FEATURE_SETS = {
     "defaults": ("common", "node", "node_root", "python"),
     "no-python": ("common", "docker", "node", "node_root"),
     "no-node-root": ("common", "node"),
+    "common-only": ("common",),
+    "bash-docker": ("common", "docker"),
     "django-no-frontend": ("django", "python"),
     "all": tuple(FEATURES),
 }
@@ -215,6 +217,19 @@ def test_no_features_fails_before_touching_the_project(
     with pytest.raises(SystemExit, match="make update-devenv"):
         _run_update(child, (), monkeypatch)
     assert not any(child.iterdir())
+
+
+def test_a_bash_only_child_gets_no_python_or_node_ignores(
+    child: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Common's .gitignore holds only what every project leaves behind."""
+    _run_update(child, FEATURE_SETS["common-only"], monkeypatch)
+
+    lines = (child / ".gitignore").read_text().splitlines()
+    assert ".DS_Store" in lines
+    assert "__pycache__/" not in lines
+    assert "node_modules" not in lines
+    assert not (child / ".prettierignore").exists()
 
 
 def test_unmet_requirement_fails_before_touching_the_project(
