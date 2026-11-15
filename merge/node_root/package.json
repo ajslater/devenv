@@ -53,7 +53,7 @@
     "@eslint/markdown": "^8.0.3",
     "@fsouza/prettierd": "^0.29.0",
     "@prettier/plugin-xml": "^3.4.2",
-    "@stylistic/eslint-plugin": "^5.3.1",
+    "@stylistic/eslint-plugin": "^6.0.0",
     "eslint": "^10.9.0",
     "eslint_d": "^15.0.1",
     "eslint-config-prettier": "^10.1.1",
