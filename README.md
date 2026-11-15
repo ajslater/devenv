@@ -91,6 +91,12 @@ django's collectstatic runs before the python build. collectstatic first runs
 `build-frontend`, which does nothing unless the frontend feature or the
 project's own `cfg/<project>.mk` defines it.
 
+With `frontend`, the root `make lint` and `make fix` skip `frontend/`: ESLint
+gets `--ignore-pattern frontend/` and `.prettierignore` lists it. They run
+`make -C frontend lint` and `fix` instead, so `frontend/` has to run ESLint and
+Prettier itself, through `node_root` in `frontend/Makefile` or its own `lint::`
+and `fix::` in a project `.mk`.
+
 ## Use
 
 Everything is done via the makefile.
