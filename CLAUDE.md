@@ -95,6 +95,13 @@ refuse an unknown feature or an unmet requirement.
 A child's `cfg/<project>.mk` that devenv does not ship (codex's `cfg/codex.mk`)
 is project-owned; put project-specific targets there, never in a feature `.mk`.
 
+With `frontend`, the root lint and fix skip `frontend/`
+(`merge/frontend/package.json` passes `--ignore-pattern frontend/` and
+`merge/frontend/.prettierignore` lists it) and run `make -C frontend lint` and
+`fix`, so `frontend/` must run ESLint and Prettier itself. Codex is the only
+frontend project; its frontend went unlinted from Oct 18 until codex PR #1022
+hooked them into `frontend/cfg/codex-frontend.mk`.
+
 ### Key Directories
 
 - `copy/<feature>/` — files copied to child projects on every update: `bin/`
@@ -201,3 +208,7 @@ Broadening a dotfile pattern therefore needs no retirement entry. A file with a
   must change nothing
 - Shell script tests run under both the bash on PATH and `/bin/bash` 3.2
   (`tests/conftest.py`); every `copy/*/bin` script must work on bash 3.2
+- `tests/test_eslint_stylistic.py` pins the `@stylistic/*` rules the shipped
+  base config leaves on. When a `@stylistic/eslint-plugin` bump fails it, turn
+  the new rule off in `devenv/prettier-owns-stylistic` if it fights Prettier, or
+  add it to `_KEPT`

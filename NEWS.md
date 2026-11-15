@@ -1,5 +1,17 @@
 # devenv News
 
+## v0.4.4
+
+### ✨ Added
+
+- The README says a `frontend` project's `frontend/` must run ESLint and
+  Prettier itself; the root lint and fix skip it.
+
+### 🐛 Fixed
+
+- `make lint` no longer fails on `@stylistic/list-style` errors that `make fix`
+  cannot clear.
+
 ## v0.4.3
 
 ### 💥 Breaking Changes
