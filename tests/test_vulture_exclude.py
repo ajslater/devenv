@@ -37,12 +37,13 @@ def _excluded(checkout: str, path: str) -> bool:
         "dist/pkg/mod.py",
         "frontend/pkg/mod.py",
         "site/pkg/mod.py",
+        "tasks/plan.py",
         "test-results/pkg/mod.py",
         "typings/pkg/mod.py",
     ],
 )
 def test_vulture_excludes(checkout: str, path: str) -> None:
-    """Files under dependency, virtualenv, build and cache dirs are not scanned."""
+    """Dependency, virtualenv, build, cache and plan dirs are not scanned."""
     assert _excluded(checkout, path)
 
 

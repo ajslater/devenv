@@ -1,5 +1,13 @@
 # devenv News
 
+## v0.4.5
+
+### 🐛 Fixed
+
+- `make lint` and `make fix` skip `tasks/` in every tool. ruff, basedpyright,
+  ty, vulture, radon and the shell, Dockerfile and Django template checks now
+  leave it alone, as ESLint, Prettier and codespell already did.
+
 ## v0.4.4
 
 ### ✨ Added
