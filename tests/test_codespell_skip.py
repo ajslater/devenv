@@ -32,6 +32,7 @@ _SKIPPED = (
     "node_modules/pkg/index.js",
     "package.json",
     "pkg/node_modules/pkg/index.js",
+    "tasks/plan.md",
     "test-results/results.xml",
     "typings/mod.pyi",
     "uv.lock",

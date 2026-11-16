@@ -58,6 +58,7 @@ exclude = [
   "dist",
   "frontend",
   "site",
+  "tasks",
   "test-results",
   "typings",
   "vulture_ignorelist.py"
@@ -127,8 +128,8 @@ pythonpath = ["."]
 [tool.radon]
 # radon skips hidden dirs and files itself.
 exclude = """
-  *~,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*
-  ,vulture_ignorelist.py
+  *~,config/*,dist/*,frontend/*,node_modules/*,site/*,tasks/*,test-results/*
+  ,typings/*,vulture_ignorelist.py
   """
 
 [tool.ruff]
@@ -137,6 +138,7 @@ extend-exclude = [
   "**/.*",
   "frontend",
   "site",
+  "tasks",
   "test-results",
   "typings",
   "vulture_ignorelist.py"
@@ -264,6 +266,7 @@ exclude = [
   "**/.*",
   "frontend",
   "site",
+  "tasks",
   "test-results",
   "typings",
   "vulture_ignorelist.py"
@@ -282,6 +285,7 @@ exclude = [
   "*/frontend/*",
   "*/node_modules/*",
   "*/site/*",
+  "*/tasks/*",
   "*/test-results/*",
   "*/typings/*"
 ]
