@@ -182,6 +182,33 @@ picopt
 The script then looks at no other directory, and it reports a listed name that
 is not a devenv project. Projects named on the command line must be on the list.
 
+### Fixing a directory that is not a project
+
+A directory of loose scripts, such as `~/bin`, can borrow the shell and Python
+fixes without becoming a devenv project:
+
+```sh
+../devenv/scripts/fix-dir.sh [--lint] [DIR]
+```
+
+It runs `bin/sh-tools.sh --fix` (or `--lint`) and then ruff, from devenv's own
+`lint` group, in `DIR`, the current directory by default. Fix mode lists what
+ruff cannot fix without stopping, so the format still runs; `--lint` fails on
+it. Nothing is copied into `DIR`. It picks its own files and rules: a
+`.shellignore` as above, and a ruff config such as this `.ruff.toml`, which
+takes devenv's rules and loosens them for scripts:
+
+```toml
+extend = "~/Code/devenv/pyproject.toml"
+# The oldest python3 that runs these scripts. devenv's own target is newer.
+target-version = "py312"
+
+[lint]
+extend-ignore = ["D103", "T201"]
+```
+
+Without one, ruff uses its defaults.
+
 ### Shell scripts
 
 `make fix-sh` and `make lint-sh` run shellharden, shfmt and (lint only)

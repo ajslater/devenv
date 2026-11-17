@@ -153,6 +153,10 @@ third-party import (including through sibling modules) to be declared.
   a git-ignored `.update-children` in the main checkout limits it to the names
   it lists; it skips projects with uncommitted changes unless `--dirty`, and
   drops `VIRTUAL_ENV` and `DEVENV_<FEATURE>` from their environment
+- `fix-dir.sh` — fixes or lints (`--lint`) a directory that is not a devenv
+  project, such as `~/bin`: runs `copy/common/bin/sh-tools.sh` there, then ruff
+  from devenv's `lint` group, which reads the directory's own ruff config;
+  copies nothing in
 
 In every merger the project's file is passed last and its values win.
 
