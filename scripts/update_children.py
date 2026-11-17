@@ -9,6 +9,11 @@ The projects are the directories beside devenv's main checkout whose Makefile
 includes cfg/common.mk, which defines update-devenv. Run from a worktree, it
 still looks beside the main checkout, and updates them from the worktree.
 
+A .update-children file in the main checkout, which git ignores, limits the
+run to the projects it names, one per line; blank and `#` lines are skipped.
+No other directory is looked at, and a listed name that is not a project is
+reported.
+
 --update and --fix follow with `make update` and `make fix`, each skipped where
 the project has no such target. A project with uncommitted changes is skipped
 unless --dirty is given, so devenv's changes never mix with work in progress.
@@ -27,10 +32,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
-    lazy from collections.abc import Mapping, Sequence
+    lazy from collections.abc import Iterable, Mapping, Sequence
 
-from _devenv_common import get_devenv_src
+from _devenv_common import get_devenv_src, read_lines
 
+# The names of the projects to update, in devenv's main checkout.
+LIST_FILE: Final = ".update-children"
 _COMMON_INCLUDE_RE: Final = re.compile(r"^include\s+cfg/common\.mk\s*$", re.MULTILINE)
 _NO_RULE: Final = "No rule to make target"
 _INTERRUPTED: Final = 130
@@ -63,8 +70,8 @@ class Result:
     notes: list[str] = field(default_factory=list)
 
 
-def code_root(devenv_src: Path) -> Path:
-    """Return the directory that holds devenv's main checkout and its projects."""
+def main_checkout(devenv_src: Path) -> Path:
+    """Return devenv's main checkout, which a worktree's git dir lives in."""
     if (devenv_src / ".git").exists():
         git_dir = subprocess.run(
             ["git", "rev-parse", "--path-format=absolute", "--git-common-dir"],  # noqa: S607
@@ -73,20 +80,34 @@ def code_root(devenv_src: Path) -> Path:
             text=True,
             check=True,
         ).stdout.strip()
-        return Path(git_dir).parent.parent
-    return devenv_src.parent
+        return Path(git_dir).parent
+    return devenv_src
 
 
-def find_projects(root: Path) -> list[Path]:
-    """Return the directories in root whose Makefile includes cfg/common.mk."""
-    return sorted(
-        path
-        for path in root.iterdir()
-        if (makefile := path / "Makefile").is_file()
-        and _COMMON_INCLUDE_RE.search(makefile.read_text(errors="replace"))
+def read_list(checkout: Path) -> list[str] | None:
+    """Return the names in the checkout's LIST_FILE, or None if it has none."""
+    path = checkout / LIST_FILE
+    return [Path(name).name for name in read_lines(path)] if path.is_file() else None
+
+
+def _is_project(path: Path) -> bool:
+    makefile = path / "Makefile"
+    return (
+        makefile.is_file()
+        and _COMMON_INCLUDE_RE.search(makefile.read_text(errors="replace")) is not None
         # Other devenv checkouts include it too, but update from themselves.
         and not (path / "scripts" / "update_devenv.py").is_file()
     )
+
+
+def find_projects(root: Path, names: Iterable[str] | None = None) -> list[Path]:
+    """
+    Return the directories in root whose Makefile includes cfg/common.mk.
+
+    Given names, only the directories so named are looked at.
+    """
+    paths = root.iterdir() if names is None else (root / name for name in names)
+    return sorted({path for path in paths if _is_project(path)})
 
 
 def git_state(project: Path) -> GitState:
@@ -202,14 +223,32 @@ def print_summary(results: Sequence[Result]) -> None:
         print(line.rstrip())  # noqa: T201
 
 
-def select(projects: Sequence[Path], names: Sequence[str], root: Path) -> list[Path]:
+def select(projects: Sequence[Path], names: Sequence[str], where: str) -> list[Path]:
     """Keep the named projects, or all of them when none are named."""
     if not names:
         return list(projects)
     wanted = {Path(name).name for name in names}
     if unknown := wanted - {p.name for p in projects}:
-        sys.exit(f"not devenv projects in {root}: {', '.join(sorted(unknown))}")
+        sys.exit(f"not devenv projects in {where}: {', '.join(sorted(unknown))}")
     return [p for p in projects if p.name in wanted]
+
+
+def projects_to_update(checkout: Path, names: Sequence[str]) -> tuple[list[Path], str]:
+    """Return the projects to update, and where they were looked for."""
+    root = checkout.parent
+    listed = read_list(checkout)
+    found = find_projects(root, listed)
+    if listed is None:
+        return select(found, names, str(root)), str(root)
+    path = checkout / LIST_FILE
+    if unknown := sorted(set(listed) - {p.name for p in found}):
+        print(  # noqa: T201
+            f"{path} lists what are not devenv projects in {root}: "
+            + ", ".join(unknown),
+            file=sys.stderr,
+        )
+    where = f"{root} listed in {path}"
+    return select(found, names, where), where
 
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
@@ -244,8 +283,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     """Update every selected project and return the exit status."""
     args = _parse_args(argv)
     devenv_src = get_devenv_src()
-    root = code_root(devenv_src)
-    projects = select(find_projects(root), args.projects, root)
+    projects, where = projects_to_update(main_checkout(devenv_src), args.projects)
     steps = [
         ["update-devenv"]
         + (["UPDATE_DEVENV_FLAGS=--no-update-deps"] if args.no_update_deps else []),
@@ -253,7 +291,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         *([["fix"]] if args.fix else []),
     ]
     env = child_env(devenv_src)
-    print(f"devenv: {devenv_src}\n{len(projects)} projects in {root}")  # noqa: T201
+    print(f"devenv: {devenv_src}\n{len(projects)} projects in {where}")  # noqa: T201
 
     # Appended one by one, so an interrupt still summarizes the projects done.
     results: list[Result] = []

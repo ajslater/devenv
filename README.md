@@ -168,6 +168,20 @@ each project's branch and how many files it left uncommitted. Run from a
 worktree, it updates the same projects, the ones beside the main checkout, from
 the worktree.
 
+To limit it to a set of projects, name them one per line in `.update-children`
+in devenv's main checkout. git ignores that file. Blank lines and `#` comments
+are skipped:
+
+```text
+# The projects update_children.py updates
+codex
+comicbox
+picopt
+```
+
+The script then looks at no other directory, and it reports a listed name that
+is not a devenv project. Projects named on the command line must be on the list.
+
 ### Shell scripts
 
 `make fix-sh` and `make lint-sh` run shellharden, shfmt and (lint only)
