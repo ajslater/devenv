@@ -147,6 +147,11 @@ third-party import (including through sibling modules) to be declared.
 - `merge_yaml.py` — round-trip (ruamel.yaml) merge of `.readthedocs.yaml` and
   `compose.yaml`
 - `copy_files.py` — the copy step; `_makefiles.py` — include editing and mbake
+- `update_children.py` — runs `make update-devenv` (then `update` and `fix` with
+  `-u` and `-f`) in each sibling of devenv's main checkout whose Makefile
+  includes `cfg/common.mk`, with `DEVENV_SRC` set to the checkout it runs from;
+  it skips projects with uncommitted changes unless `--dirty`, and drops
+  `VIRTUAL_ENV` and `DEVENV_<FEATURE>` from their environment
 
 In every merger the project's file is passed last and its values win.
 

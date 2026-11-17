@@ -151,6 +151,23 @@ Merging only adds:
 - **Ignore files** are sorted bytewise (`LC_ALL=C`) with negations last, and a
   pattern that another one already covers is dropped.
 
+### Updating every project
+
+From devenv, this runs `make update-devenv` in every project beside it, each
+sibling directory whose `Makefile` includes `cfg/common.mk`:
+
+```sh
+uv run scripts/update_children.py
+```
+
+`--update` and `--fix` follow it with `make update` and `make fix` where the
+project has those targets. Name projects to update only those; `--dry-run` lists
+what would run. A project with uncommitted changes is skipped unless you pass
+`--dirty`, and a failure stops only that project. The summary at the end gives
+each project's branch and how many files it left uncommitted. Run from a
+worktree, it updates the same projects, the ones beside the main checkout, from
+the worktree.
+
 ### Shell scripts
 
 `make fix-sh` and `make lint-sh` run shellharden, shfmt and (lint only)
