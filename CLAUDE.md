@@ -150,8 +150,9 @@ third-party import (including through sibling modules) to be declared.
 - `update_children.py` — runs `make update-devenv` (then `update` and `fix` with
   `-u` and `-f`) in each sibling of devenv's main checkout whose Makefile
   includes `cfg/common.mk`, with `DEVENV_SRC` set to the checkout it runs from;
-  it skips projects with uncommitted changes unless `--dirty`, and drops
-  `VIRTUAL_ENV` and `DEVENV_<FEATURE>` from their environment
+  a git-ignored `.update-children` in the main checkout limits it to the names
+  it lists; it skips projects with uncommitted changes unless `--dirty`, and
+  drops `VIRTUAL_ENV` and `DEVENV_<FEATURE>` from their environment
 
 In every merger the project's file is passed last and its values win.
 

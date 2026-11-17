@@ -38,6 +38,7 @@
 .spyderproject
 .spyproject
 .tox/
+.update-children
 .uv-publish-env
 .venv*
 ENV/

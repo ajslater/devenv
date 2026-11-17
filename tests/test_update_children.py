@@ -90,17 +90,66 @@ def test_find_projects(code: Path) -> None:
     assert update_children.find_projects(code) == [code / "a", code / "b"]
 
 
-def test_code_root_from_a_worktree(tmp_path: Path, code: Path) -> None:
-    """A worktree inside the main checkout still finds the main checkout's peers."""
+def test_main_checkout_from_a_worktree(tmp_path: Path, code: Path) -> None:
+    """A worktree inside the main checkout still finds the main checkout."""
     devenv = code / "devenv"
     _git(devenv, "init", "-q", "-b", "main")
     _git(devenv, "commit", "-q", "--allow-empty", "-m", "first")
     worktree = devenv / ".claude" / "worktrees" / "feature"
     _git(devenv, "worktree", "add", "-q", "-b", "feature", str(worktree))
 
-    assert update_children.code_root(worktree) == code.resolve()
-    assert update_children.code_root(devenv) == code.resolve()
-    assert update_children.code_root(tmp_path) == tmp_path.parent
+    assert update_children.main_checkout(worktree) == devenv.resolve()
+    assert update_children.main_checkout(devenv) == devenv.resolve()
+    assert update_children.main_checkout(tmp_path) == tmp_path
+
+
+def test_list_file_limits_the_projects(
+    code: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Only listed projects run; a listed name that is no project is reported."""
+    for name in ("a", "b", "c"):
+        _project(code, name)
+    list_file = code / "devenv" / update_children.LIST_FILE
+    list_file.write_text("# mine\nc\n\na/\nnope\nc\n")
+
+    assert update_children.main([]) == 0
+
+    assert [line.split()[0] for line in _log(code)] == ["a", "c"]
+    out, err = capsys.readouterr()
+    assert f"2 projects in {code} listed in {list_file}" in out
+    assert err == f"{list_file} lists what are not devenv projects in {code}: nope\n"
+
+
+def test_list_file_bounds_named_projects(code: Path) -> None:
+    """A project left off the list cannot be named on the command line."""
+    _project(code, "a")
+    _project(code, "b")
+    (code / "devenv" / update_children.LIST_FILE).write_text("a\n")
+
+    with pytest.raises(SystemExit, match=r"not devenv projects in .* listed in .*: b"):
+        update_children.main(["b"])
+    assert not _log(code)
+
+
+def test_list_file_is_read_from_the_main_checkout(
+    code: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A worktree has no copy of the ignored list file, so the main one counts."""
+    devenv = code / "devenv"
+    _git(devenv, "init", "-q", "-b", "main")
+    _git(devenv, "commit", "-q", "--allow-empty", "-m", "first")
+    worktree = devenv / ".claude" / "worktrees" / "feature"
+    _git(devenv, "worktree", "add", "-q", "-b", "feature", str(worktree))
+    (devenv / update_children.LIST_FILE).write_text("b\n")
+    _project(code, "a")
+    _project(code, "b")
+    monkeypatch.setenv("DEVENV_SRC", str(worktree))
+
+    assert update_children.main([]) == 0
+
+    assert [line.split()[:3] for line in _log(code)] == [
+        ["b", "update-devenv", f"src={worktree.resolve()}"]
+    ]
 
 
 def test_runs_each_step_in_order(
