@@ -1,5 +1,15 @@
 # devenv News
 
+## v0.4.6
+
+### 🐛 Fixed
+
+- The python template no longer adds `pytest-asyncio` to the `test` group. No
+  project used it, and it printed an unset `asyncio_default_fixture_loop_scope`
+  deprecation warning from every pytest-xdist worker. A project that does not
+  use it can drop it, and `asyncio_mode` with it, since `--strict-config`
+  rejects that key once the plugin is gone.
+
 ## v0.4.5
 
 ### 🐛 Fixed
