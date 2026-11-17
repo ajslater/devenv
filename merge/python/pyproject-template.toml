@@ -26,7 +26,7 @@ lint = [
   # In lint for types
   "icecream~=2.1"
 ]
-test = ["coverage[toml]~=7.0", "pytest-asyncio~=1.0", "pytest-cov~=7.0"]
+test = ["coverage[toml]~=7.0", "pytest-cov~=7.0"]
 ci = []
 
 [build-system]

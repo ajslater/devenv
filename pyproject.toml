@@ -7,7 +7,7 @@ readme = "README.md"
 requires-python = ">=3.15"
 license = "MIT"
 name = "devenv"
-version = "0.4.5"
+version = "0.4.6"
 
 [[project.authors]]
 name = "AJ Slater"
@@ -44,7 +44,6 @@ lint = [
 test = [
   "coverage~=7.0",
   "mbake~=1.5.0",
-  "pytest-asyncio~=1.0",
   "pytest-cov~=7.0",
   "pyyaml~=6.0",
   "ruamel.yaml~=0.19.1",
@@ -161,7 +160,6 @@ junit_family = "xunit2"
 strict = true
 testpaths = ["tests"]
 pythonpath = [".", "scripts"]
-asyncio_mode = "strict"
 
 [tool.radon]
 exclude = "*~,config/*,dist/*,frontend/*,node_modules/*,site/*,test-results/*,typings/*,vulture_ignorelist.py,tasks/*"
